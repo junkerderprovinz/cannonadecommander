@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.4.2">
+  <!ENTITY version   "0.4.3">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
@@ -30,6 +30,12 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.4.3
+- Uninstall now cleans up the OPEN Docker tab fast: a lightweight liveness check
+  tears the injected UI down within a few seconds of the plugin's files being
+  removed, without needing a page reload (note: a tab still running an OLDER
+  cached script has no self-remove - hard-reload it once, Ctrl+Shift+R).
 
 ### 0.4.2
 - Thematically grouped columns and a cleaner look. Borderless MATERIAL badges
@@ -142,7 +148,7 @@ rm -rf &emhttp;
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>771ba70668fa9d5b4deb216a1ef92494c6e451830ec78d3fe094cd7c456c6a73</SHA256>
+  <SHA256>549c7d6371e8f3b61e825ad4be6fb6e7f771c5ad37b87d8f87d10b64c052e377</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

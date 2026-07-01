@@ -441,6 +441,10 @@
     // reinject id/Von + re-apply the advanced class on an Advanced/Basic flip
     // (Unraid's toggle has no reliable event, so poll the effective state)
     timers.push(setInterval(function () { try { if (dead || mode !== "list") return; var a = isAdvancedView(); if (a !== lastAdv) { lastAdv = a; applyEnhanceClasses(); reinjectRowBadges(); } } catch (e) {} }, 1500));
+    // FAST, UNGATED liveness: the moment the proxy 404/410s (uninstalled) tear the
+    // UI down — within ~4s, and NOT blocked by an open menu/popover like the 9s
+    // poll. This is what makes an uninstall visibly clean up the open tab quickly.
+    timers.push(setInterval(function () { try { if (dead) return; fetch(PROXY + "?path=" + encodeURIComponent("state"), { headers: { Accept: "application/json" } }).then(function (r) { if (r.status === 404 || r.status === 410) teardown(); }).catch(function () {}); } catch (e) {} }, 4000));
     timers.push(setInterval(function () { try { if (!dead && !openPop && mode === "grid") refreshStats(); } catch (e) {} }, 3500));
     timers.push(setInterval(function () { try { if (!dead && !openPop && !menu) load(); } catch (e) {} }, 9000));
   }

@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.2.1">
+  <!ENTITY version   "0.3.0">
   <!ENTITY launch    "Settings/cannonadecommander">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
@@ -32,6 +32,17 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.3.0
+- The native list is much richer now, and toggleable. Container state shows as a
+  localised badge (laeuft / gestoppt / erstellt / pausiert, following the Unraid
+  language), plus optional badges for network, IP, port, CPU and RAM. A gear menu
+  turns each column on or off (remembered), and an Advanced view adds the image,
+  the container ID and a force-update button (delegated to Unraid's own control).
+  A bit more spacing between rows. If ShipLog is installed, an update badge
+  (up-to-date / update, coloured by risk) is read from its status API - ShipLog
+  stays fully standalone; not installed simply means no badge.
+- Engine now reports each container's network, IP and published ports.
 
 ### 0.2.1
 - The native container LIST is the DEFAULT again and stays put: it is only
@@ -76,7 +87,7 @@ containers that route through it. Read-mostly; the only writes are start/stop.
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>004331aa927aa4699a34d9d092124b991b91d5d3b9970d16663623ecfc0dda7c</SHA256>
+  <SHA256>60e43686122c37f5d847875e69077250f3b1a8e7e7fde694c12d2161ccd184a3</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

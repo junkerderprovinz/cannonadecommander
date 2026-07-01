@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 
@@ -66,12 +67,26 @@ func apiError(resp *http.Response) error {
 	return fmt.Errorf("docker api: %s: %s", resp.Status, msg)
 }
 
+type apiPort struct {
+	PrivatePort int    `json:"PrivatePort"`
+	PublicPort  int    `json:"PublicPort"`
+	Type        string `json:"Type"`
+}
+
+type apiNetwork struct {
+	IPAddress string `json:"IPAddress"`
+}
+
 type apiContainer struct {
-	ID     string   `json:"Id"`
-	Names  []string `json:"Names"`
-	Image  string   `json:"Image"`
-	State  string   `json:"State"`
-	Status string   `json:"Status"`
+	ID              string    `json:"Id"`
+	Names           []string  `json:"Names"`
+	Image           string    `json:"Image"`
+	State           string    `json:"State"`
+	Status          string    `json:"Status"`
+	Ports           []apiPort `json:"Ports"`
+	NetworkSettings struct {
+		Networks map[string]apiNetwork `json:"Networks"`
+	} `json:"NetworkSettings"`
 }
 
 // List returns every container on the host (running or not).
@@ -90,15 +105,52 @@ func (c *Client) List(ctx context.Context) ([]model.Container, error) {
 	}
 	out := make([]model.Container, 0, len(raw))
 	for _, r := range raw {
+		net, ip := firstNetwork(r.NetworkSettings.Networks)
 		out = append(out, model.Container{
-			ID:     r.ID,
-			Name:   firstName(r.Names),
-			Image:  r.Image,
-			State:  r.State,
-			Health: healthFromStatus(r.Status),
+			ID:      r.ID,
+			Name:    firstName(r.Names),
+			Image:   r.Image,
+			State:   r.State,
+			Health:  healthFromStatus(r.Status),
+			Network: net,
+			IP:      ip,
+			Ports:   formatPorts(r.Ports),
 		})
 	}
 	return out, nil
+}
+
+// firstNetwork returns a deterministic primary network name + its IP.
+func firstNetwork(nets map[string]apiNetwork) (string, string) {
+	if len(nets) == 0 {
+		return "", ""
+	}
+	names := make([]string, 0, len(nets))
+	for k := range nets {
+		names = append(names, k)
+	}
+	sort.Strings(names)
+	return names[0], nets[names[0]].IPAddress
+}
+
+// formatPorts renders published ports as "public:private/proto" (or just
+// "private/proto" when unpublished), de-duplicated.
+func formatPorts(ports []apiPort) []string {
+	out := make([]string, 0, len(ports))
+	seen := map[string]bool{}
+	for _, p := range ports {
+		var s string
+		if p.PublicPort != 0 {
+			s = fmt.Sprintf("%d:%d/%s", p.PublicPort, p.PrivatePort, p.Type)
+		} else {
+			s = fmt.Sprintf("%d/%s", p.PrivatePort, p.Type)
+		}
+		if s != "" && !seen[s] {
+			seen[s] = true
+			out = append(out, s)
+		}
+	}
+	return out
 }
 
 // Inspect is the authoritative live state of one container.

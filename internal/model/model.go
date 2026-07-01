@@ -6,12 +6,15 @@ package model
 
 // Container is a Docker container as discovered on the host (read-only view).
 type Container struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	Image     string `json:"image"`
-	State     string `json:"state"`     // "running" / "exited" / "created" / ...
-	Health    string `json:"health"`    // "healthy" / "unhealthy" / "starting" / "none" / ""
-	Autostart bool   `json:"autostart"` // whether Unraid's native autostart owns it
+	ID        string   `json:"id"`
+	Name      string   `json:"name"`
+	Image     string   `json:"image"`
+	State     string   `json:"state"`     // "running" / "exited" / "created" / ...
+	Health    string   `json:"health"`    // "healthy" / "unhealthy" / "starting" / "none" / ""
+	Network   string   `json:"network"`   // primary docker network name, e.g. "bridge" / "br0.20"
+	IP        string   `json:"ip"`        // container IP on that network
+	Ports     []string `json:"ports"`     // published ports, e.g. "8080:80/tcp"
+	Autostart bool     `json:"autostart"` // whether Unraid's native autostart owns it
 }
 
 // ProbeKind is how the engine decides a container is "ready" so the next stage

@@ -14,7 +14,9 @@ func testServer(t *testing.T) (*Client, *httptest.Server) {
 	mux.HandleFunc("/v1.44/containers/json", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`[
-			{"Id":"aaa","Names":["/gluetun"],"Image":"qmcgaw/gluetun","State":"running","Status":"Up 2 hours (healthy)"},
+			{"Id":"aaa","Names":["/gluetun"],"Image":"qmcgaw/gluetun","State":"running","Status":"Up 2 hours (healthy)",
+			 "Ports":[{"PrivatePort":8000,"PublicPort":8888,"Type":"tcp"},{"PrivatePort":8000,"PublicPort":8888,"Type":"tcp"}],
+			 "NetworkSettings":{"Networks":{"br0.20":{"IPAddress":"192.168.20.51"}}}},
 			{"Id":"bbb","Names":["/sonarr"],"Image":"lscr.io/linuxserver/sonarr","State":"exited","Status":"Exited (0) 5 minutes ago"}
 		]`))
 	})
@@ -58,6 +60,12 @@ func TestList(t *testing.T) {
 	g := cs[0]
 	if g.Name != "gluetun" || g.State != "running" || g.Health != "healthy" {
 		t.Fatalf("gluetun parsed wrong: %+v", g)
+	}
+	if g.Network != "br0.20" || g.IP != "192.168.20.51" {
+		t.Fatalf("gluetun network/ip parsed wrong: %+v", g)
+	}
+	if len(g.Ports) != 1 || g.Ports[0] != "8888:8000/tcp" {
+		t.Fatalf("gluetun ports parsed/deduped wrong: %v", g.Ports)
 	}
 	if cs[1].Name != "sonarr" || cs[1].State != "exited" || cs[1].Health != "" {
 		t.Fatalf("sonarr parsed wrong: %+v", cs[1])

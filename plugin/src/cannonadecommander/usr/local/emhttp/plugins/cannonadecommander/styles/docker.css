@@ -146,5 +146,6 @@
 .cc-life { display: inline-flex; gap: 6px; }
 .cc-card-badges { display: flex; flex-wrap: wrap; gap: 6px; }
 
-/* a little more breathing room between containers in the native list */
-#docker_list > tr > td { padding-top: 7px; padding-bottom: 7px; }
+/* a little more breathing room, scoped ONLY to our injected cell (never restyle
+   Unraid's own table cells - that risks breaking its layout). */
+.cc-cell { margin: 5px 0; }

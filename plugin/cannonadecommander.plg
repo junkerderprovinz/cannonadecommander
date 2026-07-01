@@ -3,8 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.3.0">
-  <!ENTITY launch    "Settings/cannonadecommander">
+  <!ENTITY version   "0.3.1">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
@@ -16,7 +15,6 @@
 <PLUGIN name="&name;"
         author="&author;"
         version="&version;"
-        launch="&launch;"
         pluginURL="&pluginURL;"
         min="6.10.0"
         support="https://forums.unraid.net/">
@@ -32,6 +30,17 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.3.1
+- CRITICAL FIX: the row injection had stopped being idempotent, so the DOM
+  observer and the injection re-triggered each other in an infinite loop that
+  pegged the CPU and could hang the Docker tab. Injection is idempotent again and
+  the whole script is wrapped in try/catch, so if anything ever fails the native
+  page is left untouched; the native list is never hidden in List mode.
+- Removed the redundant Settings page (it could linger in the Settings menu after
+  an uninstall) - the tool lives in the Docker tab. Uninstall hardened (also
+  kills the daemon and removes its socket/pid). The startup log now prints the
+  brand ASCII banner.
 
 ### 0.3.0
 - The native list is much richer now, and toggleable. Container state shows as a
@@ -87,7 +96,7 @@ containers that route through it. Read-mostly; the only writes are start/stop.
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>60e43686122c37f5d847875e69077250f3b1a8e7e7fde694c12d2161ccd184a3</SHA256>
+  <SHA256>810244d71c2ada17f81d8c344c41622a3e560f8ccf910a0a9b3d75cc12e2f08c</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the
@@ -105,9 +114,10 @@ echo "CannonadeCommander &version; installed - open the Docker tab, or Settings 
 <REMOVE>
 <INLINE>
 &emhttp;/scripts/rc.&slug; stop 2>/dev/null
+pkill -f &slug; 2>/dev/null
 removepkg &slug; 2>/dev/null
 rm -rf &emhttp;
-rm -f &plgPath;/*.txz
+rm -f &plgPath;/*.txz /var/run/&slug;.pid /var/run/&slug;.sock
 echo "CannonadeCommander removed (start plan kept on the flash)."
 </INLINE>
 </REMOVE>

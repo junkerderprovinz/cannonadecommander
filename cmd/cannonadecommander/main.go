@@ -8,6 +8,7 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"io"
 	"log"
@@ -28,6 +29,13 @@ import (
 
 // version is overridden at build time with -ldflags "-X main.version=vX.Y.Z".
 var version = "dev"
+
+// bannerArt is the house brand ASCII banner (the shared "junkerderprovinz" art),
+// printed to the supervisor log on startup per the ASCII-init convention. It is
+// embedded from banner.txt, byte-identical to .github/assets/banner-raw.txt.
+//
+//go:embed banner.txt
+var bannerArt string
 
 const (
 	defaultDataDir    = "/boot/config/plugins/cannonadecommander"
@@ -106,12 +114,8 @@ func serve() {
 		_ = os.Remove(apiSock)
 	}()
 
-	log.Printf("========================================")
-	log.Printf(" CANNONADECOMMANDER %s IS READY", version)
-	log.Printf(" api    : %s", apiSock)
-	log.Printf(" data   : %s", dataDir)
-	log.Printf(" docker : %s", dockerSock)
-	log.Printf("========================================")
+	log.Print("\n" + bannerArt)
+	log.Printf("CANNONADECOMMANDER %s IS READY — api %s · data %s · docker %s", version, apiSock, dataDir, dockerSock)
 
 	if err := httpSrv.Serve(ln); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("cannonadecommander: serve: %v", err)

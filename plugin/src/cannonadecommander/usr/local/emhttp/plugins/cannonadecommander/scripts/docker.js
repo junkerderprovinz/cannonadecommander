@@ -160,19 +160,27 @@
   }
 
   // ───────────────────────── LIST mode
+  // IDEMPOTENT: only inject into a cell once (MARK guard). This is critical — the
+  // MutationObserver calls tagRows on every DOM change, so re-injecting here would
+  // trigger the observer again in an infinite loop that pegs the CPU and blocks
+  // Unraid's own list rendering. To refresh badges use retagRows() explicitly.
   function tagRows() {
     if (mode !== "list") return;
     findRows().forEach(function (tr) {
-      var name = rowName(tr), c = containerByName(name);
-      if (filterText) tr.style.display = (norm(name).indexOf(filterText) >= 0) ? "" : "none";
-      var cell = findUpdateCell(tr); if (!cell || !c) return;
-      var old = cell.querySelector(".cc-cell"); if (old) old.remove();
-      var box = el("div", "cc-cell");
-      renderBadges(c).forEach(function (n) { box.appendChild(n); });
-      cell.appendChild(box); cell.setAttribute(MARK, "1");
+      try {
+        var name = rowName(tr), c = containerByName(name);
+        if (filterText) tr.style.display = (norm(name).indexOf(filterText) >= 0) ? "" : "none";
+        var cell = findUpdateCell(tr);
+        if (!cell || !c || cell.getAttribute(MARK)) return; // already tagged → skip
+        cell.setAttribute(MARK, "1");
+        var box = el("div", "cc-cell");
+        renderBadges(c).forEach(function (n) { box.appendChild(n); });
+        cell.appendChild(box);
+      } catch (e) { /* one bad row must never break Unraid's page */ }
     });
   }
   function untagRows() { Array.prototype.slice.call(document.querySelectorAll("[" + MARK + "]")).forEach(function (cell) { cell.removeAttribute(MARK); var c = cell.querySelector(".cc-cell"); if (c) c.remove(); }); }
+  function retagRows() { untagRows(); tagRows(); } // explicit one-shot refresh
 
   // ───────────────────────── GRID mode
   function card(c) {
@@ -258,7 +266,12 @@
 
   function setMode(m) { mode = m; localStorage.setItem(VIEW_KEY, m); refresh(); }
   function refresh() { renderToolbar(); applyMode(); if (mode === "grid") refreshStats(); }
-  function applyMode() { if (mode === "grid") { hideNative(true); untagRows(); renderGrid(); } else { hideNative(false); if (gridHolder) gridHolder.innerHTML = ""; tagRows(); } }
+  function applyMode() {
+    try {
+      if (mode === "grid") { hideNative(true); untagRows(); renderGrid(); }
+      else { hideNative(false); if (gridHolder) gridHolder.innerHTML = ""; retagRows(); }
+    } catch (e) { try { hideNative(false); } catch (e2) {} } // never leave the native list hidden or broken
+  }
   function applyFilter() {
     if (mode === "grid") { if (gridHolder) Array.prototype.slice.call(gridHolder.querySelectorAll(".cc-card")).forEach(function (cd) { cd.style.display = (!filterText || norm(cd.dataset.name).indexOf(filterText) >= 0) ? "" : "none"; }); }
     else findRows().forEach(function (tr) { tr.style.display = (!filterText || norm(rowName(tr)).indexOf(filterText) >= 0) ? "" : "none"; });
@@ -267,7 +280,8 @@
     api("GET", "stats").then(function (m) {
       stats = m || {};
       if (mode === "grid" && gridHolder) Array.prototype.slice.call(gridHolder.querySelectorAll(".cc-card")).forEach(function (cd) { var s = stats[cd.dataset.name]; if (!s) return; var f = cd.querySelectorAll(".cc-gauge-fill"), v = cd.querySelectorAll(".cc-stat-val"); if (f[0]) f[0].style.width = Math.min(100, s.cpu_percent) + "%"; if (v[0]) v[0].textContent = (s.cpu_percent || 0) + "%"; if (f[1]) f[1].style.width = Math.min(100, s.mem_percent) + "%"; if (v[1]) v[1].textContent = humanBytes(s.mem_used) + " / " + humanBytes(s.mem_limit); });
-      else if (mode === "list") tagRows();
+      // In list mode the CPU/RAM badges refresh on the next full reload (below),
+      // NOT here — re-tagging every few seconds would churn the DOM needlessly.
     }).catch(function () {});
   }
 
@@ -317,7 +331,15 @@
   function flash(msg, bad) { if (statusEl) { statusEl.textContent = msg; statusEl.className = "cc-status " + (bad ? "cc-bad-text" : "cc-ok-text"); } }
 
   // ───────────────────────── run
-  function ensureMount() { mount = document.getElementById("cannonade-root"); if (!mount) { mount = el("div"); mount.id = "cannonade-root"; document.body.appendChild(mount); } var tb = nativeTable(); if (tb && tb.parentNode && mount.nextSibling !== tb) { try { tb.parentNode.insertBefore(mount, tb); } catch (e) {} } }
+  function ensureMount() {
+    mount = document.getElementById("cannonade-root");
+    if (!mount) { mount = el("div"); mount.id = "cannonade-root"; }
+    // Place our toolbar just above the native table ONLY when it's a real <table>
+    // element (inserting a div before a <table> is valid). Never reparent tbody
+    // rows or anything inside the table.
+    try { var tb = nativeTable(); if (tb && tb.tagName === "TABLE" && tb.parentNode && mount.parentNode !== tb.parentNode) tb.parentNode.insertBefore(mount, tb); } catch (e) {}
+    if (!mount.parentNode) document.body.appendChild(mount);
+  }
   function load() {
     return Promise.all([api("GET", "state"), loadShiplog()]).then(function (res) {
       indexState(res[0]); refresh();
@@ -325,13 +347,22 @@
     }).catch(function (e) { if (!mount) return; mount.className = "cc-root"; mount.innerHTML = ""; mount.appendChild(el("div", "cc-bar", "CannonadeCommander engine unreachable: " + e.message)); });
   }
   function boot() {
-    ensureMount(); load();
-    var mo = new MutationObserver(function () { if (mode === "list") tagRows(); });
-    try { mo.observe(document.body, { childList: true, subtree: true }); } catch (e) {}
-    setInterval(function () { if (!openPop) refreshStats(); }, 3500);
-    setInterval(function () { if (!openPop) load(); }, 9000);
-    document.addEventListener("click", function (e) { if (openPop && !openPop.contains(e.target) && !e.target.closest(".cc-chip")) closePop(); if (colMenu && !colMenu.contains(e.target) && !e.target.closest(".cc-gear")) closeColMenu(); });
-    document.addEventListener("keydown", function (e) { if (e.key === "Escape") { closePop(); closeColMenu(); } });
+    try {
+      ensureMount();
+      load();
+      // Debounced + idempotent: re-tag new rows Unraid renders, but never loop.
+      var pending = false;
+      var mo = new MutationObserver(function () {
+        if (mode !== "list" || pending) return;
+        pending = true;
+        setTimeout(function () { pending = false; try { tagRows(); } catch (e) {} }, 250);
+      });
+      try { var tb = nativeTable(); mo.observe(tb || document.body, { childList: true, subtree: true }); } catch (e) {}
+      setInterval(function () { try { if (!openPop && mode === "grid") refreshStats(); } catch (e) {} }, 3500);
+      setInterval(function () { try { if (!openPop) load(); } catch (e) {} }, 9000);
+      document.addEventListener("click", function (e) { try { if (openPop && !openPop.contains(e.target) && !e.target.closest(".cc-chip")) closePop(); if (colMenu && !colMenu.contains(e.target) && !e.target.closest(".cc-gear")) closeColMenu(); } catch (e2) {} });
+      document.addEventListener("keydown", function (e) { if (e.key === "Escape") { try { closePop(); closeColMenu(); } catch (e2) {} } });
+    } catch (e) { /* a failure here must never break Unraid's page */ }
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
 })();

@@ -41,8 +41,12 @@ Four pieces:
 
 - A **host supervisor** (a small Go daemon) that owns the dependency graph, talks
   to the Docker socket, and serves a localhost **unix-socket API**.
-- A **panel** injected into the Docker tab (and mirrored under Settings) where you
-  declare edges, a readiness probe, and a failure policy per container.
+- Unraid's **own container list, enhanced in place** — no bar or panel of our own.
+  Each row gets clean badges (the state doubles as a start/stop switch) and a chain
+  chip that opens a compact editor for that container's dependencies, readiness
+  probe and failure policy. A single **gear in the table header** holds every global
+  control: toggleable columns (update / network / IP / port / CPU / RAM and an
+  advanced set), a List/Grid switch, a filter, and **Save** / **Start in order**.
 - A **same-origin PHP proxy**: the browser only ever talks to the proxy, never to
   the Docker socket.
 - **Event hooks**: on `docker_started` (the daemon is confirmed up) the supervisor

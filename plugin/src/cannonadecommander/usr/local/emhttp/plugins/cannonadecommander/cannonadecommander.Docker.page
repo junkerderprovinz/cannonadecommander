@@ -1,6 +1,14 @@
 Menu="Docker"
-Title="CannonadeCommander"
+Icon="rocket"
+Tag="rocket"
 ---
+<?php
+/* CannonadeCommander - injected into Unraid's native Docker tab.
+   Like ShipLog, this page renders NO visible panel or section of its own (no
+   Title, no content div - that is what produced the stray "bars"). It only
+   loads the styles + the script, which enhance the existing container list in
+   place: a gear in the table header holds every global control, and each row
+   gets clean badges. Data comes from the same-origin PHP proxy. */
+?>
 <link type="text/css" rel="stylesheet" href="<?autov('/plugins/cannonadecommander/styles/docker.css')?>">
-<div id="cannonade-root" class="cc-panel">Loading CannonadeCommander&hellip;</div>
 <script defer src="<?autov('/plugins/cannonadecommander/scripts/docker.js')?>"></script>

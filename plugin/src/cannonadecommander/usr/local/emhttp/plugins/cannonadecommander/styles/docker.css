@@ -1,4 +1,6 @@
-/* CannonadeCommander - modern card-style Docker manager. IBM-Carbon dark. */
+/* CannonadeCommander - enhances Unraid's native Docker list in place. No bar or
+   section of our own: a single gear in the table header holds every global
+   control. IBM-Carbon dark. */
 
 .cc-root {
   --cc-bg: #161616;
@@ -13,15 +15,17 @@
   margin: 10px 0 18px;
 }
 
-/* ── toolbar ── */
-.cc-bar {
-  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-  background: var(--cc-bg); border: 1px solid var(--cc-line);
-  border-radius: 8px; padding: 9px 14px; margin-bottom: 12px;
+/* ── the one global control: a gear in the native table header ── */
+.cc-hgear {
+  background: transparent; border: none; color: var(--cc-dim, #8a8a8a);
+  cursor: pointer; font-size: 15px; line-height: 1; padding: 0 4px; margin-left: 6px;
+  vertical-align: middle; transition: color .12s; -webkit-appearance: none; appearance: none;
 }
-.cc-bar .cc-title { font-weight: 600; letter-spacing: .2px; }
-.cc-status { font-size: 12px; }
-.cc-spacer { flex: 1; }
+.cc-hgear:hover { color: var(--cc-accent, #ff8c2f); }
+.cc-hgear-th { float: right; }
+.cc-hgear-float { position: absolute; top: 4px; right: 8px; z-index: 20; }
+.cc-hgear-grid { position: absolute; top: 8px; right: 10px; z-index: 20; font-size: 16px; }
+
 .cc-ok-text { color: #52c17a; }
 .cc-bad-text { color: #d9534f; }
 .cc-filter {
@@ -46,7 +50,8 @@
 .cc-cell { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 3px; font: 12px/1.4 "Segoe UI", system-ui, sans-serif; }
 
 /* ── card grid ── */
-.cc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 12px; }
+.cc-grid-holder { position: relative; }
+.cc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 12px; padding-top: 8px; }
 
 .cc-card {
   background: var(--cc-bg2); border: 1px solid var(--cc-line); border-radius: 10px;
@@ -72,6 +77,13 @@
 .cc-badge-dead       { color: #d9534f; background: rgba(217,83,79,.14);   border-color: rgba(217,83,79,.35); }
 .cc-badge-unknown    { color: #9a9a9a; background: rgba(140,140,140,.10); border-color: rgba(140,140,140,.25); }
 .cc-badge-alert      { color: #d9534f; background: rgba(217,83,79,.16);   border-color: rgba(217,83,79,.45); }
+/* state badge doubling as a start/stop switch (list mode) */
+.cc-badge-toggle { cursor: pointer; user-select: none; transition: filter .12s, box-shadow .12s; }
+.cc-badge-toggle:hover { filter: brightness(1.18); box-shadow: 0 0 0 1px currentColor inset; }
+
+/* enlarged container name + hidden native under-name state text */
+.cc-bigname { font-size: 15px !important; font-weight: 600 !important; letter-spacing: .1px; }
+.cc-bigname a { font-size: inherit !important; font-weight: inherit !important; }
 
 /* live gauges */
 .cc-card-stats { display: flex; flex-direction: column; gap: 6px; }
@@ -136,11 +148,28 @@
 .cc-up-high { color: #d9534f; border-color: #7a3331; background: rgba(217,83,79,.10); }
 .cc-up-grey { color: #9a9a9a; border-color: #444; }
 
-/* column (gear) dropdown menu */
+/* gear dropdown menu — the single home for every global control */
 .cc-menu { position: absolute; z-index: 99999; min-width: 190px; background: var(--cc-bg, #161616); border: 1px solid #525252; border-radius: 8px; box-shadow: 0 14px 40px rgba(0,0,0,.55); padding: 6px; font: 13px/1.5 "Segoe UI", system-ui, sans-serif; color: #e6e6e6; }
+.cc-menu-wide { min-width: 240px; max-width: 92vw; }
+.cc-menu-status { font-size: 12px; padding: 2px 8px 6px; }
+.cc-menu-h { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: #8a8a8a; padding: 7px 8px 3px; }
 .cc-menu-row { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 5px; cursor: pointer; }
 .cc-menu-row:hover { background: #262626; }
+.cc-menu-plain { cursor: default; gap: 8px; flex-wrap: wrap; }
+.cc-menu-plain:hover { background: transparent; }
+.cc-menu-plain .cc-filter { width: 100%; }
+.cc-menu-plain .cc-btn { flex: 1; text-align: center; }
 .cc-menu-sep { height: 1px; background: #2a2a2a; margin: 5px 4px; }
+
+/* transient toast (replaces the old toolbar status line) */
+.cc-toast {
+  position: fixed; right: 18px; bottom: 18px; z-index: 100000;
+  background: #161616; color: #e6e6e6; border: 1px solid #525252; border-radius: 8px;
+  padding: 9px 14px; font: 12px/1.4 "Segoe UI", system-ui, sans-serif;
+  box-shadow: 0 10px 30px rgba(0,0,0,.5); opacity: 0; transform: translateY(8px);
+  pointer-events: none; transition: opacity .2s, transform .2s; max-width: 60vw;
+}
+.cc-toast-show { opacity: 1; transform: translateY(0); }
 
 /* grid lifecycle button group + card badges row */
 .cc-life { display: inline-flex; gap: 6px; }

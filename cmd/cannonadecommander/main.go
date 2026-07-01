@@ -55,6 +55,8 @@ func main() {
 		apply()
 	case "version", "-v", "--version":
 		fmt.Println(version)
+	case "banner":
+		fmt.Println(bannerArt)
 	default:
 		fmt.Fprintf(os.Stderr, "usage: cannonadecommander [serve|apply|version]\n")
 		os.Exit(2)

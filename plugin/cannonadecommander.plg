@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.3.1">
+  <!ENTITY version   "0.4.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
@@ -30,6 +30,18 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.4.0
+- No more bar or section of our own above the Docker list. Every global control
+  now lives behind a single gear in the native table header: the List / Grid
+  switch, the toggleable columns, the plan Save and Start in order, and the
+  filter. The list is enhanced in place; nothing floats above it.
+- The container name is enlarged and Unraid's redundant under-name state text is
+  hidden - state is now a badge you click to start or stop the container.
+- Cleaner default badges (just state and plan) so they fit the native cell and do
+  not duplicate Unraid's own advanced columns; the rest stay one click away in
+  the gear menu.
+- The install now prints the brand ASCII banner.
 
 ### 0.3.1
 - CRITICAL FIX: the row injection had stopped being idempotent, so the DOM
@@ -96,7 +108,7 @@ containers that route through it. Read-mostly; the only writes are start/stop.
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>810244d71c2ada17f81d8c344c41622a3e560f8ccf910a0a9b3d75cc12e2f08c</SHA256>
+  <SHA256>5d646219d0a3302cfebc4b609ce29dc8626cab1e3598e0112cd581d1f1eabcb2</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the
@@ -104,9 +116,10 @@ containers that route through it. Read-mostly; the only writes are start/stop.
 <FILE Run="/bin/bash">
 <INLINE>
 chmod +x &emhttp;/bin/&slug; &emhttp;/scripts/rc.&slug; &emhttp;/event/* 2>/dev/null
+&emhttp;/bin/&slug; banner 2>/dev/null
 &emhttp;/scripts/rc.&slug; restart
 echo ""
-echo "CannonadeCommander &version; installed - open the Docker tab, or Settings &gt; CannonadeCommander."
+echo "CannonadeCommander &version; installed - open the Docker tab."
 </INLINE>
 </FILE>
 

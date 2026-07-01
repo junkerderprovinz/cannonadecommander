@@ -1,0 +1,6 @@
+Menu="Docker"
+Title="CannonadeCommander"
+---
+<link type="text/css" rel="stylesheet" href="<?autov('/plugins/cannonadecommander/styles/docker.css')?>">
+<div id="cannonade-root" class="cc-panel">Loading CannonadeCommander&hellip;</div>
+<script defer src="<?autov('/plugins/cannonadecommander/scripts/docker.js')?>"></script>

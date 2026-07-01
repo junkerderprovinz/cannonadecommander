@@ -1,0 +1,64 @@
+/* CannonadeCommander - Docker-tab panel. IBM-Carbon dark, monochrome. */
+
+.cc-panel {
+  --cc-bg: #161616;
+  --cc-bg2: #1e1e1e;
+  --cc-line: #2a2a2a;
+  --cc-txt: #e6e6e6;
+  --cc-dim: #8a8a8a;
+  --cc-accent: #ff8c2f;
+  background: var(--cc-bg);
+  color: var(--cc-txt);
+  border: 1px solid var(--cc-line);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin: 12px 0;
+  font: 13px/1.5 "Segoe UI", system-ui, sans-serif;
+}
+
+.cc-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.cc-title { font-weight: 600; font-size: 15px; letter-spacing: .2px; }
+.cc-spacer { flex: 1; }
+.cc-status { font-size: 12px; }
+.cc-ok-text { color: #3fae6a; }
+.cc-bad-text { color: #d9534f; }
+
+.cc-btn {
+  background: transparent; color: var(--cc-accent); border: 1px solid var(--cc-accent);
+  border-radius: 4px; padding: 5px 12px; font-size: 12px; cursor: pointer;
+  transition: background .12s, color .12s;
+}
+.cc-btn:hover { background: var(--cc-accent); color: #fff; }
+.cc-btn-primary { font-weight: 600; }
+
+.cc-err { color: #d9534f; background: #2a1a1a; border: 1px solid #7a3331; border-radius: 6px; padding: 8px 10px; margin-bottom: 10px; font-size: 12px; }
+
+.cc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.cc-table th { text-align: left; color: var(--cc-dim); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; padding: 6px 8px; border-bottom: 1px solid var(--cc-line); }
+.cc-table td { padding: 6px 8px; border-bottom: 1px solid var(--cc-line); vertical-align: middle; }
+.cc-name { display: flex; align-items: center; gap: 8px; }
+.cc-dim { color: var(--cc-dim); }
+
+.cc-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; display: inline-block; }
+.cc-dot.cc-ok { background: #3fae6a; }
+.cc-dot.cc-warn { background: #d6a243; }
+.cc-dot.cc-bad { background: #d9534f; }
+.cc-dot.cc-off { background: #525252; }
+
+.cc-in {
+  background: var(--cc-bg2); color: var(--cc-txt); border: 1px solid var(--cc-line);
+  border-radius: 4px; padding: 4px 6px; font-size: 12px;
+}
+.cc-after { width: 160px; }
+.cc-port { width: 66px; margin-left: 6px; }
+.cc-probe { white-space: nowrap; }
+.cc-manage { cursor: pointer; }
+
+.cc-pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; border: 1px solid; }
+.cc-pill.cc-ok { color: #3fae6a; border-color: #2f6b46; }
+.cc-pill.cc-warn { color: #d6a243; border-color: #7a6028; }
+.cc-pill.cc-bad { color: #d9534f; border-color: #7a3331; }
+.cc-pill.cc-off { color: #9a9a9a; border-color: #444; }
+
+.cc-foot { margin-top: 10px; color: var(--cc-dim); font-size: 11px; }
+.cc-page { max-width: 1100px; }

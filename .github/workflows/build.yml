@@ -1,0 +1,50 @@
+name: Build
+
+# Runs the unit tests, packages the plugin .txz, and BOOTS the supervisor binary
+# on the runner (curling its unix socket) before trusting a build. A green
+# compile only proves it builds; this proves it starts and serves.
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "LICENSE"
+      - "docs/**"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - name: Unit tests
+        run: go test ./...
+
+      - name: Package plugin (.txz + sha)
+        run: bash plugin/pkg_build.sh 0.0.0-ci
+
+      - name: Boot smoke — supervisor serves its socket
+        run: |
+          set -euo pipefail
+          BIN=plugin/src/cannonadecommander/usr/local/emhttp/plugins/cannonadecommander/bin/cannonadecommander
+          echo "version: $("$BIN" version)"
+          CC_SOCK=/tmp/cc.sock CC_DATA_DIR=/tmp/ccdata CC_DOCKER_SOCK=/tmp/nope.sock "$BIN" serve &
+          PID=$!
+          for _ in $(seq 1 20); do [ -S /tmp/cc.sock ] && break; sleep 0.5; done
+          if ! curl -fsS --unix-socket /tmp/cc.sock http://localhost/api/health | grep -q ok; then
+            echo "health check failed"; kill "$PID" || true; exit 1
+          fi
+          # /api/state must still respond (with a docker_error, since the socket is bogus).
+          curl -fsS --unix-socket /tmp/cc.sock http://localhost/api/state | grep -q docker_error
+          echo "✅ supervisor booted and served /api/health + /api/state"
+          kill "$PID" || true
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cannonadecommander-txz
+          path: plugin/out/*.txz

@@ -1,0 +1,5 @@
+# Everything is LF. A CRLF .page breaks Unraid's PageBuilder (it splits the header
+# on a pure-LF "\n---\n"), and a trailing CR breaks shell shebangs.
+* text=auto eol=lf
+*.png binary
+*.txz binary

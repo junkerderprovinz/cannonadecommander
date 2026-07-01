@@ -1,0 +1,262 @@
+// Package dockercli is a thin client over the Docker Engine API, spoken directly
+// over the host's unix socket. Unlike a read-only viewer, this engine WRITES
+// (start/stop) as well as reads (list/inspect/stats), so it deliberately exposes
+// only a small, safe verb set and never create/exec/build.
+package dockercli
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net"
+	"net/http"
+	"net/url"
+	"strings"
+	"time"
+
+	"github.com/junkerderprovinz/cannonadecommander/internal/model"
+)
+
+// apiVersion pins a modern Engine API. Engine 29 rejects versions older than
+// v1.44; pinning avoids "client version too new/old" negotiation surprises.
+const apiVersion = "v1.44"
+
+// Client talks to a Docker daemon.
+type Client struct {
+	hc   *http.Client
+	base string
+}
+
+// New builds a client over an explicit http.Client and base URL. Used in tests
+// against an httptest server.
+func New(hc *http.Client, base string) *Client {
+	return &Client{hc: hc, base: strings.TrimRight(base, "/")}
+}
+
+// NewUnix builds a client that dials the Docker daemon over its unix socket
+// (read-only bind is enough for list/inspect/stats; start/stop need read-write).
+func NewUnix(socket string) *Client {
+	hc := &http.Client{
+		Timeout: 30 * time.Second,
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+				var d net.Dialer
+				return d.DialContext(ctx, "unix", socket)
+			},
+		},
+	}
+	return &Client{hc: hc, base: "http://docker"}
+}
+
+func (c *Client) do(ctx context.Context, method, path string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, method, c.base+"/"+apiVersion+path, nil)
+	if err != nil {
+		return nil, err
+	}
+	return c.hc.Do(req)
+}
+
+func apiError(resp *http.Response) error {
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
+	msg := strings.TrimSpace(string(body))
+	if msg == "" {
+		return fmt.Errorf("docker api: %s", resp.Status)
+	}
+	return fmt.Errorf("docker api: %s: %s", resp.Status, msg)
+}
+
+type apiContainer struct {
+	ID     string   `json:"Id"`
+	Names  []string `json:"Names"`
+	Image  string   `json:"Image"`
+	State  string   `json:"State"`
+	Status string   `json:"Status"`
+}
+
+// List returns every container on the host (running or not).
+func (c *Client) List(ctx context.Context) ([]model.Container, error) {
+	resp, err := c.do(ctx, "GET", "/containers/json?all=1")
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return nil, apiError(resp)
+	}
+	var raw []apiContainer
+	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
+		return nil, fmt.Errorf("decode containers: %w", err)
+	}
+	out := make([]model.Container, 0, len(raw))
+	for _, r := range raw {
+		out = append(out, model.Container{
+			ID:     r.ID,
+			Name:   firstName(r.Names),
+			Image:  r.Image,
+			State:  r.State,
+			Health: healthFromStatus(r.Status),
+		})
+	}
+	return out, nil
+}
+
+// Inspect is the authoritative live state of one container.
+type Inspect struct {
+	Running bool
+	Health  string // "healthy" / "unhealthy" / "starting" / "none"
+	IP      string
+}
+
+func (c *Client) Inspect(ctx context.Context, ref string) (Inspect, error) {
+	resp, err := c.do(ctx, "GET", "/containers/"+url.PathEscape(ref)+"/json")
+	if err != nil {
+		return Inspect{}, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return Inspect{}, apiError(resp)
+	}
+	var raw struct {
+		State struct {
+			Running bool `json:"Running"`
+			Health  *struct {
+				Status string `json:"Status"`
+			} `json:"Health"`
+		} `json:"State"`
+		NetworkSettings struct {
+			IPAddress string `json:"IPAddress"`
+		} `json:"NetworkSettings"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
+		return Inspect{}, fmt.Errorf("decode inspect: %w", err)
+	}
+	ins := Inspect{Running: raw.State.Running, IP: raw.NetworkSettings.IPAddress, Health: "none"}
+	if raw.State.Health != nil && raw.State.Health.Status != "" {
+		ins.Health = raw.State.Health.Status
+	}
+	return ins, nil
+}
+
+// Start starts a container. An already-running container (304) is not an error.
+func (c *Client) Start(ctx context.Context, ref string) error {
+	return c.post(ctx, "/containers/"+url.PathEscape(ref)+"/start")
+}
+
+// Stop stops a container. An already-stopped container (304) is not an error.
+func (c *Client) Stop(ctx context.Context, ref string) error {
+	return c.post(ctx, "/containers/"+url.PathEscape(ref)+"/stop")
+}
+
+func (c *Client) post(ctx context.Context, path string) error {
+	resp, err := c.do(ctx, "POST", path)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	// 204 = done, 304 = already in that state — both are success for us.
+	if resp.StatusCode == http.StatusNoContent || resp.StatusCode == http.StatusNotModified {
+		return nil
+	}
+	return apiError(resp)
+}
+
+// Stats is a one-shot resource snapshot for the read-only gauges.
+type Stats struct {
+	CPUPercent float64 `json:"cpu_percent"`
+	MemUsed    uint64  `json:"mem_used"`
+	MemLimit   uint64  `json:"mem_limit"`
+	MemPercent float64 `json:"mem_percent"`
+}
+
+type dockerStats struct {
+	CPUStats struct {
+		CPUUsage struct {
+			TotalUsage uint64 `json:"total_usage"`
+		} `json:"cpu_usage"`
+		SystemUsage uint64 `json:"system_cpu_usage"`
+		OnlineCPUs  uint64 `json:"online_cpus"`
+	} `json:"cpu_stats"`
+	PreCPUStats struct {
+		CPUUsage struct {
+			TotalUsage uint64 `json:"total_usage"`
+		} `json:"cpu_usage"`
+		SystemUsage uint64 `json:"system_cpu_usage"`
+	} `json:"precpu_stats"`
+	MemoryStats struct {
+		Usage uint64 `json:"usage"`
+		Limit uint64 `json:"limit"`
+		Stats struct {
+			Cache uint64 `json:"cache"`
+		} `json:"stats"`
+	} `json:"memory_stats"`
+}
+
+// Stats returns a one-shot resource snapshot (no streaming).
+func (c *Client) Stats(ctx context.Context, ref string) (Stats, error) {
+	resp, err := c.do(ctx, "GET", "/containers/"+url.PathEscape(ref)+"/stats?stream=false&one-shot=true")
+	if err != nil {
+		return Stats{}, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return Stats{}, apiError(resp)
+	}
+	var raw dockerStats
+	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
+		return Stats{}, fmt.Errorf("decode stats: %w", err)
+	}
+	return computeStats(raw), nil
+}
+
+// computeStats mirrors the docker CLI's own CPU%/mem math and is a pure function
+// so it can be unit-tested with a canned snapshot.
+func computeStats(s dockerStats) Stats {
+	out := Stats{}
+	cpuDelta := float64(s.CPUStats.CPUUsage.TotalUsage) - float64(s.PreCPUStats.CPUUsage.TotalUsage)
+	sysDelta := float64(s.CPUStats.SystemUsage) - float64(s.PreCPUStats.SystemUsage)
+	cpus := float64(s.CPUStats.OnlineCPUs)
+	if cpus == 0 {
+		cpus = 1
+	}
+	if cpuDelta > 0 && sysDelta > 0 {
+		out.CPUPercent = round2((cpuDelta / sysDelta) * cpus * 100)
+	}
+	// Memory used excludes page cache, matching `docker stats`.
+	used := s.MemoryStats.Usage
+	if s.MemoryStats.Stats.Cache <= used {
+		used -= s.MemoryStats.Stats.Cache
+	}
+	out.MemUsed = used
+	out.MemLimit = s.MemoryStats.Limit
+	if s.MemoryStats.Limit > 0 {
+		out.MemPercent = round2(float64(used) / float64(s.MemoryStats.Limit) * 100)
+	}
+	return out
+}
+
+func round2(f float64) float64 {
+	return float64(int64(f*100+0.5)) / 100
+}
+
+func firstName(names []string) string {
+	if len(names) > 0 {
+		return strings.TrimPrefix(names[0], "/")
+	}
+	return ""
+}
+
+// healthFromStatus best-effort reads health from the /containers/json Status
+// string ("Up 2 hours (healthy)"), which is cheaper than inspecting each one.
+func healthFromStatus(status string) string {
+	switch {
+	case strings.Contains(status, "(healthy)"):
+		return "healthy"
+	case strings.Contains(status, "(unhealthy)"):
+		return "unhealthy"
+	case strings.Contains(status, "health: starting"):
+		return "starting"
+	default:
+		return ""
+	}
+}

@@ -1,0 +1,14 @@
+Menu="Settings"
+Type="xmenu"
+Title="CannonadeCommander"
+Icon="cannonadecommander.png"
+---
+<link type="text/css" rel="stylesheet" href="<?autov('/plugins/cannonadecommander/styles/docker.css')?>">
+
+<div class="cc-page">
+  <p>Declare a dependency-aware, health-gated start order for your containers and
+  fire it. The same panel is added to the <b>Docker</b> tab.</p>
+  <div id="cannonade-root" class="cc-panel">Loading CannonadeCommander&hellip;</div>
+</div>
+
+<script defer src="<?autov('/plugins/cannonadecommander/scripts/docker.js')?>"></script>

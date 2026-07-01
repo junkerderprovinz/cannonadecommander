@@ -1,0 +1,79 @@
+<?xml version='1.0' standalone='yes'?>
+<!DOCTYPE PLUGIN [
+  <!ENTITY name      "cannonadecommander">
+  <!ENTITY slug      "cannonadecommander">
+  <!ENTITY author    "junkerderprovinz">
+  <!ENTITY version   "0.1.0">
+  <!ENTITY launch    "Settings/cannonadecommander">
+  <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
+  <!ENTITY pluginURL "&gitURL;/&slug;.plg">
+  <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
+  <!ENTITY emhttp    "/usr/local/emhttp/plugins/&slug;">
+  <!ENTITY plgPath   "/boot/config/plugins/&slug;">
+  <!ENTITY txz       "&slug;-&version;-x86_64-1.txz">
+]>
+
+<PLUGIN name="&name;"
+        author="&author;"
+        version="&version;"
+        launch="&launch;"
+        pluginURL="&pluginURL;"
+        min="6.10.0"
+        support="https://forums.unraid.net/">
+
+<!-- FanCtrlPlus convention: the name is the lowercase slug so Unraid resolves the
+     logo (plugins/<slug>/images/<slug>.png) AND the Plugins-tab description
+     (plugins/<slug>/README.md). The pretty "CannonadeCommander" name is in README.md. -->
+<ICON>
+/usr/local/emhttp/plugins/&slug;/images/&slug;.png
+</ICON>
+
+<CHANGES>
+Dependency-aware, health-gated Docker start orchestration for Unraid: start the
+DB, wait until it is healthy, then start the app; bring up the VPN before the
+containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.1.0
+- First working MVP. Declare a start plan in the Docker tab (and in
+  Settings): dependency edges, a readiness probe per container (Docker health,
+  running plus grace, or a TCP port opening), and a failure policy (abort skips
+  dependents, continue or degrade start them anyway). "Start in order" fires the
+  plan through the host supervisor over the Docker socket. Cycles and unknown
+  dependencies are rejected before saving.
+- Read-only live state (container health, per-run result) in the panel. The
+  browser talks only to a same-origin PHP proxy; it never touches the Docker
+  socket. Working name, subject to change.
+</CHANGES>
+
+<!--
+  The package (supervisor binary + plugin files) is built by plugin/pkg_build.sh
+  and attached to the GitHub release "v&version;". SHA256 is injected at release.
+-->
+<FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
+  <URL>&pkgURL;/&txz;</URL>
+  <SHA256>86d3fb2b9b58facb48c758156d697f0d4bee1a98e75e1bbbb6b289955b7a4a17</SHA256>
+</FILE>
+
+<!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the
+     supervisor daemon immediately, no reboot needed. -->
+<FILE Run="/bin/bash">
+<INLINE>
+chmod +x &emhttp;/bin/&slug; &emhttp;/scripts/rc.&slug; &emhttp;/event/* 2>/dev/null
+&emhttp;/scripts/rc.&slug; restart
+echo ""
+echo "CannonadeCommander &version; installed - open the Docker tab, or Settings &gt; CannonadeCommander."
+</INLINE>
+</FILE>
+
+<!-- Remove: stop the daemon, drop the package + files, keep the saved plan. -->
+<REMOVE>
+<INLINE>
+&emhttp;/scripts/rc.&slug; stop 2>/dev/null
+removepkg &slug; 2>/dev/null
+rm -rf &emhttp;
+rm -f &plgPath;/*.txz
+echo "CannonadeCommander removed (start plan kept on the flash)."
+</INLINE>
+</REMOVE>
+
+</PLUGIN>

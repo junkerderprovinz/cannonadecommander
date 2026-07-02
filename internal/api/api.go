@@ -23,6 +23,8 @@ type Docker interface {
 	Pause(ctx context.Context, name string) error
 	Unpause(ctx context.Context, name string) error
 	Stats(ctx context.Context, name string) (model.Stats, error)
+	Limits(ctx context.Context, name string) (model.Limits, error)
+	UpdateResources(ctx context.Context, name string, l model.Limits) error
 }
 
 // Store persists the plan.
@@ -58,7 +60,23 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/apply", s.handleApply)
 	mux.HandleFunc("POST /api/action", s.handleAction)
 	mux.HandleFunc("GET /api/stats", s.handleStats)
+	mux.HandleFunc("GET /api/limits", s.handleGetLimits)
+	mux.HandleFunc("POST /api/limits", s.handleSetLimits)
 	return mux
+}
+
+// known reports whether name is a live container (guards every write verb).
+func (s *Server) known(ctx context.Context, name string) (bool, error) {
+	containers, err := s.Docker.List(ctx)
+	if err != nil {
+		return false, err
+	}
+	for _, c := range containers {
+		if c.Name == name {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 type stateResp struct {
@@ -213,6 +231,55 @@ func (s *Server) handleStats(w http.ResponseWriter, r *http.Request) {
 	}
 	wg.Wait()
 	writeJSON(w, http.StatusOK, out)
+}
+
+// handleGetLimits returns one container's CONFIGURED resource caps (0 = none).
+func (s *Server) handleGetLimits(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("name")
+	ok, err := s.known(r.Context(), name)
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, err)
+		return
+	}
+	if !ok {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "unknown container: " + name})
+		return
+	}
+	lim, err := s.Docker.Limits(r.Context(), name)
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, lim)
+}
+
+// handleSetLimits sets a container's memory + CPU caps live (Docker update). The
+// name is validated against the live list first; a zero field is left unchanged
+// (Docker's update ignores 0 and cannot remove a cap — that needs recreating).
+func (s *Server) handleSetLimits(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Name     string `json:"name"`
+		MemBytes int64  `json:"mem_bytes"`
+		NanoCPUs int64  `json:"nano_cpus"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeErr(w, http.StatusBadRequest, err)
+		return
+	}
+	ok, err := s.known(r.Context(), req.Name)
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, err)
+		return
+	}
+	if !ok {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "unknown container: " + req.Name})
+		return
+	}
+	if err := s.Docker.UpdateResources(r.Context(), req.Name, model.Limits{MemBytes: req.MemBytes, NanoCPUs: req.NanoCPUs}); err != nil {
+		writeErr(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 func writeJSON(w http.ResponseWriter, code int, v any) {

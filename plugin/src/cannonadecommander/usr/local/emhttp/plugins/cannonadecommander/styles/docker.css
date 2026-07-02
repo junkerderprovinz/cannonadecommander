@@ -1,21 +1,24 @@
 /* CannonadeCommander - enhances Unraid's native Docker list in place.
  *
- * No bar or section of our own. CSS restyles the native row into thematically
- * grouped, borderless MATERIAL badges with strong colours (BombVault-style);
- * JS adds the start/stop badge, the Net/IP/LAN/Port group, plan, and ID/Von.
- * Native elements stay live (nchan CPU/RAM keeps ticking), clickable and
- * sortable. On uninstall the stylesheet is removed and everything reappears. */
+ * ONE consistent badge system: every datum is a borderless material pill of the
+ * same shape/size. Info badges use a solid accent background (chosen in Settings)
+ * with light text; state/update/changelog badges keep a meaningful colour. The
+ * accent + row density are CSS variables set from the Settings page (localStorage).
+ * Native elements stay live (nchan CPU/RAM), clickable and sortable; on uninstall
+ * the stylesheet is removed and everything reappears. */
 
+:root { --cc-accent: #2f6feb; --cc-density: 9px; }
 .cc-root, .cc-grid-holder {
   --cc-bg: #161616; --cc-bg2: #1e1e1e; --cc-bg3: #262626; --cc-line: #2a2a2a;
-  --cc-txt: #e6e6e6; --cc-dim: #8a8a8a; --cc-accent: #ff8c2f;
+  --cc-txt: #e6e6e6; --cc-dim: #8a8a8a;
   color: var(--cc-txt); font: 13px/1.45 "Segoe UI", system-ui, sans-serif;
 }
 .cc-grid-holder { position: relative; margin: 6px 0 14px; }
 
-/* ── the one global control: a gear in the native table header ── */
-.cc-hgear { background: transparent; border: none; color: var(--cc-dim, #8a8a8a); cursor: pointer; font-size: 15px; line-height: 1; padding: 0 4px; margin-left: 6px; vertical-align: middle; transition: color .12s; -webkit-appearance: none; appearance: none; }
-.cc-hgear:hover { color: var(--cc-accent, #ff8c2f); }
+/* gear — small icon that lives in Unraid's Advanced/Basic toggle bar (moved there) */
+.cc-hgear { background: transparent; border: none; color: var(--cc-dim, #8a8a8a); cursor: pointer; font-size: 15px; line-height: 1; padding: 0 4px; vertical-align: middle; transition: color .12s; -webkit-appearance: none; appearance: none; }
+.cc-hgear:hover { color: var(--cc-accent, #2f6feb); }
+.cc-hgear-bar { margin-right: 10px; font-size: 16px; }
 .cc-hgear-th { float: right; }
 .cc-hgear-float { position: absolute; top: 4px; right: 8px; z-index: 20; }
 .cc-hgear-grid { position: absolute; top: 8px; right: 10px; z-index: 20; font-size: 16px; }
@@ -23,91 +26,107 @@
 .cc-bad-text { color: #d9534f; }
 .cc-hidden { display: none !important; }
 
-/* ════════════════════════════════════════════════════════════════════
-   NATIVE ROW → THEMATIC MATERIAL BADGES (active while table has .cc-enh)
-   ════════════════════════════════════════════════════════════════════ */
+/* ════════════════ NATIVE ROW → ONE CONSISTENT MATERIAL BADGE SET ════════════════ */
 
-/* NAME cell (col 1): logo + name vertically centred, wider column; ID/Von + the
-   start/stop badge sit under the name. Hide the play glyph + native state text. */
-.cc-enh #docker_list tr.sortable td.ct-name { width: 300px !important; vertical-align: middle; }
+/* NAME cell (col 1): a BIGGER logo, the name vertically centred beside it, column
+   ~1/4 narrower. Under the name: the start/stop badge, then ID + Von beneath it. */
+.cc-enh #docker_list tr.sortable td.ct-name { width: 225px !important; vertical-align: middle; }
 .cc-enh #docker_list tr.sortable td.ct-name .outer { display: flex; align-items: center; gap: 12px; }
-.cc-enh #docker_list tr.sortable td.ct-name .inner { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; line-height: 1.25; }
+.cc-enh #docker_list tr.sortable td.ct-name .outer > span.hand { flex: none; display: flex; align-items: center; }
+.cc-enh #docker_list tr.sortable td.ct-name .outer > span.hand img,
+.cc-enh #docker_list tr.sortable td.ct-name .outer > span.hand i.img { width: 42px !important; height: 42px !important; font-size: 42px !important; }
+.cc-enh #docker_list tr.sortable td.ct-name .inner { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; line-height: 1.2; min-width: 0; }
 .cc-enh #docker_list tr.sortable td.ct-name .inner br { display: none; }
 .cc-enh #docker_list tr.sortable td.ct-name .inner > i[id^='load-'],
 .cc-enh #docker_list tr.sortable td.ct-name .inner > span.state { display: none !important; }
 .cc-enh #docker_list tr.sortable td.ct-name .appname { font-size: 15px !important; font-weight: 600 !important; letter-spacing: .1px; }
-.cc-enh #docker_list tr.sortable > td { padding-top: 9px; padding-bottom: 9px; }
-/* wider ANWENDUNG header to match (scope to the label row the JS gear uses) */
-.cc-enh thead tr:last-child th:nth-child(1) { min-width: 300px; }
+.cc-enh #docker_list tr.sortable > td { padding-top: var(--cc-density); padding-bottom: var(--cc-density); }
 
-/* CONSOLIDATED network column: hide the separate native IP / Port / LAN columns
-   (cols 4,5,6) — their values are rendered as badges into the Network cell. The
-   thead selector is pinned to the last header row (the column-label row). */
+/* consolidated network column: hide the separate native IP / Port / LAN columns */
 .cc-enh.cc-c-net thead tr:last-child th:nth-child(4), .cc-enh.cc-c-net #docker_list tr.sortable > td:nth-child(4),
 .cc-enh.cc-c-net thead tr:last-child th:nth-child(5), .cc-enh.cc-c-net #docker_list tr.sortable > td:nth-child(5),
 .cc-enh.cc-c-net thead tr:last-child th:nth-child(6), .cc-enh.cc-c-net #docker_list tr.sortable > td:nth-child(6) { display: none !important; }
 
-/* BETRIEBSZEIT (uptime, col 10): advanced-view only (hidden unless .cc-adv) */
+/* volumes (col 7): with the taller row, let the readmore show more before it clips */
+.cc-enh #docker_list tr.sortable > td:nth-child(7) span.docker_readmore { max-height: 6.4em; }
+
+/* Betriebszeit (col 10): advanced-view only */
 .cc-enh:not(.cc-adv) thead tr:last-child th:nth-child(10),
 .cc-enh:not(.cc-adv) #docker_list tr.sortable > td:nth-child(10) { display: none !important; }
 
-/* ── update / force / image-tag pills IN the version cell (col 2) ── */
-.cc-enh.cc-c-update #docker_list tr.sortable td.updatecolumn > span.green-text,
-.cc-enh.cc-c-update #docker_list tr.sortable td.updatecolumn span.orange-text,
-.cc-enh.cc-c-force  #docker_list tr.sortable td.updatecolumn a.exec,
-.cc-enh.cc-c-version #docker_list tr.sortable td.updatecolumn > div.advanced:last-of-type {
-  display: inline-flex; align-items: center; gap: 5px; border: none !important; border-radius: 999px;
-  padding: 3px 11px; margin: 2px 4px 2px 0; font-size: 11px; font-weight: 600; white-space: nowrap;
-  text-decoration: none; line-height: 1.35;
+/* the ONE badge shape (padding/radius/font) shared by every pill, native + ours */
+.cc-b,
+.cc-enh #docker_list tr.sortable td.updatecolumn > span.green-text,
+.cc-enh #docker_list tr.sortable td.updatecolumn span.orange-text,
+.cc-enh #docker_list tr.sortable td.updatecolumn a.exec,
+.cc-enh #docker_list tr.sortable td.updatecolumn > div.advanced:last-of-type,
+.cc-enh #docker_list tr.sortable td.updatecolumn .sl-chip,
+.cc-enh #docker_list tr.sortable td.advanced span[class^='cpu-'],
+.cc-enh #docker_list tr.sortable td.advanced span[class^='mem-'],
+.cc-badge, .cc-pill {
+  display: inline-flex; align-items: center; gap: 5px; border: none !important;
+  border-radius: 999px; padding: 3px 11px; margin: 2px 4px 2px 0; font-size: 11px;
+  font-weight: 600; line-height: 1.35; white-space: nowrap; text-decoration: none; vertical-align: middle;
 }
-.cc-enh.cc-c-update #docker_list tr.sortable td.updatecolumn > span.green-text { background: #1f9d55; color: #fff !important; }
-.cc-enh.cc-c-update #docker_list tr.sortable td.updatecolumn span.orange-text { background: #e0912a; color: #1a1a1a !important; }
-.cc-enh.cc-c-force  #docker_list tr.sortable td.updatecolumn a.exec { background: #2f6feb; color: #fff !important; font-weight: 600; }
-.cc-enh.cc-c-force  #docker_list tr.sortable td.updatecolumn a.exec:hover { background: #4480f5; }
-.cc-enh.cc-c-version #docker_list tr.sortable td.updatecolumn > div.advanced:last-of-type { background: #2c2c2c; color: #d8d8d8; font-weight: 500; }
-/* the native fa icons inside those pills inherit the pill text colour */
-.cc-enh #docker_list tr.sortable td.updatecolumn > span.green-text i,
-.cc-enh #docker_list tr.sortable td.updatecolumn span.orange-text i,
-.cc-enh #docker_list tr.sortable td.updatecolumn a.exec i,
-.cc-enh #docker_list tr.sortable td.updatecolumn > div.advanced:last-of-type i { color: inherit !important; }
-
-/* ── live CPU / RAM pills IN the cpu cell (col 8, advanced-only natively) ── */
-.cc-enh.cc-c-res #docker_list tr.sortable td.advanced { white-space: normal; }
-.cc-enh.cc-c-res #docker_list tr.sortable td.advanced .usage-disk { display: none; }
+/* info badges (network/IP/LAN/port/CPU/RAM/ID/Von/image tag): SOLID accent, light text */
+.cc-b, .cc-enh.cc-c-version #docker_list tr.sortable td.updatecolumn > div.advanced:last-of-type,
 .cc-enh.cc-c-res #docker_list tr.sortable td.advanced span[class^='cpu-'],
 .cc-enh.cc-c-res #docker_list tr.sortable td.advanced span[class^='mem-'] {
-  display: inline-block; border-radius: 999px; padding: 3px 11px; margin: 2px 4px 2px 0; font-size: 11px;
-  background: #2c2c2c; color: #e6e6e6; white-space: nowrap; line-height: 1.35;
+  background: var(--cc-accent, #2f6feb); color: #fff;
 }
-.cc-enh.cc-c-res #docker_list tr.sortable td.advanced span[class^='cpu-']::before { content: "CPU "; opacity: .6; margin-right: 3px; }
-.cc-enh.cc-c-res #docker_list tr.sortable td.advanced span[class^='mem-']::before { content: "RAM "; opacity: .6; margin-right: 3px; }
+.cc-b-k { opacity: .72; font-weight: 500; }
+.cc-b-v { font-family: Consolas, "SFMono-Regular", monospace; }
+.cc-b-von .cc-b-v { font-family: inherit; }
+.cc-enh.cc-c-res #docker_list tr.sortable td.advanced span[class^='cpu-']::before { content: "CPU"; opacity: .72; font-weight: 500; margin-right: 4px; }
+.cc-enh.cc-c-res #docker_list tr.sortable td.advanced span[class^='mem-']::before { content: "RAM"; opacity: .72; font-weight: 500; margin-right: 4px; }
+.cc-enh.cc-c-res #docker_list tr.sortable td.advanced { white-space: normal; }
+.cc-enh.cc-c-res #docker_list tr.sortable td.advanced .usage-disk { display: none; }
+.cc-enh.cc-c-ip #docker_list tr.sortable > td:nth-child(4) span.docker_readmore span.advanced { display: none !important; }
 
-/* ── our injected per-row badge holders ── */
-.cc-namemeta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.cc-rowbadges { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+/* update status keeps meaning: up-to-date = green, update-ready = amber, force = accent */
+.cc-enh.cc-c-update #docker_list tr.sortable td.updatecolumn > span.green-text { background: #1f9d55; color: #fff !important; }
+.cc-enh.cc-c-update #docker_list tr.sortable td.updatecolumn span.orange-text { background: #e0912a; color: #1a1a1a !important; }
+.cc-enh.cc-c-force  #docker_list tr.sortable td.updatecolumn a.exec { background: var(--cc-accent, #2f6feb); color: #fff !important; }
+.cc-enh.cc-c-force  #docker_list tr.sortable td.updatecolumn a.exec:hover { filter: brightness(1.12); }
+.cc-enh #docker_list tr.sortable td.updatecolumn i { color: inherit !important; }
+
+/* the column toggle must HIDE the datum, not just drop its colour: when a
+   CSS-restyled native column is off for the current view, hide it outright.
+   (Also keeps advanced-only pills out of the Simple view, since their class is
+   absent there — no reliance on how Unraid hides .advanced.) */
+.cc-enh:not(.cc-c-update)  #docker_list tr.sortable td.updatecolumn > span.green-text,
+.cc-enh:not(.cc-c-update)  #docker_list tr.sortable td.updatecolumn span.orange-text,
+.cc-enh:not(.cc-c-force)   #docker_list tr.sortable td.updatecolumn a.exec,
+.cc-enh:not(.cc-c-version) #docker_list tr.sortable td.updatecolumn > div.advanced:last-of-type,
+.cc-enh:not(.cc-c-res)     #docker_list tr.sortable td.advanced span[class^='cpu-'],
+.cc-enh:not(.cc-c-res)     #docker_list tr.sortable td.advanced span[class^='mem-'] { display: none !important; }
+
+/* ShipLog "Changelog" chip → a solid badge coloured by its risk dot */
+.cc-enh #docker_list tr.sortable td.updatecolumn .sl-chip { color: #fff !important; background: #4a4a4a; }
+.cc-enh #docker_list tr.sortable td.updatecolumn .sl-chip:has(.sl-low)  { background: #1f9d55; }
+.cc-enh #docker_list tr.sortable td.updatecolumn .sl-chip:has(.sl-mid)  { background: #e0912a; color: #1a1a1a !important; }
+.cc-enh #docker_list tr.sortable td.updatecolumn .sl-chip:has(.sl-high) { background: #d9433f; }
+.cc-enh #docker_list tr.sortable td.updatecolumn .sl-chip .sl-amp { display: none; }
+.cc-enh #docker_list tr.sortable td.updatecolumn .sl-chip .sl-ico { opacity: .85; }
+
+/* injected per-row holders */
+.cc-namemeta { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+.cc-namemeta-ids { display: flex; flex-wrap: wrap; gap: 5px; }
+.cc-rowbadges { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 5px; }
 .cc-netgroup { flex-direction: column; align-items: flex-start; }
 #docker_list td.updatecolumn .cc-rowbadges { margin-top: 4px; }
 .cc-planholder { margin-top: 6px; }
 
-/* ── the uniform info badge: borderless material chip, two-tone (label | value) ── */
-.cc-b { display: inline-flex; align-items: stretch; border-radius: 999px; overflow: hidden; font-size: 11px; line-height: 1.9; vertical-align: middle; text-decoration: none; background: #2c2c2c; color: #ececec; }
-.cc-b-k { padding: 0 8px; font-size: 10px; letter-spacing: .2px; display: flex; align-items: center; background: rgba(255,255,255,.07); color: #b9b9b9; white-space: nowrap; }
-.cc-b-v { padding: 0 9px; display: flex; align-items: center; font-family: Consolas, "SFMono-Regular", monospace; white-space: nowrap; }
-.cc-b-von .cc-b-v { font-family: inherit; }
-.cc-b-net .cc-b-k { color: #7fd1a3; }
-.cc-b-ip  .cc-b-k { color: #86b8f0; }
-.cc-b-lan .cc-b-k { color: #d9b36b; }
-.cc-b-port .cc-b-k { color: #c99ad9; }
+/* CPU/RAM limits editor button on the resource cell */
+.cc-limbtn { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 999px; background: rgba(255,255,255,.12); color: #fff; cursor: pointer; font-size: 12px; margin: 2px 0; }
+.cc-limbtn:hover { background: var(--cc-accent, #2f6feb); }
 
-/* plan chip = a real, tappable feature badge next to autostart */
-.cc-plan { cursor: pointer; }
-.cc-plan .cc-b-k { color: var(--cc-accent, #ff8c2f); }
-.cc-plan:hover { filter: brightness(1.15); }
-.cc-plan-on { outline: 1px solid rgba(255,140,47,.5); }
-.cc-plan-on .cc-b-v { color: #ffb066; }
+/* plan chip = one tappable Startplan badge (accent) */
+.cc-plan { cursor: pointer; background: var(--cc-accent, #2f6feb); color: #fff; }
+.cc-plan:hover { filter: brightness(1.12); }
+.cc-plan-on { box-shadow: 0 0 0 2px rgba(255,255,255,.25) inset; }
 
-/* ── state badges (BombVault-style, SOLID + strong): the list one toggles start/stop ── */
-.cc-badge { display: inline-block; padding: 3px 12px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; vertical-align: middle; border: none; }
+/* state badges (semantic solid, start/stop switch) */
 .cc-badge-running    { background: #1f9d55; color: #fff; }
 .cc-badge-exited     { background: #3c3c3c; color: #cfcfcf; }
 .cc-badge-created    { background: #2f6feb; color: #fff; }
@@ -118,18 +137,15 @@
 .cc-badge-unknown    { background: #4a4a4a; color: #dcdcdc; }
 .cc-badge-alert      { background: #d9433f; color: #fff; }
 .cc-badge-toggle { cursor: pointer; user-select: none; transition: filter .12s, box-shadow .12s; }
-.cc-badge-toggle:hover { filter: brightness(1.15); box-shadow: 0 0 0 2px rgba(255,255,255,.18) inset; }
+.cc-badge-toggle:hover { filter: brightness(1.13); box-shadow: 0 0 0 2px rgba(255,255,255,.22) inset; }
 
 /* last-run pill */
-.cc-pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; border: none; vertical-align: middle; }
 .cc-pill-ready { background: #1f7a45; color: #dff5e8; }
 .cc-pill-degraded { background: #7a5a1e; color: #ffe6b3; }
 .cc-pill-failed { background: #7a2a28; color: #ffd9d7; }
 .cc-pill-skipped { background: #3a3a3a; color: #c8c8c8; }
 
-/* ════════════════════════════════════════════════════════════════════
-   GRID mode (engine-driven cards) + gear menu + toast + editor
-   ════════════════════════════════════════════════════════════════════ */
+/* ════════════════ GRID mode + gear menu + toast + editor ════════════════ */
 .cc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 12px; padding-top: 8px; }
 .cc-card { background: var(--cc-bg2); border: 1px solid var(--cc-line); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; transition: border-color .12s, transform .12s, box-shadow .12s; }
 .cc-card:hover { border-color: #3a3a3a; transform: translateY(-1px); box-shadow: 0 8px 22px rgba(0,0,0,.35); }
@@ -174,6 +190,8 @@
 .cc-menu-plain .cc-filter { width: 100%; }
 .cc-menu-plain .cc-btn { flex: 1; text-align: center; }
 .cc-menu-sep { height: 1px; background: #2a2a2a; margin: 5px 4px; }
+.cc-menu-link { color: var(--cc-accent); font-size: 12px; padding: 6px 8px; display: block; text-decoration: none; }
+.cc-menu-link:hover { text-decoration: underline; }
 
 .cc-toast { position: fixed; right: 18px; bottom: 18px; z-index: 100000; background: #161616; color: #e6e6e6; border: 1px solid #525252; border-radius: 8px; padding: 9px 14px; font: 12px/1.4 "Segoe UI", system-ui, sans-serif; box-shadow: 0 10px 30px rgba(0,0,0,.5); opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity .2s, transform .2s; max-width: 60vw; }
 .cc-toast-show { opacity: 1; transform: translateY(0); }

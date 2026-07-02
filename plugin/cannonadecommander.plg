@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.4.3">
+  <!ENTITY version   "0.5.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
@@ -30,6 +30,20 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.5.0
+- NEW: a Settings page (Settings > Utilities > CannonadeCommander) to pick the
+  badge accent colour, choose which columns show in the Simple vs Advanced view,
+  and set the default view + row density.
+- NEW: per-container CPU / RAM limits. A small gear on the resource cell opens an
+  editor that reads and sets the memory + CPU caps live via Docker's
+  container-update (no restart; Docker persists them across restarts).
+- One consistent, borderless MATERIAL badge system with strong colours. The
+  container logo is bigger and its name is vertically centred in a narrower
+  column; Container ID and source sit beneath the start/stop badge; the image tag
+  and the ShipLog changelog are badges too (the changelog coloured by its risk);
+  the network group is one solid-accent set; the Startplan badge no longer
+  doubles; the gear moved into Unraid's Advanced/Basic view toggle bar.
 
 ### 0.4.3
 - Uninstall now cleans up the OPEN Docker tab fast: a lightweight liveness check
@@ -148,7 +162,7 @@ rm -rf &emhttp;
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>549c7d6371e8f3b61e825ad4be6fb6e7f771c5ad37b87d8f87d10b64c052e377</SHA256>
+  <SHA256>94fd37973cb448e9a50b57d7f743b7b696c85b2b93a6245f1f15798d240593de</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

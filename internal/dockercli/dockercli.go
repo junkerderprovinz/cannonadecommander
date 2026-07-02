@@ -5,6 +5,7 @@
 package dockercli
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -226,6 +227,85 @@ func (c *Client) post(ctx context.Context, path string) error {
 		return nil
 	}
 	return apiError(resp)
+}
+
+// doBody issues a request carrying a JSON body (the container-update endpoint).
+func (c *Client) doBody(ctx context.Context, method, path string, body any) (*http.Response, error) {
+	var r io.Reader
+	if body != nil {
+		b, err := json.Marshal(body)
+		if err != nil {
+			return nil, err
+		}
+		r = bytes.NewReader(b)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, c.base+"/"+apiVersion+path, r)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	return c.hc.Do(req)
+}
+
+// Limits reads a container's CONFIGURED resource caps from its HostConfig.
+func (c *Client) Limits(ctx context.Context, ref string) (model.Limits, error) {
+	resp, err := c.do(ctx, "GET", "/containers/"+url.PathEscape(ref)+"/json")
+	if err != nil {
+		return model.Limits{}, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return model.Limits{}, apiError(resp)
+	}
+	var raw struct {
+		HostConfig struct {
+			Memory    int64 `json:"Memory"`
+			NanoCpus  int64 `json:"NanoCpus"`
+			CpuQuota  int64 `json:"CpuQuota"`
+			CpuPeriod int64 `json:"CpuPeriod"`
+		} `json:"HostConfig"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
+		return model.Limits{}, fmt.Errorf("decode limits: %w", err)
+	}
+	// A container capped the legacy way (--cpu-quota/--cpu-period) has NanoCpus 0;
+	// show the effective CPU count so the editor doesn't report "no limit".
+	nano := raw.HostConfig.NanoCpus
+	if nano == 0 && raw.HostConfig.CpuQuota > 0 && raw.HostConfig.CpuPeriod > 0 {
+		nano = raw.HostConfig.CpuQuota * 1_000_000_000 / raw.HostConfig.CpuPeriod
+	}
+	return model.Limits{MemBytes: raw.HostConfig.Memory, NanoCPUs: nano}, nil
+}
+
+// UpdateResources sets a container's memory + CPU caps via Docker's
+// container-update endpoint: applied LIVE (no restart) and persisted by Docker
+// across restarts. Only the fields the caller actually set (> 0) are sent, so a
+// zero field LEAVES that cap unchanged — Docker's update ignores a 0 (it cannot
+// REMOVE a cap; that needs recreating the container). Setting NanoCpus also
+// clears any legacy CpuQuota/CpuPeriod so the two can't conflict on next restart.
+func (c *Client) UpdateResources(ctx context.Context, ref string, l model.Limits) error {
+	body := map[string]int64{}
+	if l.MemBytes > 0 {
+		body["Memory"] = l.MemBytes
+		body["MemorySwap"] = l.MemBytes // cap total at Memory (no extra swap)
+	}
+	if l.NanoCPUs > 0 {
+		body["NanoCpus"] = l.NanoCPUs
+		body["CpuQuota"] = 0
+		body["CpuPeriod"] = 0
+	}
+	if len(body) == 0 {
+		return nil // nothing to change
+	}
+	resp, err := c.doBody(ctx, "POST", "/containers/"+url.PathEscape(ref)+"/update", body)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return apiError(resp)
+	}
+	return nil
 }
 
 // dockerStats is the raw docker /stats response we compute a model.Stats from.

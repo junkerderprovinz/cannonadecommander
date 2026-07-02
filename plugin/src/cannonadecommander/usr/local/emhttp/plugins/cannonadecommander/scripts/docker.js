@@ -26,7 +26,7 @@
 
   var PROXY = "/plugins/cannonadecommander/server/api.php";
   var SHIPLOG = "/plugins/shiplog/server/status.php";
-  var VIEW_KEY = "cc.view", COLS_KEY = "cc.cols2", ADV_KEY = "cc.adv"; // cols2: reset stale v0.3 prefs
+  var VIEW_KEY = "cc.view", COLS_KEY = "cc.colview"; // cols2: reset stale v0.3 prefs
   var MARK = "data-cc", ROWMARK = "data-cc-row";
   var PROBES = ["health", "running", "tcp"], POLICIES = ["abort", "continue", "degrade"];
   var LANG = (document.documentElement.lang || navigator.language || "en").slice(0, 2).toLowerCase();
@@ -48,10 +48,11 @@
   var mo = null, dead = false, lastAdv = false, timers = [], moPending = false, moTimer = null;
 
   // ───────────────────────── api + helpers
-  function api(method, path, body) {
+  function api(method, path, body, query) {
     var opts = { method: method, headers: { Accept: "application/json" } };
     if (body != null) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
-    return fetch(PROXY + "?path=" + encodeURIComponent(path), opts).then(function (r) {
+    var url = PROXY + "?path=" + encodeURIComponent(path); if (query) url += "&" + query;
+    return fetch(url, opts).then(function (r) {
       return r.text().then(function (t2) {
         var data = null; try { data = t2 ? JSON.parse(t2) : null; } catch (e) { data = null; }
         if (!r.ok) { var err = new Error((data && data.error) ? data.error : "HTTP " + r.status); err.status = r.status; throw err; }
@@ -101,7 +102,9 @@
     }).catch(function () { shiplog = {}; });
   }
   function containerByName(name) { var k = norm(name); for (var i = 0; i < containers.length; i++) if (norm(containers[i].name) === k) return containers[i]; return null; }
-  function depsTxt(node) { return node ? (node.after && node.after.length ? "after " + node.after.join(", ") : "in plan") : t("plan"); }
+  // The plan badge's LABEL already says "Startplan"; the value only adds detail
+  // (or nothing when unmanaged) so the chip never reads "Startplan Startplan".
+  function depsTxt(node) { return node ? (node.after && node.after.length ? "nach " + node.after.join(", ") : "aktiv") : ""; }
   function iconFor(name) {
     if (iconCache[name] !== undefined) return iconCache[name];
     var src = "", row = document.getElementById("ct-" + name), img = row && row.querySelector("img");
@@ -142,12 +145,34 @@
     { key: "von", label: { de: "Von / Quelle", en: "From / source" } },
     { key: "plan", label: { de: "Startplan", en: "Plan" } },
   ];
-  function defaultCols() { var s = {}; COLS.forEach(function (c) { s[c.key] = true; }); return s; }
-  function loadCols() { try { var j = JSON.parse(localStorage.getItem(COLS_KEY) || "null"); if (j && typeof j === "object") { var d = defaultCols(); Object.keys(j).forEach(function (k) { d[k] = !!j[k]; }); return d; } } catch (e) {} return defaultCols(); }
-  var visibleCols = loadCols();
-  function colOn(key) { return visibleCols[key] !== false; }
-  function saveCols() { localStorage.setItem(COLS_KEY, JSON.stringify(visibleCols)); }
-  // CSS-driven cell → pill styling. Toggling a class flips that badge kind on/off.
+  // Per-view visibility matrix: each column can show in the Simple and/or Advanced
+  // view (set in the Settings page). {s,a} = show in simple / advanced. Defaults:
+  // advanced-detail badges (force/version/res/id/von) only in advanced.
+  function defaultColview() {
+    var adv = { s: false, a: true }, both = { s: true, a: true };
+    return { update: both, force: adv, version: adv, net: both, res: adv, id: adv, von: adv, plan: both };
+  }
+  function loadColview() {
+    try { var j = JSON.parse(localStorage.getItem(COLS_KEY) || "null"); if (j && typeof j === "object") { var d = defaultColview(); Object.keys(d).forEach(function (k) { if (j[k]) d[k] = { s: !!j[k].s, a: !!j[k].a }; }); return d; } } catch (e) {}
+    return defaultColview();
+  }
+  var colview = loadColview();
+  function colOn(key) { var v = colview[key]; if (!v) return true; return isAdvancedView() ? !!v.a : !!v.s; }
+  function saveColview() { localStorage.setItem(COLS_KEY, JSON.stringify(colview)); }
+
+  // Settings (localStorage): accent colour + row density → CSS variables; picked up
+  // live from the Settings page (which writes the same keys + a poke event).
+  function applySettings() {
+    try {
+      var accent = localStorage.getItem("cc.accent"); if (accent) document.documentElement.style.setProperty("--cc-accent", accent);
+      var dens = localStorage.getItem("cc.density"); var map = { compact: "5px", normal: "9px", airy: "14px" };
+      document.documentElement.style.setProperty("--cc-density", map[dens] || "9px");
+      colview = loadColview();
+    } catch (e) {}
+  }
+
+  // CSS-driven cell → pill styling. Toggling a class flips that badge kind on/off
+  // for the CURRENT view (Simple/Advanced), per the visibility matrix.
   function applyEnhanceClasses() {
     try { var tb = nativeTable(); if (!tb || tb.tagName !== "TABLE") return; tb.classList.add("cc-enh"); tb.classList.toggle("cc-adv", isAdvancedView()); COLS.forEach(function (c) { tb.classList.toggle("cc-c-" + c.key, colOn(c.key)); }); } catch (e) {}
   }
@@ -175,23 +200,31 @@
       var nameCell = tr.querySelector("td.ct-name"), upCell = tr.querySelector("td.updatecolumn");
       var adv = isAdvancedView(), c = containerByName(name);
 
-      // ── NAME cell (col 1): start/stop badge + (advanced) Container-ID / Von under the name ──
+      // ── NAME cell (col 1): start/stop badge, and BENEATH it Container-ID / Von ──
       if (nameCell) {
         var glyph = nameCell.querySelector(".inner i[id^='load-']");
         var st = glyphState(glyph) || (c && c.state) || "unknown";
         var meta = el("div", "cc-namemeta"); meta.setAttribute(MARK, "1");
         var sb = stateToggle(name, st); if (c && c.health === "unhealthy") { sb.classList.add("cc-badge-alert"); sb.textContent = stateLabel(st) + " ✕"; }
         meta.appendChild(sb);
-        if (adv) {
-          var advDiv = nameCell.querySelector(":scope > div.advanced");
-          if (advDiv) {
-            var added = false;
-            if (colOn("id")) { var cid = readContainerId(advDiv); if (cid) { meta.appendChild(badgeInfo("ID", cid.slice(0, 12), "id")); added = true; } }
-            if (colOn("von")) { var a = advDiv.querySelector("a[target='_blank']"); if (a && a.textContent.trim()) { var vb = badgeInfo("Von", a.textContent.trim(), "von"); vb.title = a.getAttribute("href") || ""; meta.appendChild(vb); added = true; } }
-            if (added) advDiv.classList.add("cc-hidden");
-          }
+        var advDiv = nameCell.querySelector(":scope > div.advanced");
+        if (advDiv) {
+          var idrow = el("div", "cc-namemeta-ids"), added = false;
+          if (colOn("id")) { var cid = readContainerId(advDiv); if (cid) { idrow.appendChild(badgeInfo("ID", cid.slice(0, 12), "id")); added = true; } }
+          if (colOn("von")) { var a = advDiv.querySelector("a[target='_blank']"); if (a && a.textContent.trim()) { var vb = badgeInfo("Von", a.textContent.trim(), "von"); vb.title = a.getAttribute("href") || ""; idrow.appendChild(vb); added = true; } }
+          if (added) { advDiv.classList.add("cc-hidden"); meta.appendChild(idrow); }
         }
         var inner = nameCell.querySelector(".inner") || nameCell; inner.appendChild(meta);
+      }
+
+      // ── CPU/RAM limits editor: a small gear on the resource cell ──
+      if (colOn("res")) {
+        var cpuCell = tr.querySelector(":scope > td.advanced");
+        if (cpuCell && !cpuCell.querySelector(".cc-limbtn")) {
+          var lb = el("span", "cc-limbtn"); lb.setAttribute(MARK, "1"); lb.textContent = "⚙"; lb.title = "CPU/RAM-Limits";
+          lb.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); openLimits(lb, name); });
+          cpuCell.appendChild(lb);
+        }
       }
 
       // ── VERSION cell (col 2): native update/force/tag pills stay (CSS); add last-run ──
@@ -283,6 +316,11 @@
   function makeGear(extra) { var g = el("button", "cc-hgear" + (extra ? " " + extra : ""), "⚙"); g.type = "button"; g.title = "CannonadeCommander"; g.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); toggleMenu(g); }); return g; }
   function injectHeaderGear() {
     try {
+      // Global idempotency: never place a second list-mode gear once one exists.
+      if (document.querySelector(".cc-hgear:not(.cc-hgear-grid)")) return true;
+      // Preferred home: as a small icon in Unraid's Advanced/Basic view toggle bar.
+      var tv = document.querySelector("div.ToggleViewMode");
+      if (tv && tv.parentNode) { if (tv.parentNode.querySelector(".cc-hgear-bar")) return true; tv.parentNode.insertBefore(makeGear("cc-hgear-bar"), tv); return true; }
       var tb = nativeTable(); if (!tb) return false;
       var hr = headerRow();
       if (hr) { if (hr.querySelector(".cc-hgear")) return true; var th = hr.querySelector("th"); if (th) { th.appendChild(makeGear("cc-hgear-th")); return true; } }
@@ -295,7 +333,11 @@
   function colRow(c) {
     var row = el("label", "cc-menu-row");
     var cb = el("input"); cb.type = "checkbox"; cb.checked = colOn(c.key);
-    cb.addEventListener("change", function () { visibleCols[c.key] = cb.checked; saveCols(); applyEnhanceClasses(); reinjectRowBadges(); });
+    cb.addEventListener("change", function () {
+      var v = colview[c.key] || { s: true, a: true };
+      if (isAdvancedView()) v.a = cb.checked; else v.s = cb.checked; // toggles the CURRENT view
+      colview[c.key] = v; saveColview(); applyEnhanceClasses(); reinjectRowBadges();
+    });
     row.appendChild(cb); row.appendChild(el("span", null, " " + (c.label[LANG] || c.label.en)));
     return row;
   }
@@ -321,6 +363,8 @@
     var save = el("button", "cc-btn", t("save")), fire = el("button", "cc-btn cc-btn-primary", t("startorder"));
     save.addEventListener("click", function () { savePlan(false); }); fire.addEventListener("click", function () { savePlan(true); });
     prow.appendChild(save); prow.appendChild(fire); m.appendChild(prow);
+    var link = el("a", "cc-menu-link", "⚙ " + (LANG === "de" ? "Einstellungen (Farbe, Spalten)…" : "Settings (color, columns)…"));
+    link.href = "/Settings/CannonadeCommander"; m.appendChild(link);
     return m;
   }
   function positionMenu() {
@@ -392,6 +436,38 @@
     var r = anchor.getBoundingClientRect(), w = pop.offsetWidth || 320;
     pop.style.left = Math.max(window.scrollX + 8, Math.min(window.scrollX + r.left, window.scrollX + document.documentElement.clientWidth - w - 12)) + "px";
     pop.style.top = (window.scrollY + r.bottom + 6) + "px"; openPop = pop;
+  }
+
+  // ───────────────────────── CPU/RAM limits editor (Docker container-update)
+  // return 0 for an empty field (= leave unchanged), a positive value for a valid
+  // limit, or -1 for unparseable input (comma decimals are normalised first).
+  function parseMem(s) { s = String(s || "").trim().replace(",", "."); if (!s) return 0; var m = /^([\d.]+)\s*([kmgt]?)i?b?$/i.exec(s); if (!m) return -1; var mult = { "": 1, k: 1024, m: 1048576, g: 1073741824, t: 1099511627776 }[m[2].toLowerCase()]; return Math.round(parseFloat(m[1]) * mult); }
+  function parseCPU(s) { s = String(s || "").trim().replace(",", "."); if (!s) return 0; if (!/^[\d.]+$/.test(s)) return -1; var n = parseFloat(s); return n > 0 ? Math.round(n * 1e9) : 0; }
+  function fmtMem(b) { if (b >= 1073741824) return (Math.round(b / 1073741824 * 100) / 100) + "G"; if (b >= 1048576) return Math.round(b / 1048576) + "M"; return String(b); }
+  function openLimits(anchor, name) {
+    closePop();
+    var pop = el("div", "cc-pop"), head = el("div", "cc-pop-head"); head.appendChild(el("b", null, name + " — CPU / RAM"));
+    var x = el("span", "cc-pop-x", "✕"); x.addEventListener("click", closePop); head.appendChild(x); pop.appendChild(head);
+    var body = el("div", "cc-pop-body");
+    var mrow = el("div", "cc-pop-row"); mrow.appendChild(el("label", "cc-pop-lbl", "RAM-Limit"));
+    var mem = el("input", "cc-in"); mem.type = "text"; mem.placeholder = "z.B. 2G · 512M · leer = unverändert"; mrow.appendChild(mem); body.appendChild(mrow);
+    var crow = el("div", "cc-pop-row"); crow.appendChild(el("label", "cc-pop-lbl", "CPU-Limit"));
+    var cpu = el("input", "cc-in"); cpu.type = "text"; cpu.placeholder = "z.B. 1.5 · leer = unverändert"; crow.appendChild(cpu); body.appendChild(crow);
+    pop.appendChild(body);
+    pop.appendChild(el("div", "cc-pop-foot", "Sofort per Docker-Update angewendet, kein Neustart. Leeres Feld lässt den Wert unverändert (ein bestehendes Limit ganz entfernen geht nur durch Neu-Erstellen des Containers)."));
+    var srow = el("div", "cc-pop-row"); var save = el("button", "cc-btn cc-btn-primary", t("save")); srow.appendChild(save); pop.appendChild(srow);
+    save.addEventListener("click", function () {
+      var mb = parseMem(mem.value), nc = parseCPU(cpu.value);
+      if (mb < 0 || nc < 0) { flash(LANG === "de" ? "Ungültige Eingabe" : "invalid value", true); return; }
+      if (mb === 0 && nc === 0) { closePop(); return; }
+      flash(t("saving")); api("POST", "limits", { name: name, mem_bytes: mb, nano_cpus: nc })
+        .then(function () { flash(t("done")); closePop(); }).catch(function (e) { flash("Error: " + e.message, true); });
+    });
+    document.body.appendChild(pop);
+    var r = anchor.getBoundingClientRect(), w = pop.offsetWidth || 340;
+    pop.style.left = Math.max(window.scrollX + 8, Math.min(window.scrollX + r.left, window.scrollX + document.documentElement.clientWidth - w - 12)) + "px";
+    pop.style.top = (window.scrollY + r.bottom + 6) + "px"; openPop = pop;
+    api("GET", "limits", null, "name=" + encodeURIComponent(name)).then(function (l) { if (!l) return; if (l.mem_bytes > 0) mem.value = fmtMem(l.mem_bytes); if (l.nano_cpus > 0) cpu.value = String(Math.round(l.nano_cpus / 1e9 * 100) / 100); }).catch(function () {});
   }
 
   // ───────────────────────── save / apply + toast
@@ -487,9 +563,12 @@
   }
   function boot() {
     try {
+      applySettings();
       load();
       connectObserver();
       startTimers();
+      // the Settings page (separate tab) writes cc.* keys → re-apply live here
+      window.addEventListener("storage", function (e) { try { if (!dead && e.key && e.key.indexOf("cc.") === 0) { applySettings(); if (mode === "list") { applyEnhanceClasses(); reinjectRowBadges(); } } } catch (e2) {} });
       // persistent re-probe (NEVER cleared by teardown): rebuild when the proxy returns
       setInterval(function () { try { if (!dead) return; fetch(PROXY + "?path=" + encodeURIComponent("state"), { headers: { Accept: "application/json" } }).then(function (r) { if (r.ok) rearm(); }).catch(function () {}); } catch (e) {} }, 8000);
       window.addEventListener("scroll", function () { try { if (menu) positionMenu(); } catch (e) {} }, true);

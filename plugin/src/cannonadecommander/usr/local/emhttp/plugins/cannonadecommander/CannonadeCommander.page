@@ -1,0 +1,14 @@
+Menu="Utilities"
+Title="CannonadeCommander"
+Icon="rocket"
+---
+<?php
+/* CannonadeCommander settings (Settings > Utilities). Pure client-side prefs
+   (badge accent colour, per-view column visibility, default view, row density)
+   stored in the browser's localStorage under cc.* keys and picked up LIVE by the
+   Docker-tab enhancer via the storage event. No server config, nothing to persist
+   on the flash — so uninstalling leaves nothing behind here either. */
+?>
+<link type="text/css" rel="stylesheet" href="<?autov('/plugins/cannonadecommander/styles/docker.css')?>">
+<div id="cc-settings" class="cc-root"></div>
+<script defer src="<?autov('/plugins/cannonadecommander/scripts/settings.js')?>"></script>

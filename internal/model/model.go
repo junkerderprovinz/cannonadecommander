@@ -17,6 +17,15 @@ type Container struct {
 	Autostart bool     `json:"autostart"` // whether Unraid's native autostart owns it
 }
 
+// Limits are a container's CONFIGURED resource caps (from HostConfig, 0 = no
+// limit). Read on demand (List() does not carry HostConfig) and edited through
+// Docker's container-update — applied live, no restart, and persisted by Docker
+// across restarts. NanoCPUs is CPUs*1e9 (1.5 CPUs = 1_500_000_000).
+type Limits struct {
+	MemBytes int64 `json:"mem_bytes"`
+	NanoCPUs int64 `json:"nano_cpus"`
+}
+
 // ProbeKind is how the engine decides a container is "ready" so the next stage
 // may fire. Most Community-Apps images ship NO HEALTHCHECK, so the TCP/running
 // probes are first-class, not just a fallback.

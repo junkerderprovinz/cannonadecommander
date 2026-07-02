@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.5.0">
+  <!ENTITY version   "0.5.1">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
@@ -30,6 +30,16 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.5.1
+- CRITICAL uninstall fix. The REMOVE step ran `pkill -f cannonadecommander`, but
+  Unraid executes the uninstall as `/bin/bash /tmp/inlineN-cannonadecommander.sh`
+  under `plugin remove cannonadecommander.plg` - so that pkill matched and killed
+  its OWN script (and Unraid's plugin process) before `rm -rf` ran. The files
+  (and the Docker-tab injection) were left in place - visible even in a fresh
+  incognito window - and because the .plg was never moved off the flash, the
+  plugin reinstalled on the next boot. Removed the pkill entirely; the daemon is
+  stopped precisely by its PID (rc stop), so uninstall now removes everything.
 
 ### 0.5.0
 - NEW: a Settings page (Settings > Utilities > CannonadeCommander) to pick the
@@ -162,7 +172,7 @@ rm -rf &emhttp;
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>94fd37973cb448e9a50b57d7f743b7b696c85b2b93a6245f1f15798d240593de</SHA256>
+  <SHA256>bfa50fc8e89f4a7938dc4999cadb9c1427696fa8e05ba53ad1dc99648167c2a8</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the
@@ -177,11 +187,19 @@ echo "CannonadeCommander &version; installed - open the Docker tab."
 </INLINE>
 </FILE>
 
-<!-- Remove: stop the daemon, drop the package + files, keep the saved plan. -->
+<!-- Remove: stop the daemon (by PID, via the rc script) and drop the package +
+     files; keep the saved plan.
+     CRITICAL, verified against Unraid's plugin manager source: do NOT
+     'pkill -f &slug;' here. Unraid runs this REMOVE as '/bin/bash
+     /tmp/inlineN-&slug;.sh' under the parent 'plugin remove &slug;.plg', so
+     'pkill -f &slug;' matches (and SIGTERMs) THIS script AND that orchestrator —
+     the script dies before 'rm -rf' runs (files linger) AND Unraid never moves
+     the .plg off the flash, so the plugin reinstalls on the next boot. rc stop
+     already stops the engine precisely via its PID file; Unraid removes the
+     flash .plg itself once its process is left alive. -->
 <REMOVE>
 <INLINE>
 &emhttp;/scripts/rc.&slug; stop 2>/dev/null
-pkill -f &slug; 2>/dev/null
 removepkg &slug; 2>/dev/null
 rm -rf &emhttp;
 rm -f &plgPath;/*.txz /var/run/&slug;.pid /var/run/&slug;.sock

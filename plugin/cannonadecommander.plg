@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.6.1">
+  <!ENTITY version   "0.7.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
@@ -30,6 +30,22 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.7.0
+- NEW automation, all per container: SCHEDULES (start / stop / restart at a
+  wall-clock time, optionally on chosen weekdays), a WATCHDOG (auto-restart a
+  container when it goes unhealthy or crashes, with a per-hour cap), and
+  NOTIFICATIONS (Unraid's own notifications and/or a webhook POST). Schedules and
+  the watchdog are set per container from the start-plan chip in the Docker tab;
+  notifications are configured on the Settings page. Schedules run in the server's
+  local time.
+- The watchdog restarts only on a real crash: a clean or manual stop (exit 0, or a
+  SIGTERM / SIGKILL from a docker stop) is left alone, so it never fights a stop
+  you meant. Restart and failure alerts are throttled, and the per-hour cap yields
+  a single "gave up" instead of an endless restart loop.
+- The automation config is persisted on the flash (config.json, kept on uninstall
+  like the start plan) and written atomically with fsync. Both editors
+  read-modify-write the live config, so saving one part never drops another.
 
 ### 0.6.1
 - Removed the gear from the Docker tab entirely (all configuration lives on the
@@ -190,7 +206,7 @@ rm -rf &emhttp;
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>b918bede2ca37ca53b6aab6804fe6cc7546b9626b404493534c0f2f07f4e36be</SHA256>
+  <SHA256>b0095bb0b891a63e68555b2bcf043b6cafea692d2a00b889e749739646ae822b</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

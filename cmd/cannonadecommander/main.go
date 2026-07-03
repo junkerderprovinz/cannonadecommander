@@ -22,6 +22,7 @@ import (
 
 	"github.com/junkerderprovinz/cannonadecommander/internal/api"
 	"github.com/junkerderprovinz/cannonadecommander/internal/dockercli"
+	"github.com/junkerderprovinz/cannonadecommander/internal/monitor"
 	"github.com/junkerderprovinz/cannonadecommander/internal/orchestrator"
 	"github.com/junkerderprovinz/cannonadecommander/internal/readiness"
 	"github.com/junkerderprovinz/cannonadecommander/internal/store"
@@ -115,6 +116,9 @@ func serve() {
 		_ = httpSrv.Shutdown(shutCtx)
 		_ = os.Remove(apiSock)
 	}()
+
+	// The always-on automation loop: scheduled actions, the watchdog, notifications.
+	go (&monitor.Monitor{Docker: docker, Config: st, Notifier: monitor.SysNotifier{}}).Run(ctx)
 
 	log.Print("\n" + bannerArt)
 	log.Printf("CANNONADECOMMANDER %s IS READY — api %s · data %s · docker %s", version, apiSock, dataDir, dockerSock)

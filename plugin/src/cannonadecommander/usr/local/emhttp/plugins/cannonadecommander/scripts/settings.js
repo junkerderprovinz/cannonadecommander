@@ -37,6 +37,22 @@
   var view = get("cc.view", "list");
   var colview = loadColview();
 
+  // Notifications are engine-side config (not localStorage): loaded/saved through
+  // the same-origin proxy. We keep the WHOLE config so a notify save never drops
+  // the per-container schedules/watchdogs set in the Docker tab.
+  var PROXY = "/plugins/cannonadecommander/server/api.php";
+  var fullConfig = { schedules: [], watchdogs: [], notify: { unraid: false, webhook: "" } };
+  var notify = { unraid: false, webhook: "" };
+  var notifyDirty = false;   // true once the user has touched the Notifications card
+  var configLoaded = false;  // true only after a SUCCESSFUL initial GET /config
+  function api(method, path, body) {
+    var opts = { method: method, headers: { Accept: "application/json" } };
+    if (body != null) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
+    return fetch(PROXY + "?path=" + encodeURIComponent(path), opts).then(function (r) {
+      return r.text().then(function (tx) { var d = null; try { d = tx ? JSON.parse(tx) : null; } catch (e) {} if (!r.ok) throw new Error((d && d.error) || ("HTTP " + r.status)); return d; });
+    });
+  }
+
   function el(tag, cls, txt) { var n = document.createElement(tag); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; }
   function card(title, sub) { var c = el("div", "cc-set-card"); c.appendChild(el("div", "cc-set-h", title)); if (sub) c.appendChild(el("div", "cc-set-sub", sub)); return c; }
   function elk(t) { var s = el("span", "cc-b-k"); s.textContent = t; return s; }
@@ -123,8 +139,36 @@
     c4.appendChild(segRow(T("Zeilenhöhe", "Row density"), [["compact", T("kompakt", "compact")], ["normal", "normal"], ["airy", T("luftig", "airy")]], density, function (v) { density = v; set("cc.density", v); }));
     wrap.appendChild(c4);
 
-    root.appendChild(el("div", "cc-set-foot", T("Öffne (oder wechsle zu) den Docker-Tab — die Änderungen erscheinen sofort.", "Open (or switch to) the Docker tab — changes appear immediately.")));
+    // ── Notifications (engine-side; saved to the flash) ──
+    var c5 = card(T("Benachrichtigungen", "Notifications"), T("Warnungen bei Watchdog-Neustarts, fehlgeschlagenen Starts und Zeitplan-Fehlern.", "Alerts on watchdog restarts, failed starts and schedule errors."));
+    c5.appendChild(toggleRow(T("Unraid-Benachrichtigungen", "Unraid notifications"), notify.unraid, function (v) { notify.unraid = v; notifyDirty = true; }));
+    var wrow = el("div", "cc-set-row"); wrow.appendChild(el("span", "cc-set-rl", T("Webhook-URL", "Webhook URL")));
+    var win = el("input", "cc-set-txt"); win.type = "url"; win.placeholder = "https://…"; win.value = notify.webhook || "";
+    win.addEventListener("input", function () { notify.webhook = win.value.trim(); notifyDirty = true; });
+    wrow.appendChild(win); c5.appendChild(wrow);
+    // Save stays disabled until the current config has been read once, so we never
+    // save notify over a config we haven't seen (and by then there is no in-flight
+    // initial GET left to race a just-saved value back to stale).
+    var save5 = el("button", "cc-btn cc-btn-primary cc-set-save", configLoaded ? T("Speichern", "Save") : T("lädt…", "loading…"));
+    save5.type = "button"; save5.disabled = !configLoaded;
+    save5.addEventListener("click", function () { if (configLoaded) saveNotify(save5); }); c5.appendChild(save5);
+    wrap.appendChild(c5);
+
+    root.appendChild(el("div", "cc-set-foot", T("Öffne (oder wechsle zu) den Docker-Tab — die Änderungen erscheinen sofort. Zeitpläne und Watchdog stellst du pro Container über den ⛓-Chip im Docker-Tab ein.", "Open (or switch to) the Docker tab — changes appear immediately. Set schedules and the watchdog per container via the ⛓ chip in the Docker tab.")));
     paintPrev();
+  }
+  function saveNotify(btn) {
+    btn.textContent = T("Speichere…", "Saving…"); btn.disabled = true;
+    function reset(txt) { btn.textContent = txt; setTimeout(function () { btn.textContent = T("Speichern", "Save"); btn.disabled = false; }, 1800); }
+    // Read-modify-write against the LIVE config: re-fetch it, change ONLY notify,
+    // then write it back. This never touches schedules/watchdogs — including any set
+    // in the Docker tab after this page loaded — and if the fresh read fails we
+    // ABORT (no PUT), so a transient engine outage can never wipe the automation.
+    api("GET", "config").then(function (c) {
+      if (!c || typeof c !== "object") throw new Error("config unreadable");
+      c.notify = { unraid: !!notify.unraid, webhook: notify.webhook || "" };
+      return api("PUT", "config", c).then(function () { fullConfig = c; reset(T("Gespeichert ✓", "Saved ✓")); });
+    }).catch(function () { reset(T("Fehler — Engine erreichbar?", "Error — engine reachable?")); });
   }
   function paintPrev() { var p = document.getElementById("cc-set-prev"); if (!p) return; var kinds = { net: "#7fd1a3", ip: "#86b8f0", lan: "#d9b36b", port: "#c99ad9" }; Array.prototype.slice.call(p.children).forEach(function (b) { var k = (b.className.match(/cc-b-(\w+)/) || [])[1]; b.style.background = rainbow ? kinds[k] : accent; b.style.color = "#fff"; }); }
   function thc(t) { var e = el("th", null, t); return e; }
@@ -136,4 +180,17 @@
   }
 
   render();
+  // Pull the engine-side config so the Notifications card reflects what is saved,
+  // then re-render. Failure (engine down / older build) leaves the defaults shown.
+  // If the user already started editing the card during the round-trip, keep their
+  // edits (don't overwrite notify or re-render on top of them).
+  api("GET", "config").then(function (c) {
+    if (!c || typeof c !== "object") return; // leave Save disabled if unreadable
+    fullConfig = { schedules: c.schedules || [], watchdogs: c.watchdogs || [], notify: c.notify || { unraid: false, webhook: "" } };
+    configLoaded = true;
+    // keep the user's in-flight edits if they already started typing; otherwise
+    // adopt the loaded values. Either way re-render to enable Save.
+    if (!notifyDirty) notify = { unraid: !!fullConfig.notify.unraid, webhook: fullConfig.notify.webhook || "" };
+    render();
+  }).catch(function () {});
 })();

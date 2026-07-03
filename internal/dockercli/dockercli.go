@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -108,14 +109,15 @@ func (c *Client) List(ctx context.Context) ([]model.Container, error) {
 	for _, r := range raw {
 		net, ip := firstNetwork(r.NetworkSettings.Networks)
 		out = append(out, model.Container{
-			ID:      r.ID,
-			Name:    firstName(r.Names),
-			Image:   r.Image,
-			State:   r.State,
-			Health:  healthFromStatus(r.Status),
-			Network: net,
-			IP:      ip,
-			Ports:   formatPorts(r.Ports),
+			ID:       r.ID,
+			Name:     firstName(r.Names),
+			Image:    r.Image,
+			State:    r.State,
+			ExitCode: exitCodeFromStatus(r.Status),
+			Health:   healthFromStatus(r.Status),
+			Network:  net,
+			IP:       ip,
+			Ports:    formatPorts(r.Ports),
 		})
 	}
 	return out, nil
@@ -384,6 +386,26 @@ func firstName(names []string) string {
 		return strings.TrimPrefix(names[0], "/")
 	}
 	return ""
+}
+
+// exitCodeFromStatus reads the exit code out of the /containers/json Status
+// string for a stopped container ("Exited (137) 5 minutes ago") — cheaper than
+// inspecting each one. 0 for anything not shaped like an exit (running/created).
+func exitCodeFromStatus(status string) int {
+	i := strings.Index(status, "Exited (")
+	if i < 0 {
+		return 0
+	}
+	rest := status[i+len("Exited ("):]
+	j := strings.IndexByte(rest, ')')
+	if j < 0 {
+		return 0
+	}
+	n, err := strconv.Atoi(rest[:j])
+	if err != nil {
+		return 0
+	}
+	return n
 }
 
 // healthFromStatus best-effort reads health from the /containers/json Status

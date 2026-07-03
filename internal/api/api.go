@@ -27,10 +27,12 @@ type Docker interface {
 	UpdateResources(ctx context.Context, name string, l model.Limits) error
 }
 
-// Store persists the plan.
+// Store persists the plan + the automation config.
 type Store interface {
 	Load() (model.Plan, error)
 	Save(model.Plan) error
+	LoadConfig() (model.Config, error)
+	SaveConfig(model.Config) error
 }
 
 // Runner orchestrates a plan.
@@ -62,6 +64,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/stats", s.handleStats)
 	mux.HandleFunc("GET /api/limits", s.handleGetLimits)
 	mux.HandleFunc("POST /api/limits", s.handleSetLimits)
+	mux.HandleFunc("GET /api/config", s.handleGetConfig)
+	mux.HandleFunc("PUT /api/config", s.handlePutConfig)
 	return mux
 }
 
@@ -280,6 +284,71 @@ func (s *Server) handleSetLimits(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+// handleGetConfig returns the automation config (schedules / watchdogs / notify).
+func (s *Server) handleGetConfig(w http.ResponseWriter, _ *http.Request) {
+	cfg, err := s.Store.LoadConfig()
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, cfg)
+}
+
+// handlePutConfig validates + persists the automation config. Only the safe
+// lifecycle verbs are accepted for schedules; the monitor still never touches the
+// Docker socket for anything but start/stop/restart.
+func (s *Server) handlePutConfig(w http.ResponseWriter, r *http.Request) {
+	var cfg model.Config
+	if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
+		writeErr(w, http.StatusBadRequest, err)
+		return
+	}
+	for _, sc := range cfg.Schedules {
+		if sc.Action != "start" && sc.Action != "stop" && sc.Action != "restart" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "bad schedule action: " + sc.Action})
+			return
+		}
+		// The monitor matches the time by exact "HH:MM" string equality against the
+		// host clock's zero-padded now.Format("15:04"), so reject anything that could
+		// never match (a non-zero-padded or malformed time = a silently dead schedule).
+		if !validScheduleTime(sc.Time) {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "bad schedule time (want HH:MM, zero-padded): " + sc.Time})
+			return
+		}
+		for _, d := range sc.Days {
+			if d < 0 || d > 6 {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "bad schedule day (want 0-6)"})
+				return
+			}
+		}
+	}
+	if err := s.Store.SaveConfig(cfg); err != nil {
+		writeErr(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "saved"})
+}
+
+// validScheduleTime requires a strictly zero-padded 24h "HH:MM" (00:00–23:59),
+// matching the monitor's now.Format("15:04"); time.Parse is too lenient here (it
+// would accept "9:00", which can never string-equal the padded clock).
+func validScheduleTime(s string) bool {
+	if len(s) != 5 || s[2] != ':' {
+		return false
+	}
+	for i := 0; i < 5; i++ {
+		if i == 2 {
+			continue
+		}
+		if s[i] < '0' || s[i] > '9' {
+			return false
+		}
+	}
+	h := int(s[0]-'0')*10 + int(s[1]-'0')
+	m := int(s[3]-'0')*10 + int(s[4]-'0')
+	return h <= 23 && m <= 59
 }
 
 func writeJSON(w http.ResponseWriter, code int, v any) {

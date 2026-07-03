@@ -141,3 +141,19 @@ func TestHealthFromStatus(t *testing.T) {
 		}
 	}
 }
+
+func TestExitCodeFromStatus(t *testing.T) {
+	cases := map[string]int{
+		"Exited (0) 3 minutes ago":  0,
+		"Exited (1) 5 seconds ago":  1,
+		"Exited (137) 1 minute ago": 137,
+		"Up 2 hours (healthy)":      0,
+		"Created":                   0,
+		"Exited (garbage) ago":      0,
+	}
+	for status, want := range cases {
+		if got := exitCodeFromStatus(status); got != want {
+			t.Errorf("exitCodeFromStatus(%q) = %d, want %d", status, got, want)
+		}
+	}
+}

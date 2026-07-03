@@ -49,10 +49,15 @@ func (f *fakeDocker) UpdateResources(_ context.Context, n string, l model.Limits
 	return nil
 }
 
-type memStore struct{ plan model.Plan }
+type memStore struct {
+	plan model.Plan
+	cfg  model.Config
+}
 
-func (m *memStore) Load() (model.Plan, error) { return m.plan, nil }
-func (m *memStore) Save(p model.Plan) error   { m.plan = p; return nil }
+func (m *memStore) Load() (model.Plan, error)         { return m.plan, nil }
+func (m *memStore) Save(p model.Plan) error           { m.plan = p; return nil }
+func (m *memStore) LoadConfig() (model.Config, error) { return m.cfg, nil }
+func (m *memStore) SaveConfig(c model.Config) error   { m.cfg = c; return nil }
 
 type fakeRunner struct{ ran bool }
 
@@ -220,5 +225,46 @@ func TestLimitsSetGetAndValidate(t *testing.T) {
 	}
 	if lim.MemBytes != 1073741824 || lim.NanoCPUs != 1500000000 {
 		t.Fatalf("limits wrong: %+v", lim)
+	}
+}
+
+func TestConfigPutGetAndValidate(t *testing.T) {
+	s, h := newServer()
+	cfg := model.Config{
+		Schedules: []model.Schedule{{Name: "gluetun", Action: "restart", Time: "03:00", Enabled: true}},
+		Watchdogs: []model.Watchdog{{Name: "gluetun", Enabled: true, OnUnhealthy: true, MaxRestarts: 3}},
+		Notify:    model.Notify{Unraid: true, Webhook: "https://example.test/hook"},
+	}
+	body, _ := json.Marshal(cfg)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest("PUT", "/api/config", bytes.NewReader(body)))
+	if rec.Code != 200 {
+		t.Fatalf("put config = %d: %s", rec.Code, rec.Body)
+	}
+	if len(s.Store.(*memStore).cfg.Schedules) != 1 {
+		t.Fatalf("config not stored: %+v", s.Store.(*memStore).cfg)
+	}
+	// a bad schedule action is rejected
+	bad, _ := json.Marshal(model.Config{Schedules: []model.Schedule{{Name: "x", Action: "explode", Time: "03:00"}}})
+	rec2 := httptest.NewRecorder()
+	h.ServeHTTP(rec2, httptest.NewRequest("PUT", "/api/config", bytes.NewReader(bad)))
+	if rec2.Code != 400 {
+		t.Fatalf("bad action should be 400, got %d", rec2.Code)
+	}
+	// a malformed (non-zero-padded) schedule time is rejected before it can become
+	// a silently dead schedule
+	badTime, _ := json.Marshal(model.Config{Schedules: []model.Schedule{{Name: "x", Action: "start", Time: "9:00"}}})
+	rec2b := httptest.NewRecorder()
+	h.ServeHTTP(rec2b, httptest.NewRequest("PUT", "/api/config", bytes.NewReader(badTime)))
+	if rec2b.Code != 400 {
+		t.Fatalf("bad time should be 400, got %d", rec2b.Code)
+	}
+	// GET returns it
+	rec3 := httptest.NewRecorder()
+	h.ServeHTTP(rec3, httptest.NewRequest("GET", "/api/config", nil))
+	var got model.Config
+	_ = json.Unmarshal(rec3.Body.Bytes(), &got)
+	if len(got.Watchdogs) != 1 || got.Notify.Webhook != "https://example.test/hook" {
+		t.Fatalf("config get wrong: %+v", got)
 	}
 }

@@ -29,11 +29,16 @@
   var VIEW_KEY = "cc.view", COLS_KEY = "cc.colview"; // cols2: reset stale v0.3 prefs
   var MARK = "data-cc", ROWMARK = "data-cc-row";
   var PROBES = ["health", "running", "tcp"], POLICIES = ["abort", "continue", "degrade"];
+  var SCHED_ACTIONS = ["start", "stop", "restart"];
   var LANG = (document.documentElement.lang || navigator.language || "en").slice(0, 2).toLowerCase();
+  // Mon-first day toggles; value is Go's time.Weekday (0=Sun..6=Sat).
+  var DAYS = LANG === "de"
+    ? [["Mo", 1], ["Di", 2], ["Mi", 3], ["Do", 4], ["Fr", 5], ["Sa", 6], ["So", 0]]
+    : [["Mo", 1], ["Tu", 2], ["We", 3], ["Th", 4], ["Fr", 5], ["Sa", 6], ["Su", 0]];
 
   var T = {
-    de: { uptodate: "Aktuell", update: "Update", start: "Starten", stop: "Stoppen", restart: "Neustart", pause: "Pause", resume: "Fortsetzen", force: "Update erzwingen", save: "Plan speichern", startorder: "In Reihenfolge starten", filter: "filtern…", cols: "Badges", view: "Ansicht", list: "Liste", grid: "Raster", plan: "Startplan", done: "erledigt", saving: "speichere…", saved: "Plan gespeichert" },
-    en: { uptodate: "up to date", update: "Update", start: "Start", stop: "Stop", restart: "Restart", pause: "Pause", resume: "Resume", force: "Force update", save: "Save plan", startorder: "Start in order", filter: "filter…", cols: "Badges", view: "View", list: "List", grid: "Grid", plan: "Plan", done: "done", saving: "saving…", saved: "plan saved" },
+    de: { uptodate: "Aktuell", update: "Update", start: "Starten", stop: "Stoppen", restart: "Neustart", pause: "Pause", resume: "Fortsetzen", force: "Update erzwingen", save: "Plan speichern", startorder: "In Reihenfolge starten", filter: "filtern…", cols: "Badges", view: "Ansicht", list: "Liste", grid: "Raster", plan: "Startplan", done: "erledigt", saving: "speichere…", saved: "gespeichert", after: "nach", active: "aktiv", watchdog: "Watchdog (Auto-Neustart)", wUnhealthy: "bei „unhealthy“", wExit: "bei Absturz (nicht bei normalem Stopp)", wMax: "max./Std.", schedules: "Zeitpläne", addsched: "+ Zeitplan", remove: "entfernen" },
+    en: { uptodate: "up to date", update: "Update", start: "Start", stop: "Stop", restart: "Restart", pause: "Pause", resume: "Resume", force: "Force update", save: "Save plan", startorder: "Start in order", filter: "filter…", cols: "Badges", view: "View", list: "List", grid: "Grid", plan: "Plan", done: "done", saving: "saving…", saved: "saved", after: "after", active: "active", watchdog: "Watchdog (auto-restart)", wUnhealthy: "when unhealthy", wExit: "on crash (not on a normal stop)", wMax: "max/hour", schedules: "Schedules", addsched: "+ schedule", remove: "remove" },
   };
   function t(k) { return (T[LANG] || T.en)[k] || T.en[k]; }
   var STATE_LABELS = {
@@ -44,6 +49,9 @@
 
   var mode = localStorage.getItem(VIEW_KEY) === "grid" ? "grid" : "list";
   var containers = [], containerNames = [], stats = {}, shiplog = {}, workingPlan = {}, lastRun = {}, iconCache = {};
+  // Automation config (schedules + watchdogs + notify) lives on the flash next to
+  // the plan; loaded whole, mutated per-container in the editor, and PUT back whole.
+  var config = { schedules: [], watchdogs: [], notify: { unraid: false, webhook: "" } };
   var filterText = "", gridHolder = null, openPop = null, menu = null, menuAnchor = null, menuStatusEl = null, toastEl = null, toastTimer = null;
   var mo = null, dead = false, lastAdv = false, timers = [], moPending = false, moTimer = null;
 
@@ -101,10 +109,21 @@
       if (Array.isArray(data)) data.forEach(function (st) { var n = st.container && st.container.name; if (n) shiplog[norm(n)] = st; });
     }).catch(function () { shiplog = {}; });
   }
+  function loadConfig() {
+    return api("GET", "config").then(function (c) {
+      if (c && typeof c === "object") config = { schedules: c.schedules || [], watchdogs: c.watchdogs || [], notify: c.notify || { unraid: false, webhook: "" } };
+    }).catch(function () { /* older engine or transient: keep the current config */ });
+  }
+  function watchdogFor(name) { var k = norm(name); for (var i = 0; i < config.watchdogs.length; i++) if (norm(config.watchdogs[i].name) === k) return config.watchdogs[i]; return null; }
+  function schedulesFor(name) { var k = norm(name); return config.schedules.filter(function (s) { return norm(s.name) === k; }); }
+  // Replace this container's entries in the whole-config, leaving every other
+  // container (and notify) untouched, so a per-row save never clobbers the rest.
+  function setWatchdog(name, wd) { var k = norm(name); config.watchdogs = config.watchdogs.filter(function (w) { return norm(w.name) !== k; }); if (wd) config.watchdogs.push(wd); }
+  function setSchedules(name, list) { var k = norm(name); config.schedules = config.schedules.filter(function (s) { return norm(s.name) !== k; }); list.forEach(function (s) { config.schedules.push(s); }); }
   function containerByName(name) { var k = norm(name); for (var i = 0; i < containers.length; i++) if (norm(containers[i].name) === k) return containers[i]; return null; }
   // The plan badge's LABEL already says "Startplan"; the value only adds detail
   // (or nothing when unmanaged) so the chip never reads "Startplan Startplan".
-  function depsTxt(node) { return node ? (node.after && node.after.length ? "nach " + node.after.join(", ") : "aktiv") : ""; }
+  function depsTxt(node) { return node ? (node.after && node.after.length ? t("after") + " " + node.after.join(", ") : t("active")) : ""; }
   function iconFor(name) {
     if (iconCache[name] !== undefined) return iconCache[name];
     var src = "", row = document.getElementById("ct-" + name), img = row && row.querySelector("img");
@@ -123,9 +142,13 @@
   }
   function badgeInfo(label, value, kind) { var b = el("span", "cc-b cc-b-info" + (kind ? " cc-b-" + kind : "")); b.appendChild(el("span", "cc-b-k", label)); b.appendChild(el("span", "cc-b-v", value)); return b; }
   function planBadge(name) {
-    var node = workingPlan[name], chip = el("a", "cc-b cc-plan" + (node ? " cc-plan-on" : ""));
+    var node = workingPlan[name], wdOn = !!watchdogFor(name), schedN = schedulesFor(name).length, auto = wdOn || schedN > 0;
+    var chip = el("a", "cc-b cc-plan" + (node ? " cc-plan-on" : "") + (auto ? " cc-plan-auto" : ""));
     chip.href = "#"; chip.innerHTML = '<span class="cc-b-k">⛓ ' + t("plan") + '</span><span class="cc-b-v"></span>';
-    chip.querySelector(".cc-b-v").textContent = depsTxt(node); chip.title = "start order for " + name;
+    chip.querySelector(".cc-b-v").textContent = depsTxt(node);
+    chip.title = "start order for " + name + (wdOn ? " · watchdog" : "") + (schedN ? " · " + schedN + "× " + t("schedules").toLowerCase() : "");
+    // a small marker so the row shows at a glance that automation is attached
+    if (auto) { var m = el("span", "cc-plan-mark"); m.textContent = (wdOn ? "⏻" : "") + (schedN ? "⏱" : ""); chip.appendChild(m); }
     chip.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); openEditor(chip, name); });
     return chip;
   }
@@ -426,12 +449,52 @@
     var pol = el("select", "cc-in"); POLICIES.forEach(function (p) { var o = el("option", null, p); o.value = p; if (node.policy === p) o.selected = true; pol.appendChild(o); });
     polrow.appendChild(pol); body.appendChild(polrow); pop.appendChild(body);
     pop.appendChild(el("div", "cc-pop-foot", "abort skips dependents · continue/degrade start them anyway."));
+
+    // ── Watchdog (auto-restart) — independent of plan membership ──
+    var wd = watchdogFor(name);
+    var wSec = el("div", "cc-pop-auto");
+    var wHead = el("label", "cc-pop-row cc-pop-toggle"), wEn = el("input"); wEn.type = "checkbox"; wEn.checked = !!(wd && wd.enabled);
+    wHead.appendChild(wEn); wHead.appendChild(el("span", "cc-pop-sech", t("watchdog"))); wSec.appendChild(wHead);
+    var wBody = el("div", "cc-pop-sub" + (wEn.checked ? "" : " cc-dis"));
+    var wUrow = el("label", "cc-pop-row"), wU = el("input"); wU.type = "checkbox"; wU.checked = wd ? !!wd.on_unhealthy : true;
+    wUrow.appendChild(wU); wUrow.appendChild(el("span", null, " " + t("wUnhealthy"))); wBody.appendChild(wUrow);
+    var wXrow = el("label", "cc-pop-row"), wX = el("input"); wX.type = "checkbox"; wX.checked = wd ? !!wd.on_exit : false;
+    wXrow.appendChild(wX); wXrow.appendChild(el("span", null, " " + t("wExit"))); wBody.appendChild(wXrow);
+    var wMrow = el("div", "cc-pop-row"); wMrow.appendChild(el("label", "cc-pop-lbl", t("wMax")));
+    // Default a NEW watchdog to a sane per-hour cap (not unlimited), so a flapping
+    // container is bounded and yields a single "gave up" instead of restarting
+    // forever. An existing watchdog keeps its saved value; blank = 0 = unlimited.
+    var wM = el("input", "cc-in cc-port"); wM.type = "number"; wM.min = "0"; wM.placeholder = "0 = ∞"; wM.value = wd ? (wd.max_restarts ? wd.max_restarts : "") : "6";
+    wMrow.appendChild(wM); wBody.appendChild(wMrow); wSec.appendChild(wBody);
+    wEn.addEventListener("change", function () { wBody.classList.toggle("cc-dis", !wEn.checked); });
+    pop.appendChild(wSec);
+    function readWatchdog() { if (!wEn.checked) return null; return { name: name, enabled: true, on_unhealthy: !!wU.checked, on_exit: !!wX.checked, max_restarts: parseInt(wM.value, 10) || 0 }; }
+
+    // ── Schedules (timed lifecycle actions) — independent of plan membership ──
+    function schedRow(s) {
+      var row = el("div", "cc-sched-row");
+      var act2 = el("select", "cc-in cc-sched-act"); SCHED_ACTIONS.forEach(function (a) { var o = el("option", null, t(a)); o.value = a; if (s && s.action === a) o.selected = true; act2.appendChild(o); });
+      var time = el("input", "cc-in cc-sched-time"); time.type = "time"; time.value = (s && s.time) || "";
+      var days = el("div", "cc-days"), sel = {}; ((s && s.days) || []).forEach(function (d) { sel[d] = true; });
+      DAYS.forEach(function (d) { var b = el("button", "cc-day" + (sel[d[1]] ? " cc-day-on" : ""), d[0]); b.type = "button"; b.dataset.day = d[1]; b.addEventListener("click", function (e) { e.preventDefault(); b.classList.toggle("cc-day-on"); }); days.appendChild(b); });
+      var rm = el("span", "cc-sched-x", "✕"); rm.title = t("remove"); rm.addEventListener("click", function () { row.remove(); });
+      row.appendChild(act2); row.appendChild(time); row.appendChild(days); row.appendChild(rm);
+      // empty days = every day; only rows with a valid HH:MM time are saved
+      row._read = function () { if (!/^\d{2}:\d{2}$/.test(time.value)) return null; var ds = []; Array.prototype.slice.call(days.children).forEach(function (x) { if (x.classList.contains("cc-day-on")) ds.push(parseInt(x.dataset.day, 10)); }); var o = { name: name, action: act2.value, time: time.value, enabled: true }; if (ds.length) o.days = ds; return o; };
+      return row;
+    }
+    var sSec = el("div", "cc-pop-auto"); sSec.appendChild(el("div", "cc-pop-sech cc-pop-sech-lone", t("schedules")));
+    var sList = el("div", "cc-sched-list"); schedulesFor(name).forEach(function (s) { sList.appendChild(schedRow(s)); }); sSec.appendChild(sList);
+    var addB = el("button", "cc-btn cc-btn-sm", t("addsched")); addB.type = "button"; addB.addEventListener("click", function () { sList.appendChild(schedRow(null)); }); sSec.appendChild(addB);
+    pop.appendChild(sSec);
+    function readSchedules() { var out = []; Array.prototype.slice.call(sList.children).forEach(function (r) { if (r._read) { var v = r._read(); if (v) out.push(v); } }); return out; }
+
     // Plan actions live here now (the Docker-tab gear is gone): save the whole plan
-    // or run it in dependency order immediately.
+    // AND this container's automation, or run it in dependency order immediately.
     var act = el("div", "cc-pop-row cc-pop-act");
     var bSave = el("button", "cc-btn", t("save")), bRun = el("button", "cc-btn cc-btn-primary", t("startorder"));
-    bSave.addEventListener("click", function () { savePlan(false); });
-    bRun.addEventListener("click", function () { savePlan(true); });
+    bSave.addEventListener("click", function () { saveEditor(name, readWatchdog(), readSchedules(), false); });
+    bRun.addEventListener("click", function () { saveEditor(name, readWatchdog(), readSchedules(), true); });
     act.appendChild(bSave); act.appendChild(bRun); pop.appendChild(act);
     function commit() {
       if (!manage.checked) { delete workingPlan[name]; body.classList.add("cc-dis"); refreshChip(anchor, name); return; }
@@ -488,6 +551,32 @@
   // ───────────────────────── save / apply + toast
   function collectPlan() { var nodes = []; Object.keys(workingPlan).forEach(function (k) { nodes.push(workingPlan[k]); }); return { nodes: nodes }; }
   function savePlan(thenApply) { flash(t("saving")); api("PUT", "plan", collectPlan()).then(function () { if (thenApply) return apply(); flash(t("saved")); }).catch(function (e) { flash("Error: " + e.message, true); }); }
+  // Persist this container's automation (watchdog + schedules) AND the start plan,
+  // then optionally run the plan. Config is PUT whole, so other containers' entries
+  // and the notify block (set in Settings) are preserved. Config is saved FIRST and
+  // independently: the automation is unrelated to the plan, so an invalid/stale
+  // plan (a bad dependency) must never cause the watchdog/schedules to be lost.
+  function saveEditor(name, wd, scheds, thenApply) {
+    flash(t("saving"));
+    // Read-modify-write: re-fetch the LIVE config, replace ONLY this container's
+    // watchdog + schedules, then write it back — so notify (set in Settings) and
+    // every other container's entries are preserved even if they changed since this
+    // page loaded. If the fresh read fails we abort (no PUT), never wiping config.
+    api("GET", "config")
+      .then(function (fresh) {
+        // Abort rather than fall back to an empty config: writing this container's
+        // edits onto an empty base would wipe every other container + notify. The
+        // engine always returns a config object on success, so this only guards the
+        // unexpected (a null/garbage body), never a legitimate first save.
+        if (!fresh || typeof fresh !== "object") throw new Error("config unreadable");
+        config = { schedules: fresh.schedules || [], watchdogs: fresh.watchdogs || [], notify: fresh.notify || { unraid: false, webhook: "" } };
+        setWatchdog(name, wd); setSchedules(name, scheds);
+        return api("PUT", "config", config);
+      })
+      .then(function () { return api("PUT", "plan", collectPlan()); })
+      .then(function () { closePop(); if (mode === "list") reinjectRowBadges(); else renderGrid(); if (thenApply) return apply(); flash(t("saved")); })
+      .catch(function (e) { flash("Error: " + e.message, true); });
+  }
   function apply() { flash(t("startorder") + "…"); return api("POST", "apply").then(function () { return load(); }).then(function () { flash(t("done")); }).catch(function (e) { flash("Error: " + e.message, true); }); }
   function flash(msg, bad) {
     try {
@@ -565,7 +654,7 @@
   // ───────────────────────── run
   function load() {
     if (dead) return Promise.resolve();
-    return Promise.all([api("GET", "state"), loadShiplog()]).then(function (res) {
+    return Promise.all([api("GET", "state"), loadShiplog(), loadConfig()]).then(function (res) {
       indexState(res[0]); ensureNames(); refresh();
       if (res[0] && res[0].docker_error) flash("docker: " + res[0].docker_error, true);
     }).catch(function (e) {

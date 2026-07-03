@@ -9,12 +9,13 @@ type Container struct {
 	ID        string   `json:"id"`
 	Name      string   `json:"name"`
 	Image     string   `json:"image"`
-	State     string   `json:"state"`     // "running" / "exited" / "created" / ...
-	Health    string   `json:"health"`    // "healthy" / "unhealthy" / "starting" / "none" / ""
-	Network   string   `json:"network"`   // primary docker network name, e.g. "bridge" / "br0.20"
-	IP        string   `json:"ip"`        // container IP on that network
-	Ports     []string `json:"ports"`     // published ports, e.g. "8080:80/tcp"
-	Autostart bool     `json:"autostart"` // whether Unraid's native autostart owns it
+	State     string   `json:"state"`               // "running" / "exited" / "created" / ...
+	ExitCode  int      `json:"exit_code,omitempty"` // last exit code when State=="exited" (0 = clean stop)
+	Health    string   `json:"health"`              // "healthy" / "unhealthy" / "starting" / "none" / ""
+	Network   string   `json:"network"`             // primary docker network name, e.g. "bridge" / "br0.20"
+	IP        string   `json:"ip"`                  // container IP on that network
+	Ports     []string `json:"ports"`               // published ports, e.g. "8080:80/tcp"
+	Autostart bool     `json:"autostart"`           // whether Unraid's native autostart owns it
 }
 
 // Limits are a container's CONFIGURED resource caps (from HostConfig, 0 = no
@@ -104,6 +105,41 @@ type RunResult struct {
 	Stages [][]string   `json:"stages"`
 	Nodes  []NodeResult `json:"nodes"`
 	Error  string       `json:"error,omitempty"` // set only when the plan itself is invalid
+}
+
+// ─────────────────────────── automation (the monitor subsystem) ───────────────
+
+// Schedule fires a lifecycle action on a container at a wall-clock time.
+type Schedule struct {
+	Name    string `json:"name"`           // container name
+	Action  string `json:"action"`         // start | stop | restart
+	Time    string `json:"time"`           // "HH:MM" local time
+	Days    []int  `json:"days,omitempty"` // 0=Sun..6=Sat; empty = every day
+	Enabled bool   `json:"enabled"`
+}
+
+// Watchdog auto-restarts a container when it goes unhealthy or crashes.
+type Watchdog struct {
+	Name        string `json:"name"`
+	Enabled     bool   `json:"enabled"`
+	OnUnhealthy bool   `json:"on_unhealthy"` // restart when Docker health = unhealthy
+	OnExit      bool   `json:"on_exit"`      // restart on a NON-ZERO (crash) exit; a clean stop (0) is left alone
+	MaxRestarts int    `json:"max_restarts"` // cap per hour (0 = unlimited)
+}
+
+// Notify controls where the monitor sends alerts (a failed start, a watchdog
+// restart, a schedule error).
+type Notify struct {
+	Unraid  bool   `json:"unraid"`            // use Unraid's own notification system
+	Webhook string `json:"webhook,omitempty"` // POST a JSON body to this URL
+}
+
+// Config is the automation configuration the daemon acts on, persisted alongside
+// the plan on the flash. Empty = nothing scheduled/watched, no notifications.
+type Config struct {
+	Schedules []Schedule `json:"schedules"`
+	Watchdogs []Watchdog `json:"watchdogs"`
+	Notify    Notify     `json:"notify"`
 }
 
 // Stats is a one-shot resource snapshot for a container, for the live card gauges.

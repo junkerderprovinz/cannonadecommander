@@ -53,8 +53,9 @@ The pieces:
   **notifications** (Unraid's own notifications and/or a webhook). Schedules and the
   watchdog live in the chain-chip editor; notifications on the Settings page.
 - A **Settings page** (Settings → Utilities → CannonadeCommander): badge accent
-  colour and rainbow mode, container-icon tint, which columns show in the Simple vs
-  Advanced view, the default view + row density, and the **notification** settings.
+  colour and rainbow mode, container-icon tint (optionally the VM-tab icons too),
+  which columns show in the Simple vs Advanced view, the default view + row density,
+  and the **notification** settings.
 - A **same-origin PHP proxy**: the browser only ever talks to the proxy, never to
   the Docker socket. The supervisor exposes only read + safe lifecycle + resource
   limits — never create / exec / build.

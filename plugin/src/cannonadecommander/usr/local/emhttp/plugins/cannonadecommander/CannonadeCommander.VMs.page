@@ -1,0 +1,10 @@
+Menu="VMs"
+Icon="rocket"
+Tag="rocket"
+---
+<?php
+/* CannonadeCommander - injected into Unraid's native VMs tab. Renders NO panel of
+   its own; it only loads a tiny script that tints the VM row icons when "Also tint
+   VM icons" is enabled on the Settings page (shares the container-icon colour). */
+?>
+<script defer src="<?autov('/plugins/cannonadecommander/scripts/vms.js')?>"></script>

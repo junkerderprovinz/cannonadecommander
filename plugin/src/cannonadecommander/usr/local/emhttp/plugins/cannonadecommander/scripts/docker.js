@@ -37,8 +37,8 @@
     : [["Mo", 1], ["Tu", 2], ["We", 3], ["Th", 4], ["Fr", 5], ["Sa", 6], ["Su", 0]];
 
   var T = {
-    de: { uptodate: "Aktuell", update: "Update", start: "Starten", stop: "Stoppen", restart: "Neustart", pause: "Pause", resume: "Fortsetzen", force: "Update erzwingen", save: "Plan speichern", startorder: "In Reihenfolge starten", filter: "filtern…", cols: "Badges", view: "Ansicht", list: "Liste", grid: "Raster", plan: "Startplan", done: "erledigt", saving: "speichere…", saved: "gespeichert", after: "nach", active: "aktiv", watchdog: "Watchdog (Auto-Neustart)", wUnhealthy: "bei „unhealthy“", wExit: "bei Absturz (nicht bei normalem Stopp)", wMax: "max./Std.", schedules: "Zeitpläne", addsched: "+ Zeitplan", remove: "entfernen" },
-    en: { uptodate: "up to date", update: "Update", start: "Start", stop: "Stop", restart: "Restart", pause: "Pause", resume: "Resume", force: "Force update", save: "Save plan", startorder: "Start in order", filter: "filter…", cols: "Badges", view: "View", list: "List", grid: "Grid", plan: "Plan", done: "done", saving: "saving…", saved: "saved", after: "after", active: "active", watchdog: "Watchdog (auto-restart)", wUnhealthy: "when unhealthy", wExit: "on crash (not on a normal stop)", wMax: "max/hour", schedules: "Schedules", addsched: "+ schedule", remove: "remove" },
+    de: { uptodate: "Aktuell", update: "Update", start: "Starten", stop: "Stoppen", restart: "Neustart", pause: "Pause", resume: "Fortsetzen", force: "Update erzwingen", save: "Plan speichern", startorder: "In Reihenfolge starten", filter: "filtern…", cols: "Badges", view: "Ansicht", list: "Liste", grid: "Raster", plan: "Startplan", done: "erledigt", saving: "speichere…", saved: "gespeichert", after: "nach", active: "aktiv", watchdog: "Watchdog (Auto-Neustart)", wUnhealthy: "bei „unhealthy“", wExit: "bei Absturz (nicht bei normalem Stopp)", wMax: "max./Std.", schedules: "Zeitpläne", addsched: "+ Zeitplan", remove: "entfernen", manage: "Im Startplan verwalten", dependsOn: "Hängt ab von", commaSep: "kommagetrennt", startDelay: "Startverzögerung", secWait: "Sek. vor dem Start warten", readyWhen: "Bereit wenn", onFail: "Bei Fehlschlag", failhint: "abort überspringt Abhängige · continue/degrade starten sie trotzdem.", ramLimit: "RAM-Limit", cpuLimit: "CPU-Limit", cpuram: "CPU/RAM-Limits", ramPh: "z. B. 2G · 512M · leer = unverändert", cpuPh: "z. B. 1.5 · leer = unverändert", limitsFoot: "Sofort per Docker-Update angewendet, kein Neustart. Leeres Feld lässt den Wert unverändert (ein bestehendes Limit ganz entfernen geht nur durch Neu-Erstellen des Containers).", invalid: "Ungültige Eingabe" },
+    en: { uptodate: "up to date", update: "Update", start: "Start", stop: "Stop", restart: "Restart", pause: "Pause", resume: "Resume", force: "Force update", save: "Save plan", startorder: "Start in order", filter: "filter…", cols: "Badges", view: "View", list: "List", grid: "Grid", plan: "Plan", done: "done", saving: "saving…", saved: "saved", after: "after", active: "active", watchdog: "Watchdog (auto-restart)", wUnhealthy: "when unhealthy", wExit: "on crash (not on a normal stop)", wMax: "max/hour", schedules: "Schedules", addsched: "+ schedule", remove: "remove", manage: "Manage in the start plan", dependsOn: "Depends on", commaSep: "comma-separated", startDelay: "Start delay", secWait: "sec to wait before starting", readyWhen: "Ready when", onFail: "On fail", failhint: "abort skips dependents · continue/degrade start them anyway.", ramLimit: "RAM limit", cpuLimit: "CPU limit", cpuram: "CPU/RAM limits", ramPh: "e.g. 2G · 512M · empty = unchanged", cpuPh: "e.g. 1.5 · empty = unchanged", limitsFoot: "Applied instantly via Docker update, no restart. An empty field leaves the value unchanged (removing an existing limit needs recreating the container).", invalid: "invalid value" },
   };
   function t(k) { return (T[LANG] || T.en)[k] || T.en[k]; }
   var STATE_LABELS = {
@@ -188,15 +188,32 @@
   // live from the Settings page (which writes the same keys + a poke event).
   // hue of a hex colour (for the icon tint), or -1 if unparseable.
   function hexHue(hex) { var m = /^#?([0-9a-f]{6})$/i.exec(hex || ""); if (!m) return -1; var n = parseInt(m[1], 16), r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255; var mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn, h = 0; if (d > 0) { if (mx === r) h = ((g - b) / d) % 6; else if (mx === g) h = (b - r) / d + 2; else h = (r - g) / d + 4; h *= 60; if (h < 0) h += 360; } return h; }
+  // The tint CSS filter for the chosen icon colour, or "" when off. Approximates a
+  // single-hue tint via grayscale→sepia→hue-rotate→saturate.
+  function iconFilter() {
+    var ic = localStorage.getItem("cc.iconcolor"), hue = hexHue(ic);
+    if (!ic || hue < 0) return "";
+    var s = parseInt(localStorage.getItem("cc.iconstrength") || "100", 10);
+    return "grayscale(1) sepia(1) hue-rotate(" + Math.round(hue - 50) + "deg) saturate(" + (Math.max(10, s) / 100 * 5 + 0.6) + ")";
+  }
+  // Apply the tint DIRECTLY on each icon <img> as an inline style. The earlier
+  // CSS-variable + deep-selector approach silently missed the real Unraid icon DOM;
+  // an inline filter on the actual elements is robust and re-applied on each render.
+  function applyIconTint() {
+    try {
+      var f = iconFilter();
+      var imgs = document.querySelectorAll("#docker_list td.ct-name img, #docker_containers td.ct-name img, #docker_list td.ct-name i.img, #docker_containers td.ct-name i.img");
+      for (var i = 0; i < imgs.length; i++) imgs[i].style.filter = f;
+      if (gridHolder) { var g = gridHolder.querySelectorAll(".cc-card-ico"); for (var j = 0; j < g.length; j++) g[j].style.filter = f; }
+    } catch (e) {}
+  }
   function applySettings() {
     try {
       var root = document.documentElement.style;
       var accent = localStorage.getItem("cc.accent"); if (accent) root.setProperty("--cc-accent", accent);
       var dens = localStorage.getItem("cc.density"); root.setProperty("--cc-density", { compact: "5px", normal: "9px", airy: "14px" }[dens] || "9px");
-      // icon tint: approximate a colour via grayscale+sepia+hue-rotate+saturate.
-      var ic = localStorage.getItem("cc.iconcolor"), hue = hexHue(ic);
-      if (ic && hue >= 0) { var s = parseInt(localStorage.getItem("cc.iconstrength") || "100", 10); root.setProperty("--cc-icon-filter", "grayscale(1) sepia(1) hue-rotate(" + Math.round(hue - 50) + "deg) saturate(" + (Math.max(10, s) / 100 * 5 + 0.6) + ")"); }
-      else { root.removeProperty("--cc-icon-filter"); }
+      var f = iconFilter();
+      if (f) root.setProperty("--cc-icon-filter", f); else root.removeProperty("--cc-icon-filter");
       colview = loadColview();
     } catch (e) {}
   }
@@ -211,9 +228,10 @@
       tb.classList.toggle("cc-rainbow", localStorage.getItem("cc.rainbow") === "1");
       tb.classList.toggle("cc-tint-icons", !!localStorage.getItem("cc.iconcolor"));
       COLS.forEach(function (c) { tb.classList.toggle("cc-c-" + c.key, colOn(c.key)); });
+      applyIconTint();
     } catch (e) {}
   }
-  function removeEnhanceClasses() { try { var tb = nativeTable(); if (!tb) return; tb.classList.remove("cc-enh", "cc-adv", "cc-rainbow", "cc-tint-icons"); COLS.forEach(function (c) { tb.classList.remove("cc-c-" + c.key); }); } catch (e) {} }
+  function removeEnhanceClasses() { try { var tb = nativeTable(); if (!tb) return; tb.classList.remove("cc-enh", "cc-adv", "cc-rainbow", "cc-tint-icons"); COLS.forEach(function (c) { tb.classList.remove("cc-c-" + c.key); }); var imgs = document.querySelectorAll("#docker_list td.ct-name img, #docker_containers td.ct-name img, #docker_list td.ct-name i.img, #docker_containers td.ct-name i.img"); for (var i = 0; i < imgs.length; i++) imgs[i].style.filter = ""; } catch (e) {} }
 
   // read a positional cell's value (docker_readmore), stripping nested advanced
   // (MAC) + Tailscale tooltip, collapsed to one short line.
@@ -258,7 +276,7 @@
       if (colOn("res")) {
         var cpuCell = tr.querySelector(":scope > td.advanced");
         if (cpuCell && !cpuCell.querySelector(".cc-limbtn")) {
-          var lb = el("span", "cc-limbtn"); lb.setAttribute(MARK, "1"); lb.textContent = "⚙"; lb.title = "CPU/RAM-Limits";
+          var lb = el("span", "cc-limbtn"); lb.setAttribute(MARK, "1"); lb.textContent = "⚙"; lb.title = t("cpuram");
           lb.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); openLimits(lb, name); });
           cpuCell.appendChild(lb);
         }
@@ -348,6 +366,7 @@
     var grid = el("div", "cc-grid");
     containers.slice().sort(function (a, b) { return a.name.localeCompare(b.name); }).forEach(function (c) { grid.appendChild(card(c)); });
     gridHolder.appendChild(grid);
+    applyIconTint();
   }
 
   // ───────────────────────── gear + menu (the only global control surface)
@@ -433,22 +452,22 @@
     var pop = el("div", "cc-pop"), head = el("div", "cc-pop-head"); head.appendChild(el("b", null, name));
     var x = el("span", "cc-pop-x", "✕"); x.addEventListener("click", closePop); head.appendChild(x); pop.appendChild(head);
     var mrow = el("label", "cc-pop-row"), manage = el("input"); manage.type = "checkbox"; manage.checked = !!existing;
-    mrow.appendChild(manage); mrow.appendChild(el("span", null, " Manage in the start plan")); pop.appendChild(mrow);
+    mrow.appendChild(manage); mrow.appendChild(el("span", null, " " + t("manage"))); pop.appendChild(mrow);
     var body = el("div", "cc-pop-body" + (existing ? "" : " cc-dis"));
-    var arow = el("div", "cc-pop-row"); arow.appendChild(el("label", "cc-pop-lbl", "Depends on"));
-    var after = el("input", "cc-in"); after.type = "text"; after.setAttribute("list", "cc-names"); after.placeholder = "comma-separated"; after.value = (node.after || []).join(", "); arow.appendChild(after); body.appendChild(arow);
-    var drow = el("div", "cc-pop-row"); drow.appendChild(el("label", "cc-pop-lbl", "Start delay"));
+    var arow = el("div", "cc-pop-row"); arow.appendChild(el("label", "cc-pop-lbl", t("dependsOn")));
+    var after = el("input", "cc-in"); after.type = "text"; after.setAttribute("list", "cc-names"); after.placeholder = t("commaSep"); after.value = (node.after || []).join(", "); arow.appendChild(after); body.appendChild(arow);
+    var drow = el("div", "cc-pop-row"); drow.appendChild(el("label", "cc-pop-lbl", t("startDelay")));
     var delay = el("input", "cc-in cc-port"); delay.type = "number"; delay.min = "0"; delay.placeholder = "sec"; delay.value = node.delay_seconds ? node.delay_seconds : "";
-    drow.appendChild(delay); drow.appendChild(el("span", null, " " + (LANG === "de" ? "Sek. vor dem Start warten" : "sec to wait before starting"))); body.appendChild(drow);
-    var prow = el("div", "cc-pop-row"); prow.appendChild(el("label", "cc-pop-lbl", "Ready when"));
+    drow.appendChild(delay); drow.appendChild(el("span", null, " " + t("secWait"))); body.appendChild(drow);
+    var prow = el("div", "cc-pop-row"); prow.appendChild(el("label", "cc-pop-lbl", t("readyWhen")));
     var probe = el("select", "cc-in"); PROBES.forEach(function (p) { var o = el("option", null, p); o.value = p; if (node.probe && node.probe.kind === p) o.selected = true; probe.appendChild(o); });
     var port = el("input", "cc-in cc-port"); port.type = "number"; port.placeholder = "port"; port.value = (node.probe && node.probe.port) ? node.probe.port : "";
     var syncPort = function () { port.style.display = probe.value === "tcp" ? "" : "none"; }; syncPort();
     prow.appendChild(probe); prow.appendChild(port); body.appendChild(prow);
-    var polrow = el("div", "cc-pop-row"); polrow.appendChild(el("label", "cc-pop-lbl", "On fail"));
+    var polrow = el("div", "cc-pop-row"); polrow.appendChild(el("label", "cc-pop-lbl", t("onFail")));
     var pol = el("select", "cc-in"); POLICIES.forEach(function (p) { var o = el("option", null, p); o.value = p; if (node.policy === p) o.selected = true; pol.appendChild(o); });
     polrow.appendChild(pol); body.appendChild(polrow); pop.appendChild(body);
-    pop.appendChild(el("div", "cc-pop-foot", "abort skips dependents · continue/degrade start them anyway."));
+    pop.appendChild(el("div", "cc-pop-foot", t("failhint")));
 
     // ── Watchdog (auto-restart) — independent of plan membership ──
     var wd = watchdogFor(name);
@@ -527,16 +546,16 @@
     var pop = el("div", "cc-pop"), head = el("div", "cc-pop-head"); head.appendChild(el("b", null, name + " — CPU / RAM"));
     var x = el("span", "cc-pop-x", "✕"); x.addEventListener("click", closePop); head.appendChild(x); pop.appendChild(head);
     var body = el("div", "cc-pop-body");
-    var mrow = el("div", "cc-pop-row"); mrow.appendChild(el("label", "cc-pop-lbl", "RAM-Limit"));
-    var mem = el("input", "cc-in"); mem.type = "text"; mem.placeholder = "z.B. 2G · 512M · leer = unverändert"; mrow.appendChild(mem); body.appendChild(mrow);
-    var crow = el("div", "cc-pop-row"); crow.appendChild(el("label", "cc-pop-lbl", "CPU-Limit"));
-    var cpu = el("input", "cc-in"); cpu.type = "text"; cpu.placeholder = "z.B. 1.5 · leer = unverändert"; crow.appendChild(cpu); body.appendChild(crow);
+    var mrow = el("div", "cc-pop-row"); mrow.appendChild(el("label", "cc-pop-lbl", t("ramLimit")));
+    var mem = el("input", "cc-in"); mem.type = "text"; mem.placeholder = t("ramPh"); mrow.appendChild(mem); body.appendChild(mrow);
+    var crow = el("div", "cc-pop-row"); crow.appendChild(el("label", "cc-pop-lbl", t("cpuLimit")));
+    var cpu = el("input", "cc-in"); cpu.type = "text"; cpu.placeholder = t("cpuPh"); crow.appendChild(cpu); body.appendChild(crow);
     pop.appendChild(body);
-    pop.appendChild(el("div", "cc-pop-foot", "Sofort per Docker-Update angewendet, kein Neustart. Leeres Feld lässt den Wert unverändert (ein bestehendes Limit ganz entfernen geht nur durch Neu-Erstellen des Containers)."));
+    pop.appendChild(el("div", "cc-pop-foot", t("limitsFoot")));
     var srow = el("div", "cc-pop-row"); var save = el("button", "cc-btn cc-btn-primary", t("save")); srow.appendChild(save); pop.appendChild(srow);
     save.addEventListener("click", function () {
       var mb = parseMem(mem.value), nc = parseCPU(cpu.value);
-      if (mb < 0 || nc < 0) { flash(LANG === "de" ? "Ungültige Eingabe" : "invalid value", true); return; }
+      if (mb < 0 || nc < 0) { flash(t("invalid"), true); return; }
       if (mb === 0 && nc === 0) { closePop(); return; }
       flash(t("saving")); api("POST", "limits", { name: name, mem_bytes: mb, nano_cpus: nc })
         .then(function () { flash(t("done")); closePop(); }).catch(function (e) { flash("Error: " + e.message, true); });

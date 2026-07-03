@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.7.0">
+  <!ENTITY version   "0.8.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
@@ -30,6 +30,21 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.8.0
+- UI fixes from box testing. The per-container editor (the chain chip) and its new
+  watchdog / schedule controls were inheriting Unraid's global button/input theme
+  (orange borders, clipped uppercase labels, stray underlines) because the popover
+  lives outside the Settings page; that theme is now neutralised inside the popover,
+  the action buttons fit, every field is one consistent box (with a caret on the
+  dropdowns), checkboxes and day toggles take the accent colour, and the whole
+  editor follows the WebGUI language.
+- Settings page: the on/off toggles travel fully again (they were buttons Unraid
+  restyled - now plain switches), the accent picker is a large always-visible field
+  with the preset swatches below it, and the checkboxes and slider take the accent.
+- Container-icon colouring now actually applies (the tint is set directly on each
+  icon, robust to Unraid's live re-render) and the picker no longer closes mid-drag.
+  New: optionally tint the VM-tab icons too (a toggle on the Settings page).
 
 ### 0.7.0
 - NEW automation, all per container: SCHEDULES (start / stop / restart at a
@@ -206,7 +221,7 @@ rm -rf &emhttp;
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>b0095bb0b891a63e68555b2bcf043b6cafea692d2a00b889e749739646ae822b</SHA256>
+  <SHA256>8c6d4abd62a5207329d389731eccfedcdc1f5adbd499b2dcb6d1b15bc0e51212</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

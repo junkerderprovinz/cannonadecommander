@@ -197,6 +197,19 @@
 .cc-toast-show { opacity: 1; transform: translateY(0); }
 
 .cc-pop { position: absolute; z-index: 99999; width: 340px; max-width: 92vw; background: var(--cc-bg, #161616); color: var(--cc-txt, #e6e6e6); border: 1px solid #525252; border-radius: 10px; box-shadow: 0 14px 40px rgba(0,0,0,.55); font: 13px/1.5 "Segoe UI", system-ui, sans-serif; }
+/* Neutralise Unraid's global button/input/select theming INSIDE our popover — it
+   lives on document.body, OUTSIDE #cc-settings, so without this it inherits the
+   orange borders, the uppercasing that clipped our button labels, and the stray
+   input underlines the user reported. Checkboxes keep the native box but recolour
+   to the chosen accent. */
+.cc-pop button, .cc-pop input, .cc-pop select, .cc-pop textarea {
+  -webkit-appearance: none; appearance: none; outline: none; box-shadow: none !important;
+  font-family: inherit; text-transform: none !important; letter-spacing: normal; min-width: 0;
+}
+.cc-pop input[type="checkbox"] {
+  -webkit-appearance: auto; appearance: auto; accent-color: var(--cc-accent, #2f6feb);
+  width: 15px; height: 15px; flex: none; cursor: pointer; margin: 0;
+}
 .cc-pop-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid #2a2a2a; }
 .cc-pop-x { cursor: pointer; color: #8a8a8a; }
 .cc-pop-x:hover { color: #e6e6e6; }
@@ -204,10 +217,14 @@
 .cc-pop-lbl { color: #8a8a8a; font-size: 12px; width: 100px; flex: none; }
 .cc-pop-body.cc-dis { opacity: .4; pointer-events: none; }
 .cc-pop-foot { padding: 9px 14px; border-top: 1px solid #2a2a2a; color: #8a8a8a; font-size: 11px; }
-.cc-in { flex: 1; background: #1e1e1e; color: #e6e6e6; border: 1px solid #2a2a2a; border-radius: 4px; padding: 4px 6px; font-size: 12px; }
+/* every editor field the SAME clean box (override Unraid's underline with !important) */
+.cc-in { flex: 1; background: #1e1e1e; color: #e6e6e6; border: 1px solid #2a2a2a !important; border-radius: 5px; padding: 5px 7px; font-size: 12px; }
+.cc-in:focus { border-color: var(--cc-accent, #2f6feb) !important; }
+/* selects lost their native arrow to appearance:none — give them a caret back */
+select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repeat; background-position: right 8px center; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%238a8a8a' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E"); }
 .cc-port { flex: none; width: 70px; margin-left: 6px; }
 .cc-pop-act { gap: 8px; padding: 10px 14px 12px; border-top: 1px solid #2a2a2a; }
-.cc-pop-act .cc-btn { flex: 1; text-align: center; }
+.cc-pop-act .cc-btn { flex: 1; text-align: center; font-size: 11.5px; padding: 7px 6px; white-space: normal; line-height: 1.2; }
 /* automation sections (watchdog + schedules) inside the plan editor */
 .cc-pop-auto { border-top: 1px solid #2a2a2a; padding: 4px 0 8px; }
 .cc-pop-toggle { cursor: pointer; }
@@ -263,7 +280,8 @@
 #cc-settings { --bg: #161616; --bg2: #1c1c1c; --line: #2a2a2a; --line2: #333; --txt: #e6e6e6; --dim: #9a9a9a; --dim2: #6f6f6f; color: var(--txt); font: 14px/1.5 "Segoe UI", system-ui, sans-serif; padding-bottom: 40px; }
 /* Unraid's global button CSS paints an orange border on every <button>; neutralise
    it for our controls so toggles/segments/swatches render clean. */
-#cc-settings button { -webkit-appearance: none; appearance: none; outline: none; font-family: inherit; }
+#cc-settings button { -webkit-appearance: none; appearance: none; outline: none; font-family: inherit; text-transform: none; letter-spacing: normal; }
+#cc-settings input[type="range"] { accent-color: var(--cc-accent, #2f6feb); }
 #cc-settings .cc-set-toggle, #cc-settings .cc-set-sw, #cc-settings .cc-set-mini, #cc-settings .cc-seg-btn, #cc-settings .cc-btn { box-shadow: none; }
 #cc-settings .cc-set-toggle, #cc-settings .cc-set-sw { border: 2px solid transparent; }
 #cc-settings .cc-seg { border: 1px solid var(--line2) !important; }
@@ -300,3 +318,10 @@
 .cc-set-txt:focus { outline: none; border-color: var(--cc-accent, #2f6feb); }
 #cc-settings .cc-set-save { margin-top: 12px; padding: 6px 16px; border-radius: 6px; }
 #cc-settings .cc-set-save[disabled] { opacity: .6; cursor: default; }
+/* checkboxes (column matrix, etc.) recolour to the chosen accent */
+#cc-settings input[type="checkbox"] { accent-color: var(--cc-accent, #2f6feb); width: 15px; height: 15px; cursor: pointer; }
+/* the accent-colour picker: always-visible field on top, preset swatches below */
+.cc-set-lbl { font-size: 12.5px; color: var(--dim); margin: 2px 0 7px; }
+.cc-set-pickrow { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.cc-set-pick-lg { width: 100%; max-width: 130px; height: 40px; }
+.cc-set-hex { font-family: ui-monospace, "Cascadia Code", monospace; color: var(--dim); font-size: 13px; text-transform: uppercase; letter-spacing: .5px; }

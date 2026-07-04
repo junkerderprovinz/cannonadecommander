@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.14.0">
+  <!ENTITY version   "0.15.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
@@ -30,6 +30,23 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.15.0
+- Container-icon colouring now hits the EXACT colour you pick. It was an approximate
+  hue-rotate before (close, but the wrong shade); it is now an SVG colour-matrix that
+  maps every icon pixel to the precise sRGB colour, alpha kept.
+- VM-tab icons finally tint. Unraid draws most VM icons as a font GLYPH (not an image),
+  which an image filter cannot recolour, so they stayed untinted; glyphs are now tinted
+  by their font colour and real .png VM icons by the same exact colour-matrix filter.
+- Removing a CPU / RAM limit is fixed. It used to do nothing when the browser had not
+  cached the host's RAM size; the "unlimited" value is now computed on the server (all
+  host RAM / all cores) and the flag is stripped from the container's Unraid template,
+  so a later "Apply" starts with no cap.
+- Bandwidth moved next to where it belongs: the egress cap is now a THIRD limit stacked
+  under CPU and RAM in the resource cell, with its own gear (it left the start-plan
+  editor). CPU, RAM and bandwidth always sit one under the other.
+- The interface the egress shaping runs on (the in-container NIC, almost always eth0)
+  is now selectable on the Settings page, instead of being fixed to eth0.
 
 ### 0.14.0
 - New readiness probes: "exec" (a command run in the container exits 0, like a
@@ -347,7 +364,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>0e00895d761f4a239103be0393cdd0ea8c2ef3686793a61e2563e1b1f36adbba</SHA256>
+  <SHA256>2287d2c2bbd66ea3888a299e84003011dc345db2f707526c006519b55199e9b2</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

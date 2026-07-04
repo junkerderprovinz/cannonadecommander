@@ -123,6 +123,9 @@
 .cc-namemeta-ids { display: flex; flex-wrap: wrap; gap: 5px; }
 .cc-rowbadges { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 5px; }
 .cc-netgroup { flex-direction: column; align-items: flex-start; }
+/* CPU, RAM and Bandwidth stacked one under the other, each on its own line */
+.cc-resgroup { flex-direction: column; align-items: flex-start; gap: 5px; }
+.cc-resline { display: inline-flex; align-items: center; gap: 5px; }
 #docker_list td.updatecolumn .cc-rowbadges { margin-top: 4px; }
 .cc-planholder { margin-top: 6px; }
 
@@ -289,6 +292,7 @@ select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repea
 .cc-enh.cc-rainbow .cc-b-von  { background: #e05299; color: #fff; }
 .cc-enh.cc-rainbow .cc-b-cpu  { background: #d9433f; color: #fff; }
 .cc-enh.cc-rainbow .cc-b-ram  { background: #2f9d8b; color: #fff; }
+.cc-enh.cc-rainbow .cc-b-bw   { background: #e0912a; color: #fff; }
 .cc-enh.cc-rainbow.cc-c-res #docker_list tr.sortable td.advanced span[class^='cpu-'] { background: #d9433f; }
 .cc-enh.cc-rainbow.cc-c-res #docker_list tr.sortable td.advanced span[class^='mem-'] { background: #2f9d8b; }
 .cc-enh.cc-rainbow .cc-b-version { background: #6b7280; color: #fff; }

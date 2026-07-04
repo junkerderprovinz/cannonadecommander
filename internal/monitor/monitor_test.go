@@ -3,6 +3,7 @@ package monitor
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -48,14 +49,30 @@ func (f fakePidder) PID(_ context.Context, name string) (int, error) {
 	return 0, errors.New("no pid")
 }
 
-type fakeShaper struct{ applied map[int]int }
+type fakeShaper struct {
+	applied map[int]int
+	ifaces  map[int]string // last iface seen per pid, to assert the configured iface is threaded through
+	calls   []string       // ordered "iface:pid:kbit" log, to assert an old-iface clear happened
+}
 
-func (f *fakeShaper) Apply(pid, kbit int) error {
+func (f *fakeShaper) Apply(iface string, pid, kbit int) error {
 	if f.applied == nil {
 		f.applied = map[int]int{}
+		f.ifaces = map[int]string{}
 	}
 	f.applied[pid] = kbit
+	f.ifaces[pid] = iface
+	f.calls = append(f.calls, fmt.Sprintf("%s:%d:%d", iface, pid, kbit))
 	return nil
+}
+
+func hasCall(calls []string, want string) bool {
+	for _, c := range calls {
+		if c == want {
+			return true
+		}
+	}
+	return false
 }
 
 func TestBandwidthAppliedToRunningOnly(t *testing.T) {
@@ -68,7 +85,7 @@ func TestBandwidthAppliedToRunningOnly(t *testing.T) {
 	nt := &fakeNotifier{}
 	m := &Monitor{
 		Docker: fd,
-		Config: fakeCfg{c: model.Config{Bandwidths: []model.Bandwidth{
+		Config: fakeCfg{c: model.Config{ShapeIface: "br0.20", Bandwidths: []model.Bandwidth{
 			{Name: "up", EgressKbit: 5000},
 			{Name: "down", EgressKbit: 3000},    // stopped → skipped
 			{Name: "hostnet", EgressKbit: 2000}, // host netns → skipped (would throttle the whole host)
@@ -81,6 +98,9 @@ func TestBandwidthAppliedToRunningOnly(t *testing.T) {
 	m.Tick(context.Background())
 	if len(sh.applied) != 1 || sh.applied[4242] != 5000 {
 		t.Fatalf("only the running bridge container should be shaped, got %v", sh.applied)
+	}
+	if sh.ifaces[4242] != "br0.20" { // the Settings-configured interface must reach the shaper
+		t.Fatalf("configured ShapeIface must be threaded to the shaper, got %q", sh.ifaces[4242])
 	}
 	if len(nt.n) != 1 { // the host-network container must produce a "not applied" notification
 		t.Fatalf("host-network container should notify once, got %v", nt.n)
@@ -105,6 +125,34 @@ func TestBandwidthClearedOnRemoval(t *testing.T) {
 	m.Tick(context.Background())
 	if sh.applied[4242] != 0 { // must be cleared (Apply with 0)
 		t.Fatalf("removing the entry must clear the rule (apply 0), got %v", sh.applied)
+	}
+}
+
+// Changing the Settings shaping interface (eth0 → eth1) must CLEAR the stale qdisc on
+// the OLD interface (not leave it throttling) and re-apply on the new one. The clear
+// must target the iface the container was actually shaped on, not the new setting.
+func TestBandwidthReshapedOnInterfaceChange(t *testing.T) {
+	fd := &fakeDocker{list: []model.Container{{Name: "up", State: "running", Network: "br0.20"}}}
+	sh := &fakeShaper{}
+	m := &Monitor{
+		Docker: fd,
+		Config: fakeCfg{c: model.Config{ShapeIface: "eth0", Bandwidths: []model.Bandwidth{{Name: "up", EgressKbit: 5000}}}},
+		Pidder: fakePidder{pids: map[string]int{"up": 4242}},
+		Shaper: sh,
+		Now:    time.Now,
+	}
+	m.Tick(context.Background()) // shapes on eth0
+	if sh.ifaces[4242] != "eth0" || sh.applied[4242] != 5000 {
+		t.Fatalf("expected shape on eth0 @5000, got iface=%q kbit=%d", sh.ifaces[4242], sh.applied[4242])
+	}
+	// admin changes the shaping interface to eth1 (container still configured)
+	m.Config = fakeCfg{c: model.Config{ShapeIface: "eth1", Bandwidths: []model.Bandwidth{{Name: "up", EgressKbit: 5000}}}}
+	m.Tick(context.Background())
+	if !hasCall(sh.calls, "eth0:4242:0") { // the OLD iface must be cleared
+		t.Fatalf("changing the interface must clear the old iface (eth0:4242:0), calls=%v", sh.calls)
+	}
+	if sh.ifaces[4242] != "eth1" || sh.applied[4242] != 5000 { // and the new one shaped
+		t.Fatalf("expected reshape on eth1 @5000, got iface=%q kbit=%d", sh.ifaces[4242], sh.applied[4242])
 	}
 }
 

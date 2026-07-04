@@ -299,16 +299,40 @@ func (s *Server) handleGetLimits(w http.ResponseWriter, r *http.Request) {
 // handleSetLimits sets a container's memory + CPU caps live (Docker update). The
 // name is validated against the live list first; a zero field is left unchanged
 // (Docker's update ignores 0 and cannot remove a cap — that needs recreating).
+//
+// Removal is explicit (remove_mem / remove_cpu), NOT "send 0": Docker cannot
+// live-UNSET a cap, so "remove" means set it to practically unlimited — all host
+// RAM / all host CPUs — and STRIP the flag from the template so a later recreate
+// ("Apply") starts with no cap at all. The unlimited value is computed HERE, from
+// the host totals the engine always knows (/proc/*), because the browser's cached
+// hostMem can be 0 if its state fetch lost a race — which used to make the Remove
+// button a silent no-op.
 func (s *Server) handleSetLimits(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Name       string `json:"name"`
 		MemBytes   int64  `json:"mem_bytes"`
 		NanoCPUs   int64  `json:"nano_cpus"`
 		CpusetCPUs string `json:"cpuset_cpus"`
+		RemoveMem  bool   `json:"remove_mem"`
+		RemoveCPU  bool   `json:"remove_cpu"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeErr(w, http.StatusBadRequest, err)
 		return
+	}
+	// Translate removal into a practical-unlimited live value, server-side. Guard on
+	// >0 so a (near-impossible) /proc parse failure never sends a bogus 0/negative
+	// cap; the template strip below still runs, so a recreate drops the cap either way.
+	if req.RemoveMem {
+		if mt := hostcpu.MemTotal(); mt > 0 {
+			req.MemBytes = mt
+		}
+	}
+	if req.RemoveCPU {
+		if n := hostcpu.Count(); n > 0 {
+			req.NanoCPUs = int64(n) * 1e9
+			req.CpusetCPUs = "0-" + strconv.Itoa(n-1)
+		}
 	}
 	// cpuset is passed straight to Docker; allow only a cpu-list (digits, commas,
 	// hyphens) so nothing else can reach the daemon.
@@ -331,20 +355,30 @@ func (s *Server) handleSetLimits(w http.ResponseWriter, r *http.Request) {
 	}
 	// Mirror the limit into the Unraid container template so it survives an "Apply"
 	// (which recreates from the template). Best-effort — a failure never undoes the
-	// live update that already succeeded.
+	// live update that already succeeded. An empty value REMOVES the flag.
 	if s.TemplatesDir != "" {
 		flags := map[string]string{}
-		if req.MemBytes > 0 {
+		switch {
+		case req.RemoveMem:
+			flags["--memory"] = ""
+			flags["--memory-swap"] = ""
+		case req.MemBytes > 0:
 			flags["--memory"] = strconv.FormatInt(req.MemBytes, 10)
 			flags["--memory-swap"] = strconv.FormatInt(req.MemBytes, 10)
 		}
-		if req.NanoCPUs > 0 {
-			// 'f' (not 'g') so a small value never becomes scientific notation
-			// (e.g. "1e-06"), which docker run --cpus would reject on an Apply.
-			flags["--cpus"] = strconv.FormatFloat(float64(req.NanoCPUs)/1e9, 'f', -1, 64)
-		}
-		if req.CpusetCPUs != "" {
-			flags["--cpuset-cpus"] = req.CpusetCPUs
+		switch {
+		case req.RemoveCPU:
+			flags["--cpus"] = ""
+			flags["--cpuset-cpus"] = ""
+		default:
+			if req.NanoCPUs > 0 {
+				// 'f' (not 'g') so a small value never becomes scientific notation
+				// (e.g. "1e-06"), which docker run --cpus would reject on an Apply.
+				flags["--cpus"] = strconv.FormatFloat(float64(req.NanoCPUs)/1e9, 'f', -1, 64)
+			}
+			if req.CpusetCPUs != "" {
+				flags["--cpuset-cpus"] = req.CpusetCPUs
+			}
 		}
 		if len(flags) > 0 {
 			_ = unraidtmpl.SetExtraParams(s.TemplatesDir, req.Name, flags)
@@ -401,6 +435,10 @@ func (s *Server) handlePutConfig(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	if cfg.ShapeIface != "" && !validIface(cfg.ShapeIface) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "bad shaping interface (want a name like eth0, br0.20)"})
+		return
+	}
 	if err := s.Store.SaveConfig(cfg); err != nil {
 		writeErr(w, http.StatusInternalServerError, err)
 		return
@@ -426,6 +464,26 @@ func validScheduleTime(s string) bool {
 	h := int(s[0]-'0')*10 + int(s[1]-'0')
 	m := int(s[3]-'0')*10 + int(s[4]-'0')
 	return h <= 23 && m <= 59
+}
+
+// validIface accepts a Linux interface name like "eth0", "br0.20", "bond0" — letters,
+// digits and . _ : - only, within the kernel's 15-char limit. It reaches tc via argv
+// (exec, no shell), so this is tidiness + a sanity guard, not the sole injection barrier.
+func validIface(s string) bool {
+	if len(s) == 0 || len(s) > 15 {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		switch {
+		case c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z', c >= '0' && c <= '9',
+			c == '.', c == '_', c == '-', c == ':':
+			continue
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 // validCpuset accepts a Linux cpu-list like "0-3,6" (digits, commas, hyphens only,

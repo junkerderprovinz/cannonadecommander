@@ -165,7 +165,10 @@ type Config struct {
 	Schedules  []Schedule  `json:"schedules"`
 	Watchdogs  []Watchdog  `json:"watchdogs"`
 	Bandwidths []Bandwidth `json:"bandwidths,omitempty"`
-	Notify     Notify      `json:"notify"`
+	// ShapeIface is the in-container interface egress shaping is applied to (Settings).
+	// Blank means the netshape default (eth0). Same for every shaped container.
+	ShapeIface string `json:"shape_iface,omitempty"`
+	Notify     Notify `json:"notify"`
 }
 
 // Stats is a one-shot resource snapshot for a container, for the live card gauges.

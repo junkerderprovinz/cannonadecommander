@@ -48,7 +48,9 @@
   var PROXY = "/plugins/cannonadecommander/server/api.php";
   var fullConfig = { schedules: [], watchdogs: [], notify: { unraid: false, webhook: "" } };
   var notify = { unraid: false, webhook: "" };
+  var shapeIface = "";       // engine config: interface the egress shaping runs on (blank = eth0)
   var notifyDirty = false;   // true once the user has touched the Notifications card
+  var shapeDirty = false;    // true once the user has touched the shaping-interface field
   var configLoaded = false;  // true only after a SUCCESSFUL initial GET /config
   function api(method, path, body) {
     var opts = { method: method, headers: { Accept: "application/json" } };
@@ -57,6 +59,11 @@
       return r.text().then(function (tx) { var d = null; try { d = tx ? JSON.parse(tx) : null; } catch (e) {} if (!r.ok) throw new Error((d && d.error) || ("HTTP " + r.status)); return d; });
     });
   }
+  // Serialise config read-modify-write so the Notifications and Bandwidth cards saving
+  // near-simultaneously can't lose each other's field: each GET-modify-PUT waits for the
+  // previous to settle, so the second GET always sees the first's PUT.
+  var cfgChain = Promise.resolve();
+  function withConfigLock(fn) { var p = cfgChain.then(fn, fn); cfgChain = p.catch(function () {}); return p; }
 
   function el(tag, cls, txt) { var n = document.createElement(tag); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; }
   function card(title, sub) { var c = el("div", "cc-set-card"); c.appendChild(el("div", "cc-set-h", title)); if (sub) c.appendChild(el("div", "cc-set-sub", sub)); return c; }
@@ -186,6 +193,17 @@
     save5.addEventListener("click", function () { if (configLoaded && !save5.classList.contains("cc-set-disabled")) saveNotify(save5); }); c5.appendChild(save5);
     wrap.appendChild(c5);
 
+    // ── Bandwidth / network shaping (engine-side; saved to the flash) ──
+    var c6 = card(T("Bandbreite", "Bandwidth"), T("Schnittstelle, auf der das Egress-Limit IM Container gesetzt wird (fast immer eth0). Pro-Container-Limits stellst du im Docker-Tab ein.", "Interface the egress limit is applied to INSIDE the container (almost always eth0). Set per-container limits in the Docker tab."));
+    var ifrow = el("div", "cc-set-row"); ifrow.appendChild(el("span", "cc-set-rl", T("Schnittstelle", "Interface")));
+    var ifin = el("input", "cc-set-txt"); ifin.type = "text"; ifin.placeholder = "eth0"; ifin.value = shapeIface; ifin.maxLength = 15; ifin.spellcheck = false; ifin.setAttribute("list", "cc-iface-list");
+    var dl = el("datalist"); dl.id = "cc-iface-list"; ["eth0", "eth1", "eth2"].forEach(function (n) { var o = el("option"); o.value = n; dl.appendChild(o); });
+    ifin.addEventListener("input", function () { shapeIface = ifin.value.trim(); shapeDirty = true; });
+    ifrow.appendChild(ifin); ifrow.appendChild(dl); c6.appendChild(ifrow);
+    var save6 = el("span", "cc-btn cc-btn-primary cc-set-save" + (configLoaded ? "" : " cc-set-disabled"), configLoaded ? T("Speichern", "Save") : T("lädt…", "loading…"));
+    save6.addEventListener("click", function () { if (configLoaded && !save6.classList.contains("cc-set-disabled")) saveShape(save6); }); c6.appendChild(save6);
+    wrap.appendChild(c6);
+
     root.appendChild(el("div", "cc-set-foot", T("Öffne (oder wechsle zu) den Docker-Tab — die Änderungen erscheinen sofort. Zeitpläne und Watchdog stellst du pro Container über den ⛓-Chip im Docker-Tab ein.", "Open (or switch to) the Docker tab — changes appear immediately. Set schedules and the watchdog per container via the ⛓ chip in the Docker tab.")));
     paintPrev();
   }
@@ -196,11 +214,27 @@
     // then write it back. This never touches schedules/watchdogs — including any set
     // in the Docker tab after this page loaded — and if the fresh read fails we
     // ABORT (no PUT), so a transient engine outage can never wipe the automation.
-    api("GET", "config").then(function (c) {
-      if (!c || typeof c !== "object") throw new Error("config unreadable");
-      c.notify = { unraid: !!notify.unraid, webhook: notify.webhook || "" };
-      return api("PUT", "config", c).then(function () { fullConfig = c; reset(T("Gespeichert ✓", "Saved ✓")); });
+    withConfigLock(function () {
+      return api("GET", "config").then(function (c) {
+        if (!c || typeof c !== "object") throw new Error("config unreadable");
+        c.notify = { unraid: !!notify.unraid, webhook: notify.webhook || "" };
+        return api("PUT", "config", c).then(function () { fullConfig = c; reset(T("Gespeichert ✓", "Saved ✓")); });
+      });
     }).catch(function () { reset(T("Fehler — Engine erreichbar?", "Error — engine reachable?")); });
+  }
+  // Persist ONLY the shaping interface, read-modify-write against the LIVE config so
+  // notify + every container's schedules/watchdogs/bandwidths are preserved. Aborts
+  // (no PUT) if the fresh read fails, and surfaces a validation error from the engine.
+  function saveShape(btn) {
+    btn.textContent = T("Speichere…", "Saving…"); btn.classList.add("cc-set-disabled");
+    function reset(txt) { btn.textContent = txt; setTimeout(function () { btn.textContent = T("Speichern", "Save"); btn.classList.remove("cc-set-disabled"); }, 1800); }
+    withConfigLock(function () {
+      return api("GET", "config").then(function (c) {
+        if (!c || typeof c !== "object") throw new Error("config unreadable");
+        c.shape_iface = shapeIface || "";
+        return api("PUT", "config", c).then(function () { fullConfig = c; reset(T("Gespeichert ✓", "Saved ✓")); });
+      });
+    }).catch(function (e) { reset(/bad shaping interface/.test(String(e && e.message)) ? T("Ungültige Schnittstelle", "Invalid interface") : T("Fehler — Engine erreichbar?", "Error — engine reachable?")); });
   }
   // dark text on light backgrounds, white on dark (perceived luminance)
   function idealText(hex) { var m = /^#?([0-9a-f]{6})$/i.exec(hex || ""); if (!m) return "#fff"; var n = parseInt(m[1], 16); var L = 0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255); return L > 150 ? "#161616" : "#fff"; }
@@ -229,11 +263,12 @@
   // edits (don't overwrite notify or re-render on top of them).
   api("GET", "config").then(function (c) {
     if (!c || typeof c !== "object") return; // leave Save disabled if unreadable
-    fullConfig = { schedules: c.schedules || [], watchdogs: c.watchdogs || [], notify: c.notify || { unraid: false, webhook: "" } };
+    fullConfig = { schedules: c.schedules || [], watchdogs: c.watchdogs || [], bandwidths: c.bandwidths || [], notify: c.notify || { unraid: false, webhook: "" }, shape_iface: c.shape_iface || "" };
     configLoaded = true;
     // keep the user's in-flight edits if they already started typing; otherwise
     // adopt the loaded values. Either way re-render to enable Save.
     if (!notifyDirty) notify = { unraid: !!fullConfig.notify.unraid, webhook: fullConfig.notify.webhook || "" };
+    if (!shapeDirty) shapeIface = fullConfig.shape_iface || "";
     render();
   }).catch(function () {});
 })();

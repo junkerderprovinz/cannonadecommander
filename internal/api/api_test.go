@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/junkerderprovinz/cannonadecommander/internal/hostcpu"
 	"github.com/junkerderprovinz/cannonadecommander/internal/model"
 )
 
@@ -225,6 +226,29 @@ func TestLimitsSetGetAndValidate(t *testing.T) {
 	}
 	if lim.MemBytes != 1073741824 || lim.NanoCPUs != 1500000000 {
 		t.Fatalf("limits wrong: %+v", lim)
+	}
+}
+
+// Removing a limit must NOT be a no-op: remove_mem/remove_cpu translate to a
+// practical-unlimited LIVE value computed from the host totals (all RAM / all
+// CPUs), server-side — so a browser whose cached hostMem was 0 can still remove.
+// Compared against the same hostcpu funcs the handler uses, so this is hermetic
+// (on a non-Linux dev box both sides are 0 and it still passes; on Linux CI it
+// proves the value is the real, non-zero host total).
+func TestLimitsRemoveSendsHostTotals(t *testing.T) {
+	s, h := newServer()
+	body, _ := json.Marshal(map[string]any{"name": "gluetun", "remove_mem": true, "remove_cpu": true})
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest("POST", "/api/limits", bytes.NewReader(body)))
+	if rec.Code != 200 {
+		t.Fatalf("remove limits code = %d: %s", rec.Code, rec.Body)
+	}
+	wantMem := hostcpu.MemTotal()
+	wantCPU := int64(hostcpu.Count()) * 1e9
+	fd := s.Docker.(*fakeDocker)
+	want := fmt.Sprintf("limits:gluetun:%d:%d", wantMem, wantCPU)
+	if len(fd.actions) != 1 || fd.actions[0] != want {
+		t.Fatalf("remove must send host totals %q, got %v", want, fd.actions)
 	}
 }
 

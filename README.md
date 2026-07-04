@@ -46,24 +46,27 @@ The pieces:
   start/stop switch, the chain chip opens a compact per-container editor for its
   dependencies / readiness probe / failure policy **plus its automation** (below)
   and the **Save** / **Start in order** actions. Live **CPU / RAM** show as badges
-  (in the Simple view too), each with a gear that edits its **limit** — and CPU
-  adds **graphical pinning** — a clickable grid of the **host's** cores (from the
-  daemon, not the browser), grouped one physical core per row like the VM core picker —
-  applied live via Docker container-update, no restart. The gear turns green when a
-  limit is set; the CPU / RAM / network badges carry a small dot (**filled = a limit /
-  custom network is set, hollow = defaults**), and a **Volumes** badge lists the mounts
-  (shown even for a stopped container). Limits are **apply-fest**: they are also mirrored
-  into the container's Unraid template so an "Apply" doesn't drop them.
+  (in the Simple view too). **CPU, RAM and bandwidth** stack as three limits in the
+  resource cell, each with its own gear: **CPU** (with **graphical pinning** — a
+  clickable grid of the **host's** cores from the daemon, grouped one physical core
+  per row like the VM core picker), **RAM**, and an **egress bandwidth cap** (Mbit/s,
+  applied with `tc` inside the container while it runs). CPU / RAM apply live via
+  Docker container-update, no restart. Each gear turns green when its limit is set; the
+  badges carry a small dot (**filled = a limit / custom network is set, hollow =
+  defaults**), and a **Volumes** badge lists the mounts (shown even for a stopped
+  container). CPU / RAM limits are **apply-fest**: they are also mirrored into the
+  container's Unraid template so an "Apply" doesn't drop them, and **removing** a limit
+  is one click (set to host-unlimited live + stripped from the template).
 - **Automation, per container**: **schedules** (start / stop / restart at a
   wall-clock time on chosen weekdays), a **watchdog** (auto-restart on unhealthy or
-  a real crash — a clean/manual stop is left alone — with a per-hour cap), an optional
-  **egress bandwidth cap** (Mbit/s, applied with `tc` while the container runs), and
-  **notifications** (Unraid's own notifications and/or a webhook). Schedules, watchdog
-  and bandwidth live in the chain-chip editor; notifications on the Settings page.
+  a real crash — a clean/manual stop is left alone — with a per-hour cap), and
+  **notifications** (Unraid's own notifications and/or a webhook). Schedules and the
+  watchdog live in the chain-chip editor; notifications on the Settings page.
 - A **Settings page** (Settings → Utilities → CannonadeCommander): badge accent
-  colour and rainbow mode, container-icon tint (each colour set with a visual picker
-  or a hex field; optionally the VM-tab icons too), which columns show in the Simple
-  vs Advanced view, the default view + row density, and the **notification** settings.
+  colour and rainbow mode, container-icon tint (an **exact** colour set with a visual
+  picker or a hex field; optionally the VM-tab icons too), which columns show in the
+  Simple vs Advanced view, the default view + row density, the **bandwidth-shaping
+  interface** (the in-container NIC, usually `eth0`), and the **notification** settings.
 - A **same-origin PHP proxy**: the browser only ever talks to the proxy, never to
   the Docker socket. The supervisor exposes only read + safe lifecycle + resource
   limits — never create / exec / build.
@@ -110,10 +113,9 @@ same-origin PHP proxy.
 ## Status
 
 Pre-1.0. Shipping: dependency-ordered, health-gated **start** orchestration,
-read-only live state, per-container **CPU / RAM limits**, and the **automation**
-subsystem (schedules, watchdog, notifications). Planned next: a resource-limit
-dual-write into the template so caps survive *apply*, and a per-container
-bandwidth view.
+read-only live state, per-container **CPU / RAM / bandwidth limits** (CPU / RAM
+mirrored into the template so they survive *apply*; egress shaped with `tc`), and the
+**automation** subsystem (schedules, watchdog, notifications).
 
 ## Build from source
 

@@ -15,14 +15,42 @@
   var PROXY = "/plugins/cannonadecommander/server/api.php";
   var dead = false, mo = null, liveTimer = null, moPending = false;
 
-  function hexHue(hex) { var m = /^#?([0-9a-f]{6})$/i.exec(hex || ""); if (!m) return -1; var n = parseInt(m[1], 16), r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255; var mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn, h = 0; if (d > 0) { if (mx === r) h = ((g - b) / d) % 6; else if (mx === g) h = (b - r) / d + 2; else h = (r - g) / d + 4; h *= 60; if (h < 0) h += 360; } return h; }
   function ls(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
-  function filter() {
-    var ic = ls("cc.iconcolor"), hue = hexHue(ic);
-    if (dead || ls("cc.vmicons") !== "1" || !ic || hue < 0) return "";
-    var s = Math.max(10, parseInt(ls("cc.iconstrength") || "100", 10));
-    // SAME bold duotone recipe as the container icons (docker.js iconFilter).
-    return "grayscale(1) sepia(1) saturate(" + (s / 100 * 6 + 1).toFixed(2) + ") hue-rotate(" + Math.round(hue - 40) + "deg)";
+  // EXACT-colour tint via an inline SVG feColorMatrix (identical recipe to
+  // docker.js): map every opaque pixel to the chosen sRGB colour, keep alpha, and
+  // blend the original back by (100 - strength)%. hue-rotate only APPROXIMATES a
+  // hue and got the colour wrong; feColorMatrix hits the picked colour exactly.
+  function ensureTintFilter() {
+    var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(ls("cc.iconcolor") || "");
+    var host = document.getElementById("cc-vm-tint-svg");
+    if (dead || ls("cc.vmicons") !== "1" || !m) { if (host) host.remove(); return false; }
+    var tr = (parseInt(m[1], 16) / 255).toFixed(4), tg = (parseInt(m[2], 16) / 255).toFixed(4), tb = (parseInt(m[3], 16) / 255).toFixed(4);
+    var s = (Math.max(10, parseInt(ls("cc.iconstrength") || "100", 10)) / 100).toFixed(3);
+    if (!host) { host = document.createElement("div"); host.id = "cc-vm-tint-svg"; host.setAttribute("aria-hidden", "true"); host.style.cssText = "position:absolute;width:0;height:0;overflow:hidden"; document.body.appendChild(host); }
+    // IDEMPOTENT: only rewrite the SVG when the colour/strength actually changed. The host
+    // lives on document.body; a blind innerHTML write on every apply() would be a DOM
+    // mutation that — if an observer ever watched body — re-triggers apply() into a
+    // ~300ms CPU-pegging loop (the classic non-idempotent-inject + MutationObserver trap).
+    var sig = tr + "|" + tg + "|" + tb + "|" + s;
+    if (host.dataset.sig !== sig) {
+      host.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg"><filter id="cc-vm-icon-tint" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%">'
+        + '<feColorMatrix in="SourceGraphic" type="matrix" result="flat" values="0 0 0 0 ' + tr + ' 0 0 0 0 ' + tg + ' 0 0 0 0 ' + tb + ' 0 0 0 1 0"/>'
+        + '<feComponentTransfer in="flat" result="faded"><feFuncA type="linear" slope="' + s + '"/></feComponentTransfer>'
+        + '<feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="faded"/></feMerge>'
+        + '</filter></svg>';
+      host.dataset.sig = sig;
+    }
+    return true;
+  }
+  function filterVal() { return ensureTintFilter() ? "url(#cc-vm-icon-tint)" : ""; }
+  // The chosen colour as a plain hex, gated the same way. Unraid renders MOST VM
+  // icons as a FontAwesome/icon-font glyph (`<i class="fa fa-… img">`), whose colour
+  // comes from CSS `color:`, NOT from an image filter — so a glyph never tinted
+  // before. Real `.png` icons render as `<img class="img">` and DO take the filter.
+  function tintColor() {
+    var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(ls("cc.iconcolor") || "");
+    if (dead || ls("cc.vmicons") !== "1" || !m) return "";
+    return "#" + m[1] + m[2] + m[3];
   }
   // VM-row icon selector — GROUND TRUTH from unraid/webgui dynamix.vm.manager
   // VMMachines.php: the VM list is tbody#kvm_list, each row td.vm-name has the icon at
@@ -34,10 +62,23 @@
     return [];
   }
   function apply() {
-    try { var f = filter(), imgs = vmImgs(); for (var i = 0; i < imgs.length; i++) imgs[i].style.filter = f; } catch (e) {}
+    try {
+      var f = filterVal(), c = tintColor(), imgs = vmImgs();
+      for (var i = 0; i < imgs.length; i++) {
+        var n = imgs[i];
+        if (n.tagName === "IMG") { n.style.filter = f; n.style.color = ""; }
+        // font-glyph: `color` is the reliable exact tint; the filter is a harmless
+        // bonus for glyphs the browser rasterises (result is the same exact colour).
+        else { n.style.color = c; n.style.filter = f; }
+      }
+    } catch (e) {}
   }
   function connectObserver() {
-    var host = document.getElementById("kvm_list") || document.getElementById("kvm_table") || document.body;
+    // Observe ONLY the VM list container — NEVER document.body: our tint SVG host lives
+    // on body, so observing body could see our own writes. If the list container isn't
+    // present there is nothing to tint (the tbody is server-rendered on the real page).
+    var host = document.getElementById("kvm_list") || document.getElementById("kvm_table");
+    if (!host) return;
     // debounced: the VM list re-renders in bursts; re-apply at most every ~300ms.
     // (childList only — we never observe attributes, so our own style writes can't
     // re-trigger this into a loop.)
@@ -52,7 +93,8 @@
     if (dead) return; dead = true;
     try { if (mo) mo.disconnect(); mo = null; } catch (e) {}
     try { if (liveTimer) clearInterval(liveTimer); liveTimer = null; } catch (e) {}
-    try { var imgs = vmImgs(); for (var i = 0; i < imgs.length; i++) imgs[i].style.filter = ""; } catch (e) {}
+    try { var imgs = vmImgs(); for (var i = 0; i < imgs.length; i++) { imgs[i].style.filter = ""; imgs[i].style.color = ""; } } catch (e) {}
+    try { var sv = document.getElementById("cc-vm-tint-svg"); if (sv) sv.remove(); } catch (e) {}
   }
   function arm() {
     dead = false;

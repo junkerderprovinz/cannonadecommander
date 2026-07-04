@@ -76,7 +76,9 @@ func env(key, def string) string {
 // shaperAdapter lets the monitor apply egress limits via the netshape package.
 type shaperAdapter struct{}
 
-func (shaperAdapter) Apply(pid, kbit int) error { return netshape.Apply(pid, kbit) }
+func (shaperAdapter) Apply(iface string, pid, kbit int) error {
+	return netshape.Apply(iface, pid, kbit)
+}
 
 // inspectorAdapter bridges the docker client to the readiness prober's minimal
 // Inspector interface, keeping the readiness package free of docker types.
@@ -95,9 +97,8 @@ func serve() {
 	dockerSock := env("CC_DOCKER_SOCK", defaultDockerSock)
 	apiSock := env("CC_SOCK", defaultAPISock)
 
-	if v := os.Getenv("CC_SHAPE_IFACE"); v != "" {
-		netshape.Iface = v // shape a non-eth0 interface if a box needs it
-	}
+	// The interface to shape is chosen in Settings (config.shape_iface) and threaded
+	// through the monitor per-tick; no env override needed.
 	docker := dockercli.NewUnix(dockerSock)
 	st := store.New(filepath.Join(dataDir, "plan.json"))
 	prober := readiness.Prober{Inspector: inspectorAdapter{docker}, ExecCheck: docker.Exec, GetLogs: docker.Logs}

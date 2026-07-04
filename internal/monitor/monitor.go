@@ -32,9 +32,10 @@ type Pidder interface {
 	PID(ctx context.Context, name string) (int, error)
 }
 
-// Shaper applies an egress rate limit (kbit) to the container whose process is pid.
+// Shaper applies an egress rate limit (kbit) on `iface` to the container whose process
+// is pid (iface is the Settings-configured interface; blank means the netshape default).
 type Shaper interface {
-	Apply(pid, kbit int) error
+	Apply(iface string, pid, kbit int) error
 }
 
 // Notifier delivers an alert (Unraid notification and/or webhook per cfg).
@@ -56,7 +57,7 @@ type Monitor struct {
 	firedAt    map[string]string      // schedule key → "YYYY-MM-DD HH:MM" it last fired
 	restarts   map[string][]time.Time // watchdog restart timestamps per container (per-hour cap)
 	notifiedAt map[string]time.Time   // notify-throttle key → last time it was sent
-	shaped     map[string]bool        // containers we have an egress tc rule on (to clear on removal)
+	shaped     map[string]string      // container name → the iface we shaped it on (clear on removal / iface change)
 }
 
 // notifyThrottle is how long the monitor waits before re-sending the same kind of
@@ -129,30 +130,35 @@ func (m *Monitor) tickBandwidths(ctx context.Context, cfg model.Config) {
 			desired[b.Name] = b.EgressKbit
 		}
 	}
-	// clear rules for containers no longer in the desired set (best-effort; if the
-	// container is already stopped, its netns + qdisc are gone, so just forget it).
+	iface := cfg.ShapeIface
+	// Snapshot what we currently have shaped (name → the iface it was shaped ON).
 	m.mu.Lock()
 	if m.shaped == nil {
-		m.shaped = map[string]bool{}
+		m.shaped = map[string]string{}
 	}
-	var toClear []string
-	for name := range m.shaped {
-		if _, ok := desired[name]; !ok {
-			toClear = append(toClear, name)
-		}
+	prev := make(map[string]string, len(m.shaped))
+	for n, ifc := range m.shaped {
+		prev[n] = ifc
 	}
 	m.mu.Unlock()
-	for _, name := range toClear {
+	// Clear a rule when the container is no longer desired OR is now shaped on a DIFFERENT
+	// interface (the admin changed shape_iface). Crucially, clear on the iface it was
+	// ACTUALLY shaped on (the stored one), not the current setting — otherwise changing
+	// the interface would leave a stale tbf qdisc throttling the old NIC until a restart.
+	for name, oldIface := range prev {
+		if kbit, want := desired[name]; want && oldIface == iface && kbit > 0 {
+			continue // still desired on the same iface — the apply loop re-asserts it
+		}
 		if c, ok := state[name]; ok && c.State == "running" && !sharedNetns(c) {
 			if pid, e := m.Pidder.PID(ctx, name); e == nil && pid > 0 {
-				_ = m.Shaper.Apply(pid, 0) // clear the qdisc
+				_ = m.Shaper.Apply(oldIface, pid, 0) // clear the qdisc on the OLD iface
 			}
 		}
 		m.mu.Lock()
 		delete(m.shaped, name)
 		m.mu.Unlock()
 	}
-	// apply the desired rules to running, non-shared-netns containers
+	// apply the desired rules to running, non-shared-netns containers on the CURRENT iface
 	now := m.Now()
 	for name, kbit := range desired {
 		c, ok := state[name]
@@ -170,14 +176,14 @@ func (m *Monitor) tickBandwidths(ctx context.Context, cfg model.Config) {
 		if perr != nil || pid <= 0 {
 			continue
 		}
-		if err := m.Shaper.Apply(pid, kbit); err != nil {
+		if err := m.Shaper.Apply(iface, pid, kbit); err != nil {
 			if m.throttle(name+"|bwfail", now) && m.Notifier != nil {
 				m.Notifier.Notify(ctx, cfg.Notify, "Bandwidth shaping failed: "+name, err.Error(), "warning")
 			}
 			continue
 		}
 		m.mu.Lock()
-		m.shaped[name] = true
+		m.shaped[name] = iface
 		m.mu.Unlock()
 	}
 }

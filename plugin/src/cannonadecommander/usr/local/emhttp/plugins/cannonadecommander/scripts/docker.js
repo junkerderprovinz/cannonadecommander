@@ -116,7 +116,7 @@
   }
   function loadConfig() {
     return api("GET", "config").then(function (c) {
-      if (c && typeof c === "object") config = { schedules: c.schedules || [], watchdogs: c.watchdogs || [], bandwidths: c.bandwidths || [], notify: c.notify || { unraid: false, webhook: "" } };
+      if (c && typeof c === "object") config = { schedules: c.schedules || [], watchdogs: c.watchdogs || [], bandwidths: c.bandwidths || [], notify: c.notify || { unraid: false, webhook: "" }, shape_iface: c.shape_iface || "" };
     }).catch(function () { /* older engine or transient: keep the current config */ });
   }
   // bulk-load every container's CONFIGURED caps in one call (the engine inspects
@@ -137,6 +137,8 @@
   function setSchedules(name, list) { var k = norm(name); config.schedules = config.schedules.filter(function (s) { return norm(s.name) !== k; }); list.forEach(function (s) { config.schedules.push(s); }); }
   function bandwidthFor(name) { var k = norm(name), list = config.bandwidths || []; for (var i = 0; i < list.length; i++) if (norm(list[i].name) === k) return list[i]; return null; }
   function setBandwidth(name, kbit) { var k = norm(name); config.bandwidths = (config.bandwidths || []).filter(function (b) { return norm(b.name) !== k; }); if (kbit > 0) config.bandwidths.push({ name: name, egress_kbit: kbit }); }
+  // short badge label for a configured egress cap: "5 Mbit" / "500 kbit" / "–" (none).
+  function bwLabel(bw) { if (!bw || !(bw.egress_kbit > 0)) return "–"; var k = bw.egress_kbit; return k >= 1000 ? (Math.round(k / 100) / 10) + " Mbit" : k + " kbit"; }
   function containerByName(name) { var k = norm(name); for (var i = 0; i < containers.length; i++) if (norm(containers[i].name) === k) return containers[i]; return null; }
   // The plan badge's LABEL already says "Startplan"; the value only adds detail
   // (or nothing when unmanaged) so the chip never reads "Startplan Startplan".
@@ -158,6 +160,8 @@
     return b;
   }
   function badgeInfo(label, value, kind) { var b = el("span", "cc-b cc-b-info" + (kind ? " cc-b-" + kind : "")); b.appendChild(el("span", "cc-b-k", label)); b.appendChild(el("span", "cc-b-v", value)); return b; }
+  // one resource line: a badge + its gear, side by side; the res-group stacks these.
+  function resLine(badge, gear) { var line = el("div", "cc-resline"); line.appendChild(badge); line.appendChild(gear); return line; }
   function planBadge(name) {
     var node = workingPlan[name], wdOn = !!watchdogFor(name), schedN = schedulesFor(name).length, auto = wdOn || schedN > 0;
     var chip = el("a", "cc-b cc-plan" + (node ? " cc-plan-on" : "") + (auto ? " cc-plan-auto" : ""));
@@ -225,21 +229,28 @@
   // live from the Settings page (which writes the same keys + a poke event).
   // ideal badge text colour for a background: dark on light, white on dark.
   function idealText(hex) { var m = /^#?([0-9a-f]{6})$/i.exec(hex || ""); if (!m) return "#fff"; var n = parseInt(m[1], 16); var L = 0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255); return L > 150 ? "#161616" : "#fff"; }
-  // Tint the container icons with a CSS FILTER applied DIRECTLY to each icon element.
-  // A filter on the element itself can NEVER be mis-positioned — the earlier masked
-  // overlay was offset on the real Unraid row box-model. It is a bold duotone recolour
-  // toward the chosen hue, unmistakable on the colourful CA icons. Ground truth
-  // (unraid/webgui DockerContainers.php): the icon is `td.ct-name span.hand > .img`,
-  // an <img> for template PNGs or an <i class="… img"> font glyph — a filter tints both.
-  function hexHue(hex) { var m = /^#?([0-9a-f]{6})$/i.exec(hex || ""); if (!m) return -1; var n = parseInt(m[1], 16), r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255; var mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn, h = 0; if (d > 0) { if (mx === r) h = ((g - b) / d) % 6; else if (mx === g) h = (b - r) / d + 2; else h = (r - g) / d + 4; h *= 60; if (h < 0) h += 360; } return h; }
-  function iconFilter() {
-    var ic = localStorage.getItem("cc.iconcolor"), hue = hexHue(ic);
-    if (!ic || hue < 0) return "";
-    var s = Math.max(10, parseInt(localStorage.getItem("cc.iconstrength") || "100", 10)); // 10..100
-    // grayscale→sepia = a warm mono base (~40°); rotate onto the target hue + saturate
-    // hard so the tint reads boldly no matter what colours the source icon has.
-    return "grayscale(1) sepia(1) saturate(" + (s / 100 * 6 + 1).toFixed(2) + ") hue-rotate(" + Math.round(hue - 40) + "deg)";
+  // Tint the container icons EXACTLY to the chosen colour with an inline SVG filter
+  // (feColorMatrix) applied DIRECTLY to each icon <img>/<i>. A filter on the element
+  // can't be mis-positioned (the earlier overlay was offset on the real row), and
+  // feColorMatrix maps to the precise sRGB colour — grayscale→sepia→hue-rotate only
+  // APPROXIMATED the hue, which is why the colour was wrong. The icon becomes a flat
+  // silhouette in the chosen colour; the strength slider blends it back toward the
+  // original for detail. Ground truth: the icon is `td.ct-name span.hand > .img`.
+  function ensureTintFilter() {
+    var ic = localStorage.getItem("cc.iconcolor"), m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(ic || "");
+    var host = document.getElementById("cc-tint-svg");
+    if (!m) { if (host) host.remove(); return false; }
+    var tr = (parseInt(m[1], 16) / 255).toFixed(4), tg = (parseInt(m[2], 16) / 255).toFixed(4), tb = (parseInt(m[3], 16) / 255).toFixed(4);
+    var s = (Math.max(10, parseInt(localStorage.getItem("cc.iconstrength") || "100", 10)) / 100).toFixed(3);
+    if (!host) { host = document.createElement("div"); host.id = "cc-tint-svg"; host.setAttribute("aria-hidden", "true"); host.style.cssText = "position:absolute;width:0;height:0;overflow:hidden"; document.body.appendChild(host); }
+    host.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg"><filter id="cc-icon-tint" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%">'
+      + '<feColorMatrix in="SourceGraphic" type="matrix" result="flat" values="0 0 0 0 ' + tr + ' 0 0 0 0 ' + tg + ' 0 0 0 0 ' + tb + ' 0 0 0 1 0"/>'
+      + '<feComponentTransfer in="flat" result="faded"><feFuncA type="linear" slope="' + s + '"/></feComponentTransfer>'
+      + '<feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="faded"/></feMerge>'
+      + '</filter></svg>';
+    return true;
   }
+  function iconFilter() { return ensureTintFilter() ? "url(#cc-icon-tint)" : ""; }
   function tintTargets() {
     var out = [], rows = findRows();
     for (var i = 0; i < rows.length; i++) {
@@ -278,7 +289,7 @@
       applyIconTint();
     } catch (e) {}
   }
-  function removeEnhanceClasses() { try { var tb = nativeTable(); if (!tb) return; tb.classList.remove("cc-enh", "cc-adv", "cc-rainbow", "cc-tint-icons"); COLS.forEach(function (c) { tb.classList.remove("cc-c-" + c.key); }); var t2 = tintTargets(); for (var i = 0; i < t2.length; i++) t2[i].style.filter = ""; if (gridHolder) Array.prototype.slice.call(gridHolder.querySelectorAll("img.cc-card-ico")).forEach(function (n) { n.style.filter = ""; }); Array.prototype.slice.call(document.querySelectorAll(".cc-ico-tint")).forEach(function (n) { n.remove(); }); } catch (e) {} }
+  function removeEnhanceClasses() { try { var tb = nativeTable(); if (!tb) return; tb.classList.remove("cc-enh", "cc-adv", "cc-rainbow", "cc-tint-icons"); COLS.forEach(function (c) { tb.classList.remove("cc-c-" + c.key); }); var t2 = tintTargets(); for (var i = 0; i < t2.length; i++) t2[i].style.filter = ""; if (gridHolder) Array.prototype.slice.call(gridHolder.querySelectorAll("img.cc-card-ico")).forEach(function (n) { n.style.filter = ""; }); Array.prototype.slice.call(document.querySelectorAll(".cc-ico-tint")).forEach(function (n) { n.remove(); }); var sv = document.getElementById("cc-tint-svg"); if (sv) sv.remove(); } catch (e) {} }
 
   // read a positional cell's value (docker_readmore), stripping nested advanced
   // (MAC) + Tailscale tooltip, collapsed to one short line.
@@ -336,10 +347,15 @@
           var rg = el("div", "cc-rowbadges cc-resgroup"); rg.setAttribute(MARK, "1"); rg.dataset.name = name;
           var lm = limits[name] || {};
           var cpuSet = cpuLimited(lm) || cpuPinned(lm), ramSet = ramLimited(lm);
+          // CPU, RAM and Bandwidth each on their OWN line (a .cc-resline), stacked
+          // vertically so the three limits always sit one under the other.
           var cpuB = badgeInfo("CPU", "…", "cpu"); cpuB.appendChild(cfgDot(cpuSet));
-          rg.appendChild(cpuB); rg.appendChild(limGear(name, "cpu", cpuSet));
+          rg.appendChild(resLine(cpuB, limGear(name, "cpu", cpuSet)));
           var ramB = badgeInfo("RAM", "…", "ram"); ramB.appendChild(cfgDot(ramSet));
-          rg.appendChild(ramB); rg.appendChild(limGear(name, "ram", ramSet));
+          rg.appendChild(resLine(ramB, limGear(name, "ram", ramSet)));
+          var bw = bandwidthFor(name), bwSet = !!(bw && bw.egress_kbit > 0);
+          var bwB = badgeInfo("BW", bwLabel(bw), "bw"); bwB.appendChild(cfgDot(bwSet));
+          rg.appendChild(resLine(bwB, bwGear(name, bwSet)));
           updateResGroup(rg, stats[name], c && c.state);
           resCell.appendChild(rg);
         }
@@ -509,10 +525,12 @@
   function refresh() { applyMode(); if (mode === "grid" || (mode === "list" && colOn("res"))) refreshStats(); }
   // update one CPU/RAM engine-badge group in place (values only).
   function updateResGroup(rg, s, state) {
-    var v = rg.querySelectorAll(".cc-b-v");
-    if (state !== "running") { if (v[0]) v[0].textContent = "–"; if (v[1]) v[1].textContent = "–"; return; }
-    if (v[0]) v[0].textContent = s ? (s.cpu_percent || 0) + "%" : "…";
-    if (v[1]) v[1].textContent = s ? humanBytes(s.mem_used) + " / " + humanBytes(s.mem_limit) : "…";
+    // Target the CPU/RAM live values BY KIND (not by index) so the third, config-driven
+    // Bandwidth badge is never overwritten by a live-stats refresh.
+    var cpuV = rg.querySelector(".cc-b-cpu .cc-b-v"), ramV = rg.querySelector(".cc-b-ram .cc-b-v");
+    if (state !== "running") { if (cpuV) cpuV.textContent = "–"; if (ramV) ramV.textContent = "–"; return; }
+    if (cpuV) cpuV.textContent = s ? (s.cpu_percent || 0) + "%" : "…";
+    if (ramV) ramV.textContent = s ? humanBytes(s.mem_used) + " / " + humanBytes(s.mem_limit) : "…";
   }
   function applyMode() {
     try {
@@ -610,22 +628,15 @@
     pop.appendChild(sSec);
     function readSchedules() { var out = []; Array.prototype.slice.call(sList.children).forEach(function (r) { if (r._read) { var v = r._read(); if (v) out.push(v); } }); return out; }
 
-    // ── Bandwidth (egress rate limit) — independent of plan membership ──
-    var bwSec = el("div", "cc-pop-auto"); bwSec.appendChild(el("div", "cc-pop-sech cc-pop-sech-lone", t("bandwidth")));
-    var bwRow = el("div", "cc-pop-row"); bwRow.appendChild(el("label", "cc-pop-lbl", t("egress")));
-    var bwCur = bandwidthFor(name);
-    var bwIn = el("input", "cc-in cc-port"); bwIn.type = "number"; bwIn.min = "0"; bwIn.step = "0.1"; bwIn.placeholder = "0 = ∞"; bwIn.value = (bwCur && bwCur.egress_kbit > 0) ? (Math.round(bwCur.egress_kbit / 1000 * 100) / 100) : "";
-    bwRow.appendChild(bwIn); bwRow.appendChild(el("span", null, " Mbit/s")); bwSec.appendChild(bwRow);
-    bwSec.appendChild(el("div", "cc-pop-foot", t("bwFoot")));
-    pop.appendChild(bwSec);
-    function readBandwidth() { var v = parseFloat(String(bwIn.value).trim().replace(",", ".")); return v > 0 ? Math.round(v * 1000) : 0; }
+    // (Bandwidth moved out of this editor: it now has its own gear in the CPU/RAM
+    // resource group — a third stacked badge, so all three limits sit together.)
 
     // Plan actions live here now (the Docker-tab gear is gone): save the whole plan
     // AND this container's automation, or run it in dependency order immediately.
     var act = el("div", "cc-pop-row cc-pop-act");
     var bSave = el("span", "cc-btn", t("save")), bRun = el("span", "cc-btn cc-btn-primary", t("startorder"));
-    bSave.addEventListener("click", function () { saveEditor(name, readWatchdog(), readSchedules(), readBandwidth(), false); });
-    bRun.addEventListener("click", function () { saveEditor(name, readWatchdog(), readSchedules(), readBandwidth(), true); });
+    bSave.addEventListener("click", function () { saveEditor(name, readWatchdog(), readSchedules(), false); });
+    bRun.addEventListener("click", function () { saveEditor(name, readWatchdog(), readSchedules(), true); });
     act.appendChild(bSave); act.appendChild(bRun); pop.appendChild(act);
     function commit() {
       if (!manageOn) { delete workingPlan[name]; body.classList.add("cc-dis"); refreshChip(anchor, name); return; }
@@ -668,6 +679,54 @@
     lb.title = (which === "cpu" ? t("cpuLimit") : t("ramLimit")) + " · " + (set ? t("cfgSet") : t("cfgUnset"));
     lb.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); openLimits(lb, name, which); });
     return lb;
+  }
+  // the Bandwidth gear (third resource line) — opens the egress-limit editor.
+  function bwGear(name, set) {
+    var lb = el("span", "cc-limbtn" + (set ? " cc-limbtn-set" : "")); lb.setAttribute(MARK, "1"); lb.textContent = "⚙";
+    lb.title = t("bandwidth") + " · " + (set ? t("cfgSet") : t("cfgUnset"));
+    lb.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); openBandwidth(lb, name); });
+    return lb;
+  }
+  // Egress rate-limit editor, mirroring the CPU/RAM limit popover. Save writes the whole
+  // config (read-modify-write) so nothing else is dropped; the monitor (re-)applies the tc
+  // rule on the Settings-chosen interface while the container runs. "Remove" clears it.
+  function openBandwidth(anchor, name) {
+    if (togglePop(anchor)) return;
+    closePop();
+    var pop = el("div", "cc-pop"); if (localStorage.getItem("cc.rainbow") === "1") pop.classList.add("cc-rainbow");
+    var head = el("div", "cc-pop-head"); head.appendChild(el("b", null, name + " — " + t("bandwidth")));
+    var x = el("span", "cc-pop-x", "✕"); x.addEventListener("click", closePop); head.appendChild(x); pop.appendChild(head);
+    var body = el("div", "cc-pop-body");
+    var row = el("div", "cc-pop-row"); row.appendChild(el("label", "cc-pop-lbl", t("egress")));
+    var cur = bandwidthFor(name);
+    var bwIn = el("input", "cc-in"); bwIn.type = "number"; bwIn.min = "0"; bwIn.step = "0.1"; bwIn.placeholder = "0 = ∞";
+    bwIn.value = (cur && cur.egress_kbit > 0) ? (Math.round(cur.egress_kbit / 1000 * 100) / 100) : "";
+    row.appendChild(bwIn); row.appendChild(el("span", "cc-unit", "Mbit/s")); body.appendChild(row);
+    pop.appendChild(body);
+    pop.appendChild(el("div", "cc-pop-foot", t("bwFoot")));
+    function readBw() { var v = parseFloat(String(bwIn.value).trim().replace(",", ".")); return v > 0 ? Math.round(v * 1000) : 0; }
+    var srow = el("div", "cc-pop-row cc-pop-act");
+    var rem = el("span", "cc-btn", t("removeLim")); rem.addEventListener("click", function () { saveBandwidth(name, 0); });
+    var save = el("span", "cc-btn cc-btn-primary", t("saveShort")); save.addEventListener("click", function () { saveBandwidth(name, readBw()); });
+    srow.appendChild(rem); srow.appendChild(save); pop.appendChild(srow);
+    document.body.appendChild(pop);
+    var r = anchor.getBoundingClientRect(), w = pop.offsetWidth || 300;
+    pop.style.left = Math.max(window.scrollX + 8, Math.min(window.scrollX + r.left, window.scrollX + document.documentElement.clientWidth - w - 12)) + "px";
+    pop.style.top = (window.scrollY + r.bottom + 6) + "px"; openPop = pop; openPopAnchor = anchor;
+  }
+  // Persist ONE container's egress cap (0 = remove), read-modify-write against the LIVE
+  // config so schedules/watchdogs/notify/shape_iface and every other container survive.
+  function saveBandwidth(name, kbit) {
+    flash(t("saving"));
+    api("GET", "config")
+      .then(function (fresh) {
+        if (!fresh || typeof fresh !== "object") throw new Error("config unreadable");
+        config = { schedules: fresh.schedules || [], watchdogs: fresh.watchdogs || [], bandwidths: fresh.bandwidths || [], notify: fresh.notify || { unraid: false, webhook: "" }, shape_iface: fresh.shape_iface || "" };
+        setBandwidth(name, kbit);
+        return api("PUT", "config", config);
+      })
+      .then(function () { flash(t("done")); closePop(); if (mode === "list") reinjectRowBadges(); else renderGrid(); })
+      .catch(function (e) { flash("Error: " + e.message, true); });
   }
   // which = "cpu" | "ram" (each badge's own gear) — shows only that field.
   // RAM = a number + a MB/GB unit; CPU = a core count + an optional pin (cpuset).
@@ -730,13 +789,15 @@
         .catch(function (e) { flash("Error: " + e.message, true); });
     }
     var srow = el("div", "cc-pop-row cc-pop-act");
-    // "remove" sets the field(s) to a practical-unlimited value (host RAM / all cores) —
-    // Docker cannot UNSET a limit through a live update, only recreating the container can.
+    // "remove" is an explicit flag, NOT a client-computed value: the engine sets the
+    // field to practical-unlimited (host RAM / all cores) and strips it from the
+    // template. Sending remove_* (rather than mem_bytes=hostMem) fixes the case where
+    // the browser's cached hostMem was 0 and the Remove button did nothing.
     var rem = el("span", "cc-btn", t("removeLim"));
     rem.addEventListener("click", function () {
       var payload = { name: name };
-      if (showRam && hostMem > 0) payload.mem_bytes = hostMem;
-      if (showCpu) { if (hostCpus > 0) payload.nano_cpus = Math.round(hostCpus * 1e9); payload.cpuset_cpus = hostCpus > 0 ? "0-" + (hostCpus - 1) : ""; }
+      if (showRam) payload.remove_mem = true;
+      if (showCpu) payload.remove_cpu = true;
       submitLimits(payload);
     });
     var save = el("span", "cc-btn cc-btn-primary", t("saveShort"));
@@ -774,12 +835,13 @@
   // and the notify block (set in Settings) are preserved. Config is saved FIRST and
   // independently: the automation is unrelated to the plan, so an invalid/stale
   // plan (a bad dependency) must never cause the watchdog/schedules to be lost.
-  function saveEditor(name, wd, scheds, bw, thenApply) {
+  function saveEditor(name, wd, scheds, thenApply) {
     flash(t("saving"));
     // Read-modify-write: re-fetch the LIVE config, replace ONLY this container's
-    // watchdog + schedules, then write it back — so notify (set in Settings) and
-    // every other container's entries are preserved even if they changed since this
-    // page loaded. If the fresh read fails we abort (no PUT), never wiping config.
+    // watchdog + schedules, then write it back — so notify + the shaping interface
+    // (set in Settings), every container's bandwidth (set via its own gear) and every
+    // other container's entries are preserved even if they changed since this page
+    // loaded. If the fresh read fails we abort (no PUT), never wiping config.
     api("GET", "config")
       .then(function (fresh) {
         // Abort rather than fall back to an empty config: writing this container's
@@ -787,8 +849,8 @@
         // engine always returns a config object on success, so this only guards the
         // unexpected (a null/garbage body), never a legitimate first save.
         if (!fresh || typeof fresh !== "object") throw new Error("config unreadable");
-        config = { schedules: fresh.schedules || [], watchdogs: fresh.watchdogs || [], bandwidths: fresh.bandwidths || [], notify: fresh.notify || { unraid: false, webhook: "" } };
-        setWatchdog(name, wd); setSchedules(name, scheds); setBandwidth(name, bw);
+        config = { schedules: fresh.schedules || [], watchdogs: fresh.watchdogs || [], bandwidths: fresh.bandwidths || [], notify: fresh.notify || { unraid: false, webhook: "" }, shape_iface: fresh.shape_iface || "" };
+        setWatchdog(name, wd); setSchedules(name, scheds);
         return api("PUT", "config", config);
       })
       .then(function () { return api("PUT", "plan", collectPlan()); })

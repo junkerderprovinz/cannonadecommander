@@ -5,8 +5,11 @@ package readiness
 
 import (
 	"context"
+	"io"
 	"net"
+	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/junkerderprovinz/cannonadecommander/internal/model"
@@ -39,6 +42,7 @@ type Prober struct {
 	Now       func() time.Time
 	Sleep     func(ctx context.Context, d time.Duration) bool // false → cancelled
 	Dial      func(ctx context.Context, addr string) (net.Conn, error)
+	HTTPGet   func(ctx context.Context, url string) (int, error) // status code, or err
 }
 
 func (p Prober) now() time.Time {
@@ -77,6 +81,30 @@ func (p Prober) dial(ctx context.Context, addr string) (net.Conn, error) {
 	return d.DialContext(ctx, "tcp", addr)
 }
 
+func (p Prober) httpGet(ctx context.Context, url string) (int, error) {
+	if p.HTTPGet != nil {
+		return p.HTTPGet(ctx, url)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return 0, err
+	}
+	// Don't chase redirects: a readiness probe must observe the container's OWN status
+	// (a boot-time 3xx should count as "up but redirecting", and a redirect to another
+	// host must not let some other server's 200 mark this container ready).
+	client := &http.Client{
+		Timeout:       dialTimeout,
+		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096)) // drain a little so the conn can be reused
+	_ = resp.Body.Close()
+	return resp.StatusCode, nil
+}
+
 // WaitReady blocks until the node is ready or its timeout elapses, reporting
 // whether it became ready and a short human reason. It satisfies the
 // orchestrator's ReadinessChecker.
@@ -108,6 +136,8 @@ func (p Prober) probe(ctx context.Context, node model.Node, runningSince *time.T
 	switch node.Probe.Kind {
 	case model.ProbeTCP:
 		return p.probeTCP(ctx, node)
+	case model.ProbeHTTP:
+		return p.probeHTTP(ctx, node)
 	case model.ProbeRunning:
 		return p.probeRunning(ctx, node, runningSince)
 	default: // ProbeHealth (and unknown) gate on the image's HEALTHCHECK
@@ -131,6 +161,38 @@ func (p Prober) probeTCP(ctx context.Context, node model.Node) (bool, string) {
 	}
 	_ = conn.Close()
 	return true, "port " + addr + " open"
+}
+
+func (p Prober) probeHTTP(ctx context.Context, node model.Node) (bool, string) {
+	host := node.Probe.Host
+	if host == "" {
+		if snap, err := p.Inspector.Snapshot(ctx, node.Name); err == nil && snap.IP != "" {
+			host = snap.IP
+		} else {
+			host = "127.0.0.1"
+		}
+	}
+	port := node.Probe.Port
+	if port == 0 {
+		port = 80
+	}
+	path := node.Probe.Path
+	if path == "" {
+		path = "/"
+	}
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+	url := "http://" + net.JoinHostPort(host, strconv.Itoa(port)) + path
+	code, err := p.httpGet(ctx, url)
+	if err != nil {
+		return false, "http " + url + " unreachable"
+	}
+	// a 2xx/3xx means the app is serving; 4xx/5xx means it is up but not ready yet.
+	if code >= 200 && code < 400 {
+		return true, "http " + strconv.Itoa(code)
+	}
+	return false, "http " + strconv.Itoa(code)
 }
 
 func (p Prober) probeRunning(ctx context.Context, node model.Node, runningSince *time.Time) (bool, string) {

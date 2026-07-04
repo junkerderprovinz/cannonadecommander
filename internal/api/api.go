@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/junkerderprovinz/cannonadecommander/internal/hostcpu"
 	"github.com/junkerderprovinz/cannonadecommander/internal/model"
 	"github.com/junkerderprovinz/cannonadecommander/internal/orchestrator"
 )
@@ -88,6 +89,8 @@ type stateResp struct {
 	Containers  []model.Container `json:"containers"`
 	LastRun     model.RunResult   `json:"last_run"`
 	DockerError string            `json:"docker_error,omitempty"`
+	HostCPUs    int               `json:"host_cpus"`              // host logical-CPU count, for the pin grid
+	HostCoreOf  []int             `json:"host_core_of,omitempty"` // physical-core id per logical CPU (HT grouping)
 }
 
 func (s *Server) handleState(w http.ResponseWriter, r *http.Request) {
@@ -96,7 +99,7 @@ func (s *Server) handleState(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusInternalServerError, err)
 		return
 	}
-	resp := stateResp{Plan: plan}
+	resp := stateResp{Plan: plan, HostCPUs: hostcpu.Count(), HostCoreOf: hostcpu.CoreOf()}
 	containers, derr := s.Docker.List(r.Context())
 	if derr != nil {
 		// Tolerate a docker hiccup: still return the plan + the last run, so the

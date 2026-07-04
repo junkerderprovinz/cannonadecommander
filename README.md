@@ -47,10 +47,12 @@ The pieces:
   dependencies / readiness probe / failure policy **plus its automation** (below)
   and the **Save** / **Start in order** actions. Live **CPU / RAM** show as badges
   (in the Simple view too), each with a gear that edits its **limit** — and CPU
-  adds **graphical pinning** (a clickable core grid, like the VM settings) — applied
-  live via Docker container-update, no restart. The CPU / RAM / network badges carry
-  a small dot — **filled when a limit / custom network is set, hollow on defaults** —
-  and a **Volumes** badge lists the mounts (shown even for a stopped container).
+  adds **graphical pinning** — a clickable grid of the **host's** cores (from the
+  daemon, not the browser), grouped one physical core per row like the VM core picker —
+  applied live via Docker container-update, no restart. The gear turns green when a
+  limit is set; the CPU / RAM / network badges carry a small dot (**filled = a limit /
+  custom network is set, hollow = defaults**), and a **Volumes** badge lists the mounts
+  (shown even for a stopped container).
 - **Automation, per container**: **schedules** (start / stop / restart at a
   wall-clock time on chosen weekdays), a **watchdog** (auto-restart on unhealthy or
   a real crash — a clean/manual stop is left alone — with a per-hour cap), and
@@ -79,6 +81,7 @@ Docker health:
 | `health` | the image's own `HEALTHCHECK` reports healthy (falls back to *running* if there is none) |
 | `running` | the container is running, plus an optional grace period |
 | `tcp` | a TCP port accepts a connection (dialed on the container's IP) |
+| `http` | an HTTP `GET` on the container returns OK (2xx/3xx), for a chosen port + path |
 
 On failure, per container: **abort** skips everything that depends on it,
 **continue** / **degrade** start dependents anyway.

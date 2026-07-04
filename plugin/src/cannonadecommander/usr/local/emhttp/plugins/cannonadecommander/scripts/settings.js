@@ -130,18 +130,22 @@
     wrap.appendChild(c1);
 
     // ── Container icons ──
-    var c2 = card(T("Container-Icons einfärben", "Colourise container icons"), T("Tönt alle Icons in eine Farbe. „Aus“ lässt die Original-Icons.", "Tints every icon toward one colour. “Off” keeps the original icons."));
-    var irow = el("div", "cc-set-pickrow");
-    var ipick = el("input", "cc-set-pick cc-set-pick-lg"); ipick.type = "color"; ipick.value = /^#[0-9a-f]{6}$/i.test(iconcolor) ? iconcolor : accent;
+    var c2 = card(T("Container-Icons einfärben", "Colourise container icons"), T("Färbt alle Icons in einer Farbe. Der Schalter aktiviert die Färbung.", "Colours every icon in one colour. The switch turns it on."));
+    var ipick = el("input", "cc-set-pick cc-set-pick-lg"); ipick.type = "color"; ipick.value = /^#[0-9a-f]{6}$/i.test(iconcolor) ? iconcolor : (/^#[0-9a-f]{6}$/i.test(accent) ? accent : "#1f9d55");
     var ihexIn = el("input", "cc-set-hexin"); ihexIn.type = "text"; ihexIn.value = iconcolor || ""; ihexIn.placeholder = "#1f9d55"; ihexIn.maxLength = 7; ihexIn.spellcheck = false;
-    var offbtn = el("span", "cc-set-mini" + (iconcolor ? "" : " cc-set-mini-on")); offbtn.textContent = T("Aus", "Off");
-    // colour-picker field + hex field, kept in sync; both set the icon tint live.
-    function setIcon(v) { iconcolor = v; ipick.value = v; ihexIn.value = v; set("cc.iconcolor", iconcolor); offbtn.classList.remove("cc-set-mini-on"); }
+    // A real ON/OFF toggle drives the tint (empty cc.iconcolor = off). The picker/hex
+    // set WHICH colour; changing either also switches the tint on.
+    function iconOn() { return !!iconcolor; }
+    var iconTog = el("span", "cc-set-toggle" + (iconOn() ? " cc-set-toggle-on" : "")); iconTog.setAttribute("role", "switch"); iconTog.setAttribute("tabindex", "0"); iconTog.setAttribute("aria-checked", iconOn() ? "true" : "false"); iconTog.appendChild(el("span", "cc-set-knob"));
+    function syncIconTog() { var on = iconOn(); iconTog.classList.toggle("cc-set-toggle-on", on); iconTog.setAttribute("aria-checked", on ? "true" : "false"); }
+    function setIcon(v) { iconcolor = v; ipick.value = v; ihexIn.value = v; set("cc.iconcolor", iconcolor); syncIconTog(); }
+    function setIconOn(on) { if (on) { setIcon(ipick.value); } else { iconcolor = ""; del("cc.iconcolor"); ihexIn.value = ""; syncIconTog(); } }
+    iconTog.addEventListener("click", function () { setIconOn(!iconOn()); });
+    iconTog.addEventListener("keydown", function (e) { if (e.key === " " || e.key === "Enter") { e.preventDefault(); setIconOn(!iconOn()); } });
     ipick.addEventListener("input", function () { setIcon(ipick.value); });
     ihexIn.addEventListener("input", function () { var v = normHex(ihexIn.value); if (v) setIcon(v); });
-    offbtn.addEventListener("click", function () { iconcolor = ""; del("cc.iconcolor"); render(); });
-    irow.appendChild(ipick); irow.appendChild(ihexIn); irow.appendChild(offbtn);
-    c2.appendChild(irow);
+    var togRow = el("div", "cc-set-row cc-set-inline"); togRow.appendChild(el("span", null, T("Einfärben", "Colourise"))); togRow.appendChild(iconTog); c2.appendChild(togRow);
+    var irow = el("div", "cc-set-pickrow"); irow.appendChild(ipick); irow.appendChild(ihexIn); c2.appendChild(irow);
     var strow = el("div", "cc-set-row");
     strow.appendChild(el("span", "cc-set-rl", T("Intensität", "Strength")));
     var sl = el("input"); sl.type = "range"; sl.min = "10"; sl.max = "100"; sl.value = String(iconstrength); sl.style.flex = "1";

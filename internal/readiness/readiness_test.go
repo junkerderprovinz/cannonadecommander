@@ -120,6 +120,35 @@ func TestWaitReady_TCP(t *testing.T) {
 	}
 }
 
+func TestWaitReady_HTTP(t *testing.T) {
+	clk := &fakeClock{t: time.Unix(0, 0)}
+	insp := &scriptedInspector{snaps: []Snapshot{{Running: true, IP: "172.17.0.9"}}}
+	p := newProber(insp, clk)
+	var gotURL string
+	attempts := 0
+	p.HTTPGet = func(_ context.Context, url string) (int, error) {
+		gotURL = url
+		attempts++
+		if attempts < 2 {
+			return 503, nil // serving but not ready yet
+		}
+		return 200, nil
+	}
+	// Path has no leading slash and no host: the prober must default the host to the
+	// container IP and prepend "/".
+	node := model.Node{Name: "x", Probe: model.Probe{Kind: model.ProbeHTTP, Port: 8080, Path: "healthz", TimeoutSeconds: 30}}
+	ready, reason := p.WaitReady(context.Background(), node)
+	if !ready {
+		t.Fatalf("expected ready on 200, got %q", reason)
+	}
+	if gotURL != "http://172.17.0.9:8080/healthz" {
+		t.Fatalf("built URL = %q", gotURL)
+	}
+	if attempts != 2 {
+		t.Fatalf("expected 2 attempts (503 then 200), got %d", attempts)
+	}
+}
+
 func TestWaitReady_TCPExplicitHost(t *testing.T) {
 	clk := &fakeClock{t: time.Unix(0, 0)}
 	insp := &scriptedInspector{snaps: []Snapshot{{Running: true}}}

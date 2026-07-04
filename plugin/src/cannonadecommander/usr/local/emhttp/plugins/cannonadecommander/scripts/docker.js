@@ -28,7 +28,7 @@
   var SHIPLOG = "/plugins/shiplog/server/status.php";
   var VIEW_KEY = "cc.view", COLS_KEY = "cc.colview"; // cols2: reset stale v0.3 prefs
   var MARK = "data-cc", ROWMARK = "data-cc-row";
-  var PROBES = ["health", "running", "tcp"], POLICIES = ["abort", "continue", "degrade"];
+  var PROBES = ["health", "running", "tcp", "http"], POLICIES = ["abort", "continue", "degrade"];
   var SCHED_ACTIONS = ["start", "stop", "restart"];
   var LANG = (document.documentElement.lang || navigator.language || "en").slice(0, 2).toLowerCase();
   // Mon-first day toggles; value is Go's time.Weekday (0=Sun..6=Sat).
@@ -53,6 +53,7 @@
   // the plan; loaded whole, mutated per-container in the editor, and PUT back whole.
   var config = { schedules: [], watchdogs: [], notify: { unraid: false, webhook: "" } };
   var limits = {}; // name → CONFIGURED caps {mem_bytes,nano_cpus,cpuset_cpus}, for the "is a limit set?" dots
+  var hostCpus = 0, hostCoreOf = []; // the HOST's logical-CPU count + HT-core grouping (from the engine, not the browser)
   var filterText = "", gridHolder = null, openPop = null, openPopAnchor = null, menu = null, menuAnchor = null, menuStatusEl = null, toastEl = null, toastTimer = null;
   var mo = null, dead = false, lastAdv = false, timers = [], moPending = false, moTimer = null;
 
@@ -98,6 +99,8 @@
   // ───────────────────────── data
   function indexState(state) {
     containers = (state && state.containers) || [];
+    if (state && state.host_cpus) hostCpus = state.host_cpus;
+    if (state && state.host_core_of) hostCoreOf = state.host_core_of;
     containerNames = containers.map(function (c) { return c.name; }).sort();
     workingPlan = {};
     if (state && state.plan && state.plan.nodes) state.plan.nodes.forEach(function (n) { workingPlan[n.name] = n; });
@@ -172,6 +175,11 @@
   // whether a container is on a deliberately-chosen network (a custom docker network
   // / static IP) rather than the stock bridge/host defaults.
   function netConfigured(c) { if (!c) return false; var n = String(c.network || "").toLowerCase(); return !!n && n !== "bridge" && n !== "host" && n !== "none"; }
+  // whether the network is an Unraid macvlan/ipvlan bound to a host interface (br0,
+  // br0.20, eth0, bond0…). ONLY these give the container an IP directly on the LAN, so
+  // only for these is the container IP also the LAN IP. A custom docker *bridge*
+  // (e.g. "proxynet") has a NAT-internal IP that is NOT LAN-reachable.
+  function isMacvlan(c) { return !!c && /^(br|bond|eth)\d/i.test(String(c.network || "")); }
 
   // ───────────────────────── column model → CSS classes on the table + JS badge gates
   // Everything defaults ON: the user wants every datum as a badge. Advanced-only
@@ -325,10 +333,11 @@
         if (resCell && !resCell.querySelector(".cc-resgroup")) {
           var rg = el("div", "cc-rowbadges cc-resgroup"); rg.setAttribute(MARK, "1"); rg.dataset.name = name;
           var lm = limits[name] || {};
-          var cpuB = badgeInfo("CPU", "…", "cpu"); cpuB.appendChild(cfgDot(!!(lm.nano_cpus || (lm.cpuset_cpus && lm.cpuset_cpus.length))));
-          rg.appendChild(cpuB); rg.appendChild(limGear(name, "cpu"));
-          var ramB = badgeInfo("RAM", "…", "ram"); ramB.appendChild(cfgDot(!!lm.mem_bytes));
-          rg.appendChild(ramB); rg.appendChild(limGear(name, "ram"));
+          var cpuSet = !!(lm.nano_cpus || (lm.cpuset_cpus && lm.cpuset_cpus.length)), ramSet = !!lm.mem_bytes;
+          var cpuB = badgeInfo("CPU", "…", "cpu"); cpuB.appendChild(cfgDot(cpuSet));
+          rg.appendChild(cpuB); rg.appendChild(limGear(name, "cpu", cpuSet));
+          var ramB = badgeInfo("RAM", "…", "ram"); ramB.appendChild(cfgDot(ramSet));
+          rg.appendChild(ramB); rg.appendChild(limGear(name, "ram", ramSet));
           updateResGroup(rg, stats[name], c && c.state);
           resCell.appendChild(rg);
         }
@@ -357,6 +366,10 @@
           // the engine's value (the configured static br0.x IP, which survives a stop).
           if (!ipTxt && c && c.ip) ipTxt = c.ip;
           if (!netTxt && c && c.network) netTxt = c.network;
+          // on an Unraid macvlan/ipvlan (br0.x) the container's static IP IS its LAN IP,
+          // so show it for a stopped container too (the native LAN cell is empty). Only
+          // for real host-interface nets — a custom docker bridge IP is NOT LAN-reachable.
+          if (!lanTxt && c && c.ip && isMacvlan(c)) lanTxt = c.ip;
           var g = el("div", "cc-rowbadges cc-netgroup"); g.setAttribute(MARK, "1");
           if (netTxt) { var netB = badgeInfo("Netzwerk", netTxt, "net"); netB.appendChild(cfgDot(netConfigured(c))); g.appendChild(netB); }
           if (ipTxt) g.appendChild(badgeInfo("Container IP", ipTxt, "ip"));
@@ -527,10 +540,16 @@
     if (togglePop(anchor)) return;
     closePop();
     var existing = workingPlan[name], node = existing || { name: name, after: [], probe: { kind: "health" }, policy: "abort" };
-    var pop = el("div", "cc-pop"), head = el("div", "cc-pop-head"); head.appendChild(el("b", null, name));
+    var pop = el("div", "cc-pop"); if (localStorage.getItem("cc.rainbow") === "1") pop.classList.add("cc-rainbow");
+    var head = el("div", "cc-pop-head"); head.appendChild(el("b", null, name));
     var x = el("span", "cc-pop-x", "✕"); x.addEventListener("click", closePop); head.appendChild(x); pop.appendChild(head);
-    var mrow = el("label", "cc-pop-row"), manage = el("input"); manage.type = "checkbox"; manage.checked = !!existing;
-    mrow.appendChild(manage); mrow.appendChild(el("span", null, " " + t("manage"))); pop.appendChild(mrow);
+    // "Manage in the start plan" is a TOGGLE (not a checkbox). manageOn drives commit().
+    var manageOn = !!existing;
+    var manageTog = el("span", "cc-set-toggle" + (manageOn ? " cc-set-toggle-on" : "")); manageTog.setAttribute("role", "switch"); manageTog.setAttribute("tabindex", "0"); manageTog.setAttribute("aria-checked", manageOn ? "true" : "false"); manageTog.appendChild(el("span", "cc-set-knob"));
+    function flipManage() { manageOn = !manageOn; manageTog.classList.toggle("cc-set-toggle-on", manageOn); manageTog.setAttribute("aria-checked", manageOn ? "true" : "false"); commit(); }
+    manageTog.addEventListener("click", flipManage);
+    manageTog.addEventListener("keydown", function (e) { if (e.key === " " || e.key === "Enter") { e.preventDefault(); flipManage(); } });
+    var mrow = el("div", "cc-pop-row cc-pop-toggle"); mrow.appendChild(el("span", "cc-pop-sech", t("manage"))); mrow.appendChild(el("span", "cc-set-spacer")); mrow.appendChild(manageTog); pop.appendChild(mrow);
     var body = el("div", "cc-pop-body" + (existing ? "" : " cc-dis"));
     var arow = el("div", "cc-pop-row"); arow.appendChild(el("label", "cc-pop-lbl", t("dependsOn")));
     var after = el("input", "cc-in"); after.type = "text"; after.setAttribute("list", "cc-names"); after.placeholder = t("commaSep"); after.value = (node.after || []).join(", "); arow.appendChild(after); body.appendChild(arow);
@@ -540,8 +559,9 @@
     var prow = el("div", "cc-pop-row"); prow.appendChild(el("label", "cc-pop-lbl", t("readyWhen")));
     var probe = el("select", "cc-in"); PROBES.forEach(function (p) { var o = el("option", null, p); o.value = p; if (node.probe && node.probe.kind === p) o.selected = true; probe.appendChild(o); });
     var port = el("input", "cc-in cc-port"); port.type = "number"; port.placeholder = "port"; port.value = (node.probe && node.probe.port) ? node.probe.port : "";
-    var syncPort = function () { port.style.display = probe.value === "tcp" ? "" : "none"; }; syncPort();
-    prow.appendChild(probe); prow.appendChild(port); body.appendChild(prow);
+    var pathIn = el("input", "cc-in cc-port"); pathIn.type = "text"; pathIn.placeholder = "/health"; pathIn.value = (node.probe && node.probe.path) ? node.probe.path : "";
+    var syncPort = function () { var isTcp = probe.value === "tcp", isHttp = probe.value === "http"; port.style.display = (isTcp || isHttp) ? "" : "none"; pathIn.style.display = isHttp ? "" : "none"; }; syncPort();
+    prow.appendChild(probe); prow.appendChild(port); prow.appendChild(pathIn); body.appendChild(prow);
     var polrow = el("div", "cc-pop-row"); polrow.appendChild(el("label", "cc-pop-lbl", t("onFail")));
     var pol = el("select", "cc-in"); POLICIES.forEach(function (p) { var o = el("option", null, p); o.value = p; if (node.policy === p) o.selected = true; pol.appendChild(o); });
     polrow.appendChild(pol); body.appendChild(polrow); pop.appendChild(body);
@@ -594,19 +614,26 @@
     bRun.addEventListener("click", function () { saveEditor(name, readWatchdog(), readSchedules(), true); });
     act.appendChild(bSave); act.appendChild(bRun); pop.appendChild(act);
     function commit() {
-      if (!manage.checked) { delete workingPlan[name]; body.classList.add("cc-dis"); refreshChip(anchor, name); return; }
+      if (!manageOn) { delete workingPlan[name]; body.classList.add("cc-dis"); refreshChip(anchor, name); return; }
       body.classList.remove("cc-dis");
       var afterList = after.value.split(",").map(function (s) { return s.trim(); }).filter(Boolean);
       var pr = { kind: probe.value }, pv = parseInt(port.value, 10);
-      if (probe.value === "tcp" && pv > 0) pr.port = pv; if (probe.value === "running") pr.grace_seconds = 3;
+      if (probe.value === "tcp" && pv > 0) pr.port = pv;
+      if (probe.value === "http") { if (pv > 0) pr.port = pv; var pt = pathIn.value.trim(); if (pt) pr.path = pt; }
+      if (probe.value === "running") pr.grace_seconds = 3;
       var dv = parseInt(delay.value, 10);
       var n = { name: name, after: afterList, probe: pr, policy: pol.value };
       if (dv > 0) n.delay_seconds = dv;
       workingPlan[name] = n; refreshChip(anchor, name);
     }
-    manage.addEventListener("change", commit);
-    [after, delay, probe, port, pol].forEach(function (n) { n.addEventListener("change", commit); n.addEventListener("input", commit); });
+    [after, delay, probe, port, pathIn, pol].forEach(function (n) { n.addEventListener("change", commit); n.addEventListener("input", commit); });
     probe.addEventListener("change", syncPort);
+    // in rainbow mode, colour the editor's checkboxes too (the manage toggle + day
+    // toggles are handled in CSS via .cc-pop.cc-rainbow).
+    if (localStorage.getItem("cc.rainbow") === "1") {
+      var rbc = ["#1f9d55", "#2f6feb", "#8b5cf6", "#e0912a", "#d9433f", "#0ea5a4"];
+      Array.prototype.slice.call(pop.querySelectorAll("input[type=checkbox]")).forEach(function (cb, i) { cb.style.accentColor = rbc[i % rbc.length]; });
+    }
     document.body.appendChild(pop);
     var r = anchor.getBoundingClientRect(), w = pop.offsetWidth || 320;
     pop.style.left = Math.max(window.scrollX + 8, Math.min(window.scrollX + r.left, window.scrollX + document.documentElement.clientWidth - w - 12)) + "px";
@@ -620,9 +647,9 @@
   // cpuset string ("0-3,6") <-> a sorted array of core indices, for the pin grid.
   function cpusetToSet(str) { var out = []; String(str || "").split(",").forEach(function (p) { p = p.trim(); var m = /^(\d+)-(\d+)$/.exec(p); if (m) { for (var i = +m[1]; i <= +m[2]; i++) out.push(i); } else if (/^\d+$/.test(p)) out.push(+p); }); return out; }
   function setToCpuset(arr) { arr = arr.slice().sort(function (a, b) { return a - b; }); var parts = [], i = 0; while (i < arr.length) { var j = i; while (j + 1 < arr.length && arr[j + 1] === arr[j] + 1) j++; parts.push(i === j ? String(arr[i]) : arr[i] + "-" + arr[j]); i = j + 1; } return parts.join(","); }
-  function limGear(name, which) {
-    var lb = el("span", "cc-limbtn"); lb.setAttribute(MARK, "1"); lb.textContent = "⚙";
-    lb.title = which === "cpu" ? t("cpuLimit") : t("ramLimit");
+  function limGear(name, which, set) {
+    var lb = el("span", "cc-limbtn" + (set ? " cc-limbtn-set" : "")); lb.setAttribute(MARK, "1"); lb.textContent = "⚙";
+    lb.title = (which === "cpu" ? t("cpuLimit") : t("ramLimit")) + " · " + (set ? t("cfgSet") : t("cfgUnset"));
     lb.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); openLimits(lb, name, which); });
     return lb;
   }
@@ -633,7 +660,8 @@
     closePop();
     var showRam = which !== "cpu", showCpu = which !== "ram";
     var title = which === "cpu" ? t("cpuLimit") : which === "ram" ? t("ramLimit") : "CPU / RAM";
-    var pop = el("div", "cc-pop"), head = el("div", "cc-pop-head"); head.appendChild(el("b", null, name + " — " + title));
+    var pop = el("div", "cc-pop"); if (localStorage.getItem("cc.rainbow") === "1") pop.classList.add("cc-rainbow");
+    var head = el("div", "cc-pop-head"); head.appendChild(el("b", null, name + " — " + title));
     var x = el("span", "cc-pop-x", "✕"); x.addEventListener("click", closePop); head.appendChild(x); pop.appendChild(head);
     var body = el("div", "cc-pop-body"), memNum = null, memUnit = null, cpu = null;
     var readCpuset = function () { return ""; }, fillCpuset = function () {};
@@ -646,16 +674,30 @@
     if (showCpu) {
       var crow = el("div", "cc-pop-row"); crow.appendChild(el("label", "cc-pop-lbl", t("cpuLimit")));
       cpu = el("input", "cc-in"); cpu.type = "text"; cpu.placeholder = t("cpuNum"); crow.appendChild(cpu); body.appendChild(crow);
-      // CPU pinning as a GRAPHICAL core grid (like the VM settings): one clickable
-      // cell per logical core (count from navigator.hardwareConcurrency). Empty = all.
+      // CPU pinning as a GRAPHICAL core grid like the VM core picker: one clickable
+      // cell per logical CPU (every core + hyperthread), grouped by physical core so HT
+      // siblings sit together. The count comes from the ENGINE (the HOST's CPUs), not
+      // navigator.hardwareConcurrency (which is the BROWSER machine's count). Empty = all.
       var prow = el("div", "cc-pop-row cc-pin-row"); prow.appendChild(el("label", "cc-pop-lbl", t("cpuPin")));
-      var ncpu = navigator.hardwareConcurrency || 0;
-      if (ncpu > 0 && ncpu <= 256) {
+      var ncpu = hostCpus || navigator.hardwareConcurrency || 0;
+      var coreOf = (hostCoreOf && hostCoreOf.length === ncpu) ? hostCoreOf : null;
+      if (ncpu > 0 && ncpu <= 512) {
         var grid = el("div", "cc-cores");
-        for (var ci = 0; ci < ncpu; ci++) { var core = el("span", "cc-core", String(ci)); core.dataset.core = ci; core.addEventListener("click", function () { this.classList.toggle("cc-core-on"); }); grid.appendChild(core); }
+        var order = []; for (var ci = 0; ci < ncpu; ci++) order.push(ci);
+        if (coreOf) order.sort(function (a, b) { return (coreOf[a] - coreOf[b]) || (a - b); });
+        var prevCore = -1;
+        order.forEach(function (cpu2) {
+          var grp = coreOf ? coreOf[cpu2] : cpu2;
+          if (coreOf && prevCore !== -1 && grp !== prevCore) grid.appendChild(el("span", "cc-core-gap")); // gap between physical cores
+          prevCore = grp;
+          var core = el("span", "cc-core cc-rb-" + (grp % 8), String(cpu2)); core.dataset.core = cpu2;
+          core.title = coreOf ? ("CPU " + cpu2 + " · core " + grp) : ("CPU " + cpu2);
+          core.addEventListener("click", function () { this.classList.toggle("cc-core-on"); });
+          grid.appendChild(core);
+        });
         prow.appendChild(grid);
-        readCpuset = function () { var sel = []; Array.prototype.slice.call(grid.children).forEach(function (c) { if (c.classList.contains("cc-core-on")) sel.push(parseInt(c.dataset.core, 10)); }); return setToCpuset(sel); };
-        fillCpuset = function (str) { var s = cpusetToSet(str); Array.prototype.slice.call(grid.children).forEach(function (c) { c.classList.toggle("cc-core-on", s.indexOf(parseInt(c.dataset.core, 10)) >= 0); }); };
+        readCpuset = function () { var sel = []; Array.prototype.slice.call(grid.querySelectorAll(".cc-core")).forEach(function (c) { if (c.classList.contains("cc-core-on")) sel.push(parseInt(c.dataset.core, 10)); }); return setToCpuset(sel); };
+        fillCpuset = function (str) { var s = cpusetToSet(str); Array.prototype.slice.call(grid.querySelectorAll(".cc-core")).forEach(function (c) { c.classList.toggle("cc-core-on", s.indexOf(parseInt(c.dataset.core, 10)) >= 0); }); };
       } else {
         var pinIn = el("input", "cc-in"); pinIn.type = "text"; pinIn.placeholder = t("cpuPinPh"); prow.appendChild(pinIn);
         readCpuset = function () { return String(pinIn.value).trim().replace(/\s+/g, ""); };

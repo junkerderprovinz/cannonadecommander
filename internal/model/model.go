@@ -46,14 +46,16 @@ const (
 	ProbeHealth  ProbeKind = "health"  // use the image's own HEALTHCHECK (State.Health)
 	ProbeRunning ProbeKind = "running" // running + a grace period
 	ProbeTCP     ProbeKind = "tcp"     // a TCP port accepts a connection
+	ProbeHTTP    ProbeKind = "http"    // an HTTP GET returns a non-error status (2xx/3xx)
 )
 
 // Probe is the readiness specification for one managed container.
 type Probe struct {
 	Kind           ProbeKind `json:"kind"`
 	GraceSeconds   int       `json:"grace_seconds,omitempty"`   // ProbeRunning: wait this long after "running"
-	Host           string    `json:"host,omitempty"`            // ProbeTCP: host to dial (default 127.0.0.1)
-	Port           int       `json:"port,omitempty"`            // ProbeTCP: port to dial
+	Host           string    `json:"host,omitempty"`            // ProbeTCP/HTTP: host to reach (default the container IP / 127.0.0.1)
+	Port           int       `json:"port,omitempty"`            // ProbeTCP/HTTP: port (HTTP default 80)
+	Path           string    `json:"path,omitempty"`            // ProbeHTTP: request path (default "/")
 	TimeoutSeconds int       `json:"timeout_seconds,omitempty"` // give up after this long (0 → engine default)
 }
 

@@ -50,6 +50,7 @@
   var mode = localStorage.getItem(VIEW_KEY) === "grid" ? "grid" : "list";
   var containers = [], containerNames = [], stats = {}, shiplog = {}, workingPlan = {}, lastRun = {}, iconCache = {};
   var netPrev = {}; // name → {rx,tx,t} previous cumulative net counters, to derive the live down/up RATE
+  var daemonVersion = ""; // the RUNNING daemon's version (from /api/state) — shown in the gear menu so it's obvious which backend is live after an update
   // Automation config (schedules + watchdogs + notify) lives on the flash next to
   // the plan; loaded whole, mutated per-container in the editor, and PUT back whole.
   var config = { schedules: [], watchdogs: [], bandwidths: [], notify: { unraid: false, webhook: "" } };
@@ -106,6 +107,7 @@
     if (state && state.host_cpus) hostCpus = state.host_cpus;
     if (state && state.host_core_of) hostCoreOf = state.host_core_of;
     if (state && state.host_mem) hostMem = state.host_mem;
+    if (state && state.version) daemonVersion = state.version;
     containerNames = containers.map(function (c) { return c.name; }).sort();
     workingPlan = {};
     if (state && state.plan && state.plan.nodes) state.plan.nodes.forEach(function (n) { workingPlan[n.name] = n; });
@@ -513,7 +515,9 @@
   function buildMenu() {
     var m = el("div", "cc-menu cc-menu-wide");
     m.addEventListener("click", function (e) { e.stopPropagation(); });
-    menuStatusEl = el("div", "cc-menu-status cc-ok-text", "engine up · " + containers.length); m.appendChild(menuStatusEl);
+    // the RUNNING daemon version is shown here so it's unmistakable which backend is live
+    // (an update that didn't restart the daemon, or a stale install, shows the OLD version).
+    menuStatusEl = el("div", "cc-menu-status cc-ok-text", "engine up · " + containers.length + (daemonVersion ? " · v" + String(daemonVersion).replace(/^v/, "") : "")); m.appendChild(menuStatusEl);
     m.appendChild(menuHead(t("view")));
     var seg = el("div", "cc-seg");
     var bL = el("button", "cc-seg-btn" + (mode === "list" ? " cc-seg-on" : ""), t("list"));

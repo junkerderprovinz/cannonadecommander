@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.19.0">
+  <!ENTITY version   "0.20.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
@@ -30,6 +30,13 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.20.0
+- The gear menu now shows the RUNNING daemon version ("engine up · N · vX.Y.Z"). This is a
+  diagnostic for the "I updated but nothing changed" case: if it still shows an OLD version
+  after you update, the update did not actually take on that box. To force a clean update,
+  REMOVE the plugin (Plugins tab → CannonadeCommander → Remove) and then install the URL
+  again — that guarantees the new version + daemon are the ones running.
 
 ### 0.19.0
 - Bandwidth is now UPLOAD and DOWNLOAD. The per-container editor has two fields (↑ Upload,
@@ -423,7 +430,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>559aa48470c117d92c7d843e709ea3de45c39a5e46218953a61b7d2679527a4e</SHA256>
+  <SHA256>631f3bd71c4104b4a81cc66b3b79f0555348762f05146ed4c45769501bf28e9a</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

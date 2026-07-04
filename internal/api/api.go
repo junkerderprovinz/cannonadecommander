@@ -62,6 +62,7 @@ type Server struct {
 	Store        Store
 	Runner       Runner
 	TemplatesDir string // Unraid dockerMan templates dir; "" disables the apply-fest template write
+	Version      string // the running daemon's build version, surfaced in /api/state so the UI can show which backend is live
 
 	mu      sync.Mutex
 	lastRun model.RunResult
@@ -108,6 +109,7 @@ type stateResp struct {
 	HostCPUs    int               `json:"host_cpus"`              // host logical-CPU count, for the pin grid
 	HostCoreOf  []int             `json:"host_core_of,omitempty"` // physical-core id per logical CPU (HT grouping)
 	HostMem     int64             `json:"host_mem,omitempty"`     // host total RAM bytes, for "remove RAM limit"
+	Version     string            `json:"version,omitempty"`      // the running daemon's build version, so the UI can show which backend is live
 }
 
 func (s *Server) handleState(w http.ResponseWriter, r *http.Request) {
@@ -116,7 +118,7 @@ func (s *Server) handleState(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusInternalServerError, err)
 		return
 	}
-	resp := stateResp{Plan: plan, HostCPUs: hostcpu.Count(), HostCoreOf: hostcpu.CoreOf(), HostMem: s.hostMem(r.Context())}
+	resp := stateResp{Plan: plan, HostCPUs: hostcpu.Count(), HostCoreOf: hostcpu.CoreOf(), HostMem: s.hostMem(r.Context()), Version: s.Version}
 	containers, derr := s.Docker.List(r.Context())
 	if derr != nil {
 		// Tolerate a docker hiccup: still return the plan + the last run, so the

@@ -362,22 +362,21 @@ func (s *Server) handleSetLimits(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "unknown container: " + req.Name})
 		return
 	}
-	if err := s.Docker.UpdateResources(r.Context(), req.Name, model.Limits{MemBytes: req.MemBytes, NanoCPUs: req.NanoCPUs, CpusetCPUs: req.CpusetCPUs}); err != nil {
-		writeErr(w, http.StatusInternalServerError, err)
-		return
-	}
-	// Mirror the limit into the Unraid container template so it survives an "Apply"
-	// (which recreates from the template). Best-effort — a failure never undoes the
-	// live update that already succeeded. An empty value REMOVES the flag.
+	// Mirror the limit into the Unraid container template so it survives an "Apply" (which
+	// recreates from the template). Done BEFORE the live update and REGARDLESS of its
+	// result: a REMOVAL then strips the cap from the template even if the live update fails
+	// on this box, so a later Apply/recreate still lifts it. Best-effort; an empty value
+	// REMOVES the flag. No --memory-swap is written (it needs the memsw cgroup, absent on
+	// hosts without swap accounting — matching the live path, which omits MemorySwap).
 	if s.TemplatesDir != "" {
 		flags := map[string]string{}
 		switch {
 		case req.RemoveMem:
 			flags["--memory"] = ""
-			flags["--memory-swap"] = ""
+			flags["--memory-swap"] = "" // strip any stale swap flag too
 		case req.MemBytes > 0:
 			flags["--memory"] = strconv.FormatInt(req.MemBytes, 10)
-			flags["--memory-swap"] = strconv.FormatInt(req.MemBytes, 10)
+			flags["--memory-swap"] = "" // never set a swap cap
 		}
 		switch {
 		case req.RemoveCPU:
@@ -396,6 +395,10 @@ func (s *Server) handleSetLimits(w http.ResponseWriter, r *http.Request) {
 		if len(flags) > 0 {
 			_ = unraidtmpl.SetExtraParams(s.TemplatesDir, req.Name, flags)
 		}
+	}
+	if err := s.Docker.UpdateResources(r.Context(), req.Name, model.Limits{MemBytes: req.MemBytes, NanoCPUs: req.NanoCPUs, CpusetCPUs: req.CpusetCPUs}); err != nil {
+		writeErr(w, http.StatusInternalServerError, err)
+		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }

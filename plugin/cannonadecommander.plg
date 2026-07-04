@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.17.0">
+  <!ENTITY version   "0.18.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
@@ -30,6 +30,21 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.18.0
+- Removing (and setting) a CPU / RAM limit REALLY works now, for real this time. The live
+  "docker update" was still sent with a swap value (MemorySwap = -1); on an Unraid host
+  WITHOUT swap accounting (the default — no swapaccount=1) the kernel has no memory.memsw
+  cgroup, so writing ANY swap value — even -1 — fails with ENOENT and aborts the whole
+  update, so the memory cap was never changed. The swap value is no longer sent at all.
+  The cap is also stripped from the container's Unraid template regardless of the live
+  result, so it's gone after an "Apply" as well.
+- The little status dot on the CPU / RAM / BW badges is gone — the gear turning green
+  already shows when a limit is set on that line.
+- The extra "CannonadeCommander" tab in the VMs area is gone. It was only there to load
+  the VM-icon script on older Unraid; on Unraid 7.1+ the script loads invisibly (no tab)
+  and tints the VM row icons on the Virtual Machines tab directly — just set an icon
+  colour on the Settings page. (On pre-7.1 Unraid, VM-icon tinting no longer applies.)
 
 ### 0.17.0
 - Live NETWORK traffic: the BW badge (and the grid card) now show each running
@@ -398,7 +413,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>c2614ab61e82d76940de788c9ae3fed5ada491a14a8fc46b44c1caa36bd3565a</SHA256>
+  <SHA256>08babeefcac4b16af1037b1c3c278c25d763c51302436f3f06b6e3f182ed8030</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

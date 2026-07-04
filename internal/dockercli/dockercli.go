@@ -369,12 +369,14 @@ func (c *Client) UpdateResources(ctx context.Context, ref string, l model.Limits
 	body := map[string]any{}
 	if l.MemBytes > 0 {
 		body["Memory"] = l.MemBytes
-		// MemorySwap = -1 (unlimited swap), NOT = Memory. A POSITIVE MemorySwap needs the
-		// memory.memsw cgroup, which most Unraid hosts don't have (no swap accounting) — there
-		// `docker update` with a swap limit FAILS, which silently broke BOTH setting and
-		// removing a RAM limit (the failed update returned before the template was updated).
-		// -1 needs no memsw write and still satisfies Docker's MemorySwap >= Memory rule.
-		body["MemorySwap"] = -1
+		// Do NOT send MemorySwap at all. Most Unraid hosts run WITHOUT swap accounting (no
+		// `swapaccount=1` on the kernel cmdline), so the memory.memsw cgroup does not exist —
+		// and runc writes memsw.limit_in_bytes for ANY MemorySwap value, INCLUDING -1, which
+		// then fails with ENOENT and makes the whole `docker update` error. That silently broke
+		// BOTH setting and REMOVING a memory limit (v0.16.0's "-1" did not actually avoid the
+		// memsw write). Omitting MemorySwap leaves it at the container's default (unlimited), so
+		// Memory <= MemorySwap always holds and no memsw write is ever attempted — the update
+		// succeeds on a swapless box. The RAM cap still applies; swap (if any) is just unlimited.
 	}
 	if l.NanoCPUs > 0 {
 		body["NanoCpus"] = l.NanoCPUs

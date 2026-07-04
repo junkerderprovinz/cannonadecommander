@@ -188,14 +188,14 @@ func TestLimitsAndCpuset(t *testing.T) {
 	if !strings.Contains(gotBody, `"CpusetCpus":"0-3"`) {
 		t.Fatalf("update body missing cpuset: %s", gotBody)
 	}
-	// A memory cap must send MemorySwap = -1 (unlimited swap), NOT a positive value: a
-	// positive MemorySwap needs the memsw cgroup, absent on Unraid hosts without swap
-	// accounting, where the update would fail and silently break set/remove of a RAM limit.
+	// A memory cap must send Memory and NOT MemorySwap at all: any MemorySwap value (even
+	// -1) triggers a memsw cgroup write, which fails on Unraid hosts without swap accounting
+	// and silently broke set/remove of a RAM limit. Omitting it keeps swap unlimited.
 	if err := c.UpdateResources(context.Background(), "pinme", model.Limits{MemBytes: 2147483648}); err != nil {
 		t.Fatalf("update mem: %v", err)
 	}
-	if !strings.Contains(gotBody, `"Memory":2147483648`) || !strings.Contains(gotBody, `"MemorySwap":-1`) {
-		t.Fatalf("memory update must send Memory + MemorySwap:-1, got: %s", gotBody)
+	if !strings.Contains(gotBody, `"Memory":2147483648`) || strings.Contains(gotBody, `"MemorySwap"`) {
+		t.Fatalf("memory update must send Memory and NOT MemorySwap, got: %s", gotBody)
 	}
 }
 

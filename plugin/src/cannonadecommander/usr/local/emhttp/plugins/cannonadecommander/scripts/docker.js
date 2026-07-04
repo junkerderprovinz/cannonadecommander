@@ -357,15 +357,16 @@
           var lm = limits[name] || {};
           var cpuSet = cpuLimited(lm) || cpuPinned(lm), ramSet = ramLimited(lm);
           // CPU, RAM and Bandwidth each on their OWN line (a .cc-resline), stacked
-          // vertically so the three limits always sit one under the other.
-          var cpuB = badgeInfo("CPU", "…", "cpu"); cpuB.appendChild(cfgDot(cpuSet));
+          // vertically so the three limits always sit one under the other. NO status dot on
+          // these three — the GEAR turning green already signals "a limit is set" here.
+          var cpuB = badgeInfo("CPU", "…", "cpu");
           rg.appendChild(resLine(cpuB, limGear(name, "cpu", cpuSet)));
-          var ramB = badgeInfo("RAM", "…", "ram"); ramB.appendChild(cfgDot(ramSet));
+          var ramB = badgeInfo("RAM", "…", "ram");
           rg.appendChild(resLine(ramB, limGear(name, "ram", ramSet)));
           var bw = bandwidthFor(name), bwSet = !!(bw && bw.egress_kbit > 0);
           // value = LIVE down/up rate (filled by updateResGroup); the configured upload
-          // cap shows in the tooltip + the dot/gear. Starts "…" until the first rate.
-          var bwB = badgeInfo("BW", "…", "bw"); bwB.title = t("egress") + ": " + bwLabel(bw); bwB.appendChild(cfgDot(bwSet));
+          // cap shows in the tooltip. Starts "…" until the first rate.
+          var bwB = badgeInfo("BW", "…", "bw"); bwB.title = t("egress") + ": " + bwLabel(bw);
           rg.appendChild(resLine(bwB, bwGear(name, bwSet)));
           updateResGroup(rg, stats[name], c && c.state);
           resCell.appendChild(rg);

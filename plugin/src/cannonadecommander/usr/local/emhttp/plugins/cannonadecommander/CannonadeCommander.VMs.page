@@ -1,32 +1,14 @@
-Menu="VMs:9"
-Title="CannonadeCommander"
+Menu="VMs"
 Icon="rocket"
 Tag="rocket"
 ---
 <?php
-/* CannonadeCommander VM-tab injector.
-
-   The VMs page is Tabs="true". A TITLE-LESS page only inline-executes on newer Unraid
-   builds (post the 2025-05 tab refactor); on older builds it emits nothing, so the
-   script never loaded and the VM icons never tinted (the bug across several releases).
-   A TITLED page is emitted as a real, server-rendered tab on ALL builds, and because
-   every tab panel ships in the initial HTML (hidden with display:none, not lazy), the
-   <script defer> below runs at page load and tints the native VM list (in the sibling
-   "Virtual Machines" tab) no matter which tab is active. */
+/* CannonadeCommander VM-tab injector. TITLE-LESS on purpose: Unraid's VMs page is
+   Tabs="true", and a title-less child goes through the tabbed layout's inline-eval
+   branch (Unraid 7.1+, the 2025 tab refactor), so it renders NO visible tab or panel of
+   its own — it just loads vms.js, which tints the native VM row icons on the "Virtual
+   Machines" tab. (A titled page would instead show up as a separate "CannonadeCommander"
+   tab, which is only needed to load on pre-7.1 builds that don't have the inline-eval
+   branch; there VM-icon tinting simply won't apply.) */
 ?>
-<style>
-  #cc-vm-panel { max-width: 640px; margin: 8px 0; padding: 18px 20px; border-radius: 8px;
-    background: #202020; border: 1px solid #333; color: #d0d0d0; font-size: 14px; line-height: 1.5; }
-  #cc-vm-panel .cc-vm-brand { font-size: 20px; letter-spacing: .3px; margin-bottom: 8px; }
-  #cc-vm-panel .cc-vm-brand b { color: #f0f0f0; }
-  #cc-vm-panel .cc-vm-brand span { color: #8a8a8a; }
-  #cc-vm-panel a { color: #4f8cf7; text-decoration: none; }
-  #cc-vm-panel a:hover { text-decoration: underline; }
-</style>
-<div id="cc-vm-panel">
-  <div class="cc-vm-brand"><b>Cannonade</b><span>Commander</span></div>
-  <div>The VM row icons on the <b>Virtual Machines</b> tab are tinted to your
-    CannonadeCommander icon colour. Pick the colour (and turn tinting on or off) on the
-    <a href="/Settings/CannonadeCommander">Settings&nbsp;&rsaquo;&nbsp;Utilities&nbsp;&rsaquo;&nbsp;CannonadeCommander</a> page.</div>
-</div>
 <script defer src="<?autov('/plugins/cannonadecommander/scripts/vms.js')?>"></script>

@@ -228,6 +228,26 @@ func TestLimitsSetGetAndValidate(t *testing.T) {
 	}
 }
 
+// GET /api/limits with NO name returns a map of every container's caps, so the
+// panel can flag which containers have a limit set in one round-trip.
+func TestLimitsBulk(t *testing.T) {
+	s, h := newServer()
+	s.Docker.(*fakeDocker).limits = model.Limits{MemBytes: 2147483648, NanoCPUs: 2000000000, CpusetCPUs: "0-1"}
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest("GET", "/api/limits", nil))
+	if rec.Code != 200 {
+		t.Fatalf("bulk limits code = %d: %s", rec.Code, rec.Body)
+	}
+	var all map[string]model.Limits
+	if err := json.Unmarshal(rec.Body.Bytes(), &all); err != nil {
+		t.Fatalf("decode bulk: %v", err)
+	}
+	g, ok := all["gluetun"]
+	if !ok || g.MemBytes != 2147483648 || g.CpusetCPUs != "0-1" {
+		t.Fatalf("bulk limits map wrong: %+v", all)
+	}
+}
+
 func TestConfigPutGetAndValidate(t *testing.T) {
 	s, h := newServer()
 	cfg := model.Config{

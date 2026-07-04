@@ -19,11 +19,15 @@
     { key: "res", label: T("CPU / RAM", "CPU / RAM") },
     { key: "id", label: T("Container-ID", "Container ID") },
     { key: "von", label: T("Von / Quelle", "From / source") },
+    { key: "vol", label: T("Volumes", "Volumes") },
     { key: "plan", label: T("Startplan", "Plan") },
   ];
   var PRESETS = ["#2f6feb", "#1f9d55", "#ff8c2f", "#8b5cf6", "#e0912a", "#d9433f", "#0ea5a4", "#e05299", "#525252"];
+  // rainbow-mode colour per column (same order as COLS): the matrix checkboxes take
+  // these when rainbow mode is on, so the settings echo the Docker-tab badge colours.
+  var RB = ["#1f9d55", "#2f6feb", "#6b7280", "#8b5cf6", "#d9433f", "#0ea5a4", "#e05299", "#0891b2", "#6366f1"];
 
-  function defColview() { var adv = { s: false, a: true }, both = { s: true, a: true }; return { update: both, force: adv, version: adv, net: both, res: both, id: adv, von: adv, plan: both }; }
+  function defColview() { var adv = { s: false, a: true }, both = { s: true, a: true }; return { update: both, force: adv, version: adv, net: both, res: both, id: adv, von: adv, vol: adv, plan: both }; }
   function get(k, d) { try { var v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; } }
   function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
   function del(k) { try { localStorage.removeItem(k); } catch (e) {} }
@@ -79,6 +83,7 @@
 
   function render() {
     root.innerHTML = "";
+    root.classList.toggle("cc-rainbow", rainbow);
     root.style.setProperty("--cc-accent", accent);
     root.style.setProperty("--cc-accent-text", idealText(accent));
 
@@ -117,7 +122,7 @@
     // rainbow toggle: label + switch adjacent (no parenthetical, no far-right spacer)
     var rr = el("div", "cc-set-row cc-set-inline");
     rr.appendChild(el("span", null, T("Regenbogen-Modus", "Rainbow mode")));
-    rr.appendChild(toggle(rainbow, function (v) { rainbow = v; set("cc.rainbow", v ? "1" : "0"); paintPrev(); }));
+    rr.appendChild(toggle(rainbow, function (v) { rainbow = v; set("cc.rainbow", v ? "1" : "0"); render(); }));
     c1.appendChild(rr);
     var prev = el("div", "cc-set-prev");
     ["net", "ip", "lan", "port"].forEach(function (k) { var b = el("span", "cc-b cc-b-" + k); b.appendChild(elk({ net: "Netzwerk", ip: "IP", lan: "LAN", port: "Port" }[k])); b.appendChild(elv("br0.20")); prev.appendChild(b); });
@@ -150,9 +155,9 @@
     var c3 = card(T("Spalten / Badges je Ansicht", "Columns / badges per view"), T("Welche Badges in der einfachen und in der Advanced-Ansicht erscheinen.", "Which badges appear in the Simple and the Advanced view."));
     var tbl = el("table", "cc-set-tbl");
     var thr = el("tr"); thr.appendChild(el("th")); thr.appendChild(thc(T("Einfach", "Simple"))); thr.appendChild(thc(T("Advanced", "Advanced"))); tbl.appendChild(thr);
-    COLS.forEach(function (c) {
+    COLS.forEach(function (c, i) {
       var tr = el("tr"); tr.appendChild(el("td", "cc-set-cname", c.label));
-      tr.appendChild(chkCell(c.key, "s")); tr.appendChild(chkCell(c.key, "a")); tbl.appendChild(tr);
+      tr.appendChild(chkCell(c.key, "s", RB[i])); tr.appendChild(chkCell(c.key, "a", RB[i])); tbl.appendChild(tr);
     });
     c3.appendChild(tbl);
     wrap.appendChild(c3);
@@ -201,7 +206,7 @@
   // live-highlight the preset swatch that matches the current accent (no re-render)
   function syncSwOn() { var a = (accent || "").toLowerCase(); Array.prototype.slice.call(document.querySelectorAll("#cc-settings .cc-set-sw")).forEach(function (sw) { sw.classList.toggle("cc-set-sw-on", (sw.dataset.c || "").toLowerCase() === a); }); }
   function thc(t) { var e = el("th", null, t); return e; }
-  function chkCell(key, v) { var td = el("td", "cc-set-chk"); var cb = el("input"); cb.type = "checkbox"; cb.checked = !!(colview[key] && colview[key][v]); cb.addEventListener("change", function () { if (!colview[key]) colview[key] = { s: true, a: true }; colview[key][v] = cb.checked; set("cc.colview", JSON.stringify(colview)); }); td.appendChild(cb); return td; }
+  function chkCell(key, v, color) { var td = el("td", "cc-set-chk"); var cb = el("input"); cb.type = "checkbox"; cb.checked = !!(colview[key] && colview[key][v]); if (rainbow && color) cb.style.accentColor = color; cb.addEventListener("change", function () { if (!colview[key]) colview[key] = { s: true, a: true }; colview[key][v] = cb.checked; set("cc.colview", JSON.stringify(colview)); }); td.appendChild(cb); return td; }
   function segRow(labelText, opts, cur, onChange) {
     var row = el("div", "cc-set-row"); row.appendChild(el("span", "cc-set-rl", labelText)); var seg = el("div", "cc-seg");
     opts.forEach(function (o) {

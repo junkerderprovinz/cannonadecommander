@@ -77,6 +77,10 @@
 .cc-b-k { opacity: .72; font-weight: 500; }
 .cc-b-v { font-family: Consolas, "SFMono-Regular", monospace; }
 .cc-b-von .cc-b-v { font-family: inherit; }
+/* "is a value configured here?" dot on a badge: filled green = set, hollow = default */
+.cc-cfg { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-left: 6px; vertical-align: middle; box-sizing: border-box; }
+.cc-cfg-on { background: #35d07f; box-shadow: 0 0 0 1px rgba(0, 0, 0, .28); }
+.cc-cfg-off { background: transparent; border: 1px solid currentColor; opacity: .5; }
 .cc-enh.cc-c-res #docker_list tr.sortable td.advanced span[class^='cpu-']::before { content: "CPU"; opacity: .72; font-weight: 500; margin-right: 4px; }
 .cc-enh.cc-c-res #docker_list tr.sortable td.advanced span[class^='mem-']::before { content: "RAM"; opacity: .72; font-weight: 500; margin-right: 4px; }
 .cc-enh.cc-c-res #docker_list tr.sortable td.advanced { white-space: normal; }
@@ -265,16 +269,34 @@ select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repea
 .cc-enh.cc-rainbow.cc-c-res #docker_list tr.sortable td.advanced span[class^='cpu-'] { background: #d9433f; }
 .cc-enh.cc-rainbow.cc-c-res #docker_list tr.sortable td.advanced span[class^='mem-'] { background: #2f9d8b; }
 .cc-enh.cc-rainbow .cc-b-version { background: #6b7280; color: #fff; }
+.cc-enh.cc-rainbow .cc-b-vol { background: #0891b2; color: #fff; }
+/* rainbow also colours the Startplan badge and the per-row AUTOSTART switch (they
+   use the accent otherwise), so the whole row joins the rainbow scheme. */
+.cc-enh.cc-rainbow .cc-plan { background: #6366f1; color: #fff; }
+.cc-grid-holder.cc-rainbow .cc-plan { background: #6366f1; color: #fff; }
+.cc-enh.cc-rainbow #docker_list .switch-button-background.checked { background: #2f9d8b !important; }
 
 /* rainbow + tint also apply to the card GRID (parity with the list) */
 .cc-grid-holder.cc-rainbow .cc-b-net  { background: #1f9d55; color: #fff; }
 .cc-grid-holder.cc-rainbow .cc-b-ip   { background: #2f6feb; color: #fff; }
 .cc-grid-holder.cc-rainbow .cc-b-port { background: #8b5cf6; color: #fff; }
 
-/* tint all container icons toward the chosen colour (filter set on :root) */
-.cc-enh.cc-tint-icons #docker_list tr.sortable td.ct-name .outer > span.hand img,
-.cc-enh.cc-tint-icons #docker_list tr.sortable td.ct-name .outer > span.hand i.img,
-.cc-grid-holder.cc-tint-icons .cc-card-ico { filter: var(--cc-icon-filter, none); }
+/* tint container icons: JS (ensureIconOverlay) overlays a .cc-ico-tint box masked
+   by each icon's own shape and filled with --cc-icon-color at --cc-icon-strength
+   opacity — a real, flat recolour (strength 1 = solid one-colour silhouette; lower
+   = a colour wash that keeps the icon detail). The host (span.hand in the list, the
+   card-icon wrapper in the grid) is made a positioning context by .cc-ico-host. A
+   font-glyph icon (<i class="img">) has no raster to mask, so it is recoloured via
+   its own `color` in JS and needs no overlay. */
+.cc-ico-host { position: relative !important; display: inline-block; line-height: 0; }
+.cc-ico-tint {
+  position: absolute; inset: 0; pointer-events: none;
+  background: var(--cc-icon-color, #1f9d55); opacity: var(--cc-icon-strength, 1);
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  -webkit-mask-position: center; mask-position: center;
+  -webkit-mask-size: contain; mask-size: contain;
+}
+.cc-card-ico-wrap { display: inline-flex; }
 
 /* CPU/RAM is a headline feature: when its badge is on, force the native resource
    column (8th) visible even in Simple view (overrides Unraid's .advanced hide). */
@@ -368,6 +390,8 @@ select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repea
 .cc-set-mini-on { color: #fff; border-color: var(--cc-accent, #2f6feb); background: rgba(255,255,255,.05); }
 .cc-set-toggle { width: 44px; height: 24px; border-radius: 999px; border: none !important; padding: 0 !important; background: #3a3a3a; position: relative; cursor: pointer; transition: background .15s; flex: none; box-sizing: border-box; }
 .cc-set-toggle-on { background: var(--cc-accent, #2f6feb); }
+/* in rainbow mode the ON toggles wear the rainbow, matching the badge scheme */
+#cc-settings.cc-rainbow .cc-set-toggle-on { background: linear-gradient(90deg, #1f9d55, #2f6feb, #8b5cf6, #e0912a, #d9433f); }
 .cc-set-knob { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: left .15s; }
 .cc-set-toggle-on .cc-set-knob { left: 21px; }
 .cc-set-tbl { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }

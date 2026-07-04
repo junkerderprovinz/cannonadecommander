@@ -48,7 +48,9 @@ The pieces:
   and the **Save** / **Start in order** actions. Live **CPU / RAM** show as badges
   (in the Simple view too), each with a gear that edits its **limit** — and CPU
   adds **graphical pinning** (a clickable core grid, like the VM settings) — applied
-  live via Docker container-update, no restart.
+  live via Docker container-update, no restart. The CPU / RAM / network badges carry
+  a small dot — **filled when a limit / custom network is set, hollow on defaults** —
+  and a **Volumes** badge lists the mounts (shown even for a stopped container).
 - **Automation, per container**: **schedules** (start / stop / restart at a
   wall-clock time on chosen weekdays), a **watchdog** (auto-restart on unhealthy or
   a real crash — a clean/manual stop is left alone — with a per-hour cap), and

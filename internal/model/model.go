@@ -15,7 +15,16 @@ type Container struct {
 	Network   string   `json:"network"`             // primary docker network name, e.g. "bridge" / "br0.20"
 	IP        string   `json:"ip"`                  // container IP on that network
 	Ports     []string `json:"ports"`               // published ports, e.g. "8080:80/tcp"
+	Mounts    []Mount  `json:"mounts,omitempty"`    // volume/bind mounts (present even when stopped)
 	Autostart bool     `json:"autostart"`           // whether Unraid's native autostart owns it
+}
+
+// Mount is one volume/bind mount on a container. /containers/json carries Mounts
+// regardless of run state, so these show even for a stopped container.
+type Mount struct {
+	Source string `json:"source"` // host path (bind) or volume location
+	Dest   string `json:"dest"`   // path inside the container
+	RW     bool   `json:"rw"`     // read-write (false = read-only)
 }
 
 // Limits are a container's CONFIGURED resource caps (from HostConfig, 0 = no

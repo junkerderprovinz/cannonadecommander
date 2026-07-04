@@ -82,13 +82,21 @@ type apiNetwork struct {
 	} `json:"IPAMConfig"`
 }
 
+type apiMount struct {
+	Type        string `json:"Type"`
+	Source      string `json:"Source"`
+	Destination string `json:"Destination"`
+	RW          bool   `json:"RW"`
+}
+
 type apiContainer struct {
-	ID              string    `json:"Id"`
-	Names           []string  `json:"Names"`
-	Image           string    `json:"Image"`
-	State           string    `json:"State"`
-	Status          string    `json:"Status"`
-	Ports           []apiPort `json:"Ports"`
+	ID              string     `json:"Id"`
+	Names           []string   `json:"Names"`
+	Image           string     `json:"Image"`
+	State           string     `json:"State"`
+	Status          string     `json:"Status"`
+	Ports           []apiPort  `json:"Ports"`
+	Mounts          []apiMount `json:"Mounts"`
 	NetworkSettings struct {
 		Networks map[string]apiNetwork `json:"Networks"`
 	} `json:"NetworkSettings"`
@@ -121,9 +129,23 @@ func (c *Client) List(ctx context.Context) ([]model.Container, error) {
 			Network:  net,
 			IP:       ip,
 			Ports:    formatPorts(r.Ports),
+			Mounts:   formatMounts(r.Mounts),
 		})
 	}
 	return out, nil
+}
+
+// formatMounts keeps the volume/bind mounts that map to a path inside the
+// container (an anonymous mount with no Destination carries no useful info).
+func formatMounts(mounts []apiMount) []model.Mount {
+	out := make([]model.Mount, 0, len(mounts))
+	for _, m := range mounts {
+		if m.Destination == "" {
+			continue
+		}
+		out = append(out, model.Mount{Source: m.Source, Dest: m.Destination, RW: m.RW})
+	}
+	return out
 }
 
 // firstNetwork returns a deterministic primary network name + its IP. For a

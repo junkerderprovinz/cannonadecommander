@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.10.1">
+  <!ENTITY version   "0.11.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
@@ -30,6 +30,22 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.11.0
+- Container-icon colouring is rebuilt so it actually works: each icon is now
+  recoloured by a masked overlay in the chosen colour (a solid one-colour silhouette
+  at full strength, a colour wash that keeps the icon detail at lower strength). The
+  old CSS-filter approach could look like nothing changed; this cannot. The strength
+  slider now visibly blends between the original and the colour.
+- CPU, RAM and network badges carry a small status dot: filled = a limit / custom
+  network is configured on that container, hollow = it is on the defaults. So you can
+  see at a glance where something is set and where it is not.
+- New Volumes badge shows a container's volume/bind-mount count (with every
+  "source to dest" in its tooltip), and it shows even for a STOPPED container. It has
+  its own column in the Simple/Advanced matrix.
+- The start-plan badge no longer carries the little chain icon.
+- Rainbow mode now also colours the start-plan badge, the AUTOSTART switch, and the
+  Settings column-matrix checkboxes + toggles, so the whole scheme is consistent.
 
 ### 0.10.1
 - Both Settings colour pickers now show the native swatch AND a hex field side by
@@ -291,7 +307,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>8410b1fb0d75594e1a1df0c84d1c5639f25f9112ee7440fd4f1794812fe3ca18</SHA256>
+  <SHA256>15e7e45c95a0aa05075e21e15e7cc9a0cee46c46ee84fa136338383796a854ce</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

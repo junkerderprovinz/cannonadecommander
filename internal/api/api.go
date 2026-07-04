@@ -237,9 +237,41 @@ func (s *Server) handleStats(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
-// handleGetLimits returns one container's CONFIGURED resource caps (0 = none).
+// handleGetLimits returns CONFIGURED resource caps (0 = none). With ?name= it
+// returns one container's caps; with no name it returns a map of EVERY container's
+// caps (concurrent inspects, capped) so the panel can flag, in one round-trip,
+// which containers actually have a CPU/RAM/pin limit set.
 func (s *Server) handleGetLimits(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get("name")
+	if name == "" {
+		containers, err := s.Docker.List(r.Context())
+		if err != nil {
+			writeErr(w, http.StatusInternalServerError, err)
+			return
+		}
+		out := map[string]model.Limits{}
+		var mu sync.Mutex
+		var wg sync.WaitGroup
+		sem := make(chan struct{}, 6)
+		for _, c := range containers {
+			wg.Add(1)
+			sem <- struct{}{}
+			go func(nm string) {
+				defer wg.Done()
+				defer func() { <-sem }()
+				lim, lerr := s.Docker.Limits(r.Context(), nm)
+				if lerr != nil {
+					return
+				}
+				mu.Lock()
+				out[nm] = lim
+				mu.Unlock()
+			}(c.Name)
+		}
+		wg.Wait()
+		writeJSON(w, http.StatusOK, out)
+		return
+	}
 	ok, err := s.known(r.Context(), name)
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, err)

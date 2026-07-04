@@ -45,17 +45,19 @@ The pieces:
   Every datum becomes a clean, consistent **material badge**: the state doubles as a
   start/stop switch, the chain chip opens a compact per-container editor for its
   dependencies / readiness probe / failure policy **plus its automation** (below)
-  and the **Save** / **Start in order** actions, and a gear on the resource cell
-  edits **per-container CPU / RAM limits** live (Docker container-update, no restart).
+  and the **Save** / **Start in order** actions. Live **CPU / RAM** show as badges
+  (in the Simple view too), each with a gear that edits its **limit** — and CPU
+  adds **graphical pinning** (a clickable core grid, like the VM settings) — applied
+  live via Docker container-update, no restart.
 - **Automation, per container**: **schedules** (start / stop / restart at a
   wall-clock time on chosen weekdays), a **watchdog** (auto-restart on unhealthy or
   a real crash — a clean/manual stop is left alone — with a per-hour cap), and
   **notifications** (Unraid's own notifications and/or a webhook). Schedules and the
   watchdog live in the chain-chip editor; notifications on the Settings page.
 - A **Settings page** (Settings → Utilities → CannonadeCommander): badge accent
-  colour and rainbow mode, container-icon tint (optionally the VM-tab icons too),
-  which columns show in the Simple vs Advanced view, the default view + row density,
-  and the **notification** settings.
+  colour and rainbow mode, container-icon tint (each colour set with a visual picker
+  or a hex field; optionally the VM-tab icons too), which columns show in the Simple
+  vs Advanced view, the default view + row density, and the **notification** settings.
 - A **same-origin PHP proxy**: the browser only ever talks to the proxy, never to
   the Docker socket. The supervisor exposes only read + safe lifecycle + resource
   limits — never create / exec / build.

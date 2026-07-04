@@ -58,6 +58,8 @@
   function card(title, sub) { var c = el("div", "cc-set-card"); c.appendChild(el("div", "cc-set-h", title)); if (sub) c.appendChild(el("div", "cc-set-sub", sub)); return c; }
   function elk(t) { var s = el("span", "cc-b-k"); s.textContent = t; return s; }
   function elv(t) { var s = el("span", "cc-b-v"); s.textContent = t; return s; }
+  // normalise a typed hex ("2f6feb" / "#2F6FEB") to "#rrggbb", or "" if invalid.
+  function normHex(s) { var v = String(s || "").trim(); if (/^[0-9a-f]{6}$/i.test(v)) v = "#" + v; return /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : ""; }
 
   // a badge-styled on/off toggle. A <span> (NOT a <button>): Unraid's global button
   // CSS was painting an orange border and limiting the knob travel to mid-way.
@@ -91,14 +93,17 @@
 
     // ── Badges ──
     var c1 = card(T("Badges", "Badges"), T("Akzentfarbe und Farbmodus der Badges.", "Accent colour and colour mode of the badges."));
-    // the custom colour picker is ALWAYS visible on top, with a live hex readout...
+    // The colour-picker field stays ALWAYS visible, PLUS a hex text field beside it;
+    // both edit the same value and stay in sync.
     c1.appendChild(el("div", "cc-set-lbl", T("Akzentfarbe", "Accent colour")));
     var prow = el("div", "cc-set-pickrow");
     var pick = el("input", "cc-set-pick cc-set-pick-lg"); pick.type = "color"; pick.value = /^#[0-9a-f]{6}$/i.test(accent) ? accent : "#2f6feb";
-    var hex = el("span", "cc-set-hex", accent);
-    pick.addEventListener("input", function () { accent = pick.value; hex.textContent = accent; set("cc.accent", accent); root.style.setProperty("--cc-accent", accent); root.style.setProperty("--cc-accent-text", idealText(accent)); paintPrev(); syncSwOn(); });
+    var hexIn = el("input", "cc-set-hexin"); hexIn.type = "text"; hexIn.value = accent; hexIn.placeholder = "#2f6feb"; hexIn.maxLength = 7; hexIn.spellcheck = false;
+    function setAccent(v) { accent = v; pick.value = v; hexIn.value = v; set("cc.accent", accent); root.style.setProperty("--cc-accent", accent); root.style.setProperty("--cc-accent-text", idealText(accent)); paintPrev(); syncSwOn(); }
+    pick.addEventListener("input", function () { setAccent(pick.value); });
+    hexIn.addEventListener("input", function () { var v = normHex(hexIn.value); if (v) setAccent(v); });
     pick.addEventListener("change", render);
-    prow.appendChild(pick); prow.appendChild(hex); c1.appendChild(prow);
+    prow.appendChild(pick); prow.appendChild(hexIn); c1.appendChild(prow);
     // ...and the preset swatches sit BELOW it.
     var srow = el("div", "cc-set-swatches");
     PRESETS.forEach(function (c) {
@@ -123,14 +128,14 @@
     var c2 = card(T("Container-Icons einfärben", "Colourise container icons"), T("Tönt alle Icons in eine Farbe. „Aus“ lässt die Original-Icons.", "Tints every icon toward one colour. “Off” keeps the original icons."));
     var irow = el("div", "cc-set-pickrow");
     var ipick = el("input", "cc-set-pick cc-set-pick-lg"); ipick.type = "color"; ipick.value = /^#[0-9a-f]{6}$/i.test(iconcolor) ? iconcolor : accent;
-    var ihex = el("span", "cc-set-hex", iconcolor || "");
+    var ihexIn = el("input", "cc-set-hexin"); ihexIn.type = "text"; ihexIn.value = iconcolor || ""; ihexIn.placeholder = "#1f9d55"; ihexIn.maxLength = 7; ihexIn.spellcheck = false;
     var offbtn = el("span", "cc-set-mini" + (iconcolor ? "" : " cc-set-mini-on")); offbtn.textContent = T("Aus", "Off");
-    // update LIVE on input (no render → the native colour popup stays open while
-    // dragging); only settle the whole card on change, like the accent picker.
-    ipick.addEventListener("input", function () { iconcolor = ipick.value; set("cc.iconcolor", iconcolor); ihex.textContent = iconcolor; offbtn.classList.remove("cc-set-mini-on"); });
-    ipick.addEventListener("change", render);
+    // colour-picker field + hex field, kept in sync; both set the icon tint live.
+    function setIcon(v) { iconcolor = v; ipick.value = v; ihexIn.value = v; set("cc.iconcolor", iconcolor); offbtn.classList.remove("cc-set-mini-on"); }
+    ipick.addEventListener("input", function () { setIcon(ipick.value); });
+    ihexIn.addEventListener("input", function () { var v = normHex(ihexIn.value); if (v) setIcon(v); });
     offbtn.addEventListener("click", function () { iconcolor = ""; del("cc.iconcolor"); render(); });
-    irow.appendChild(ipick); irow.appendChild(offbtn); irow.appendChild(ihex);
+    irow.appendChild(ipick); irow.appendChild(ihexIn); irow.appendChild(offbtn);
     c2.appendChild(irow);
     var strow = el("div", "cc-set-row");
     strow.appendChild(el("span", "cc-set-rl", T("Intensität", "Strength")));

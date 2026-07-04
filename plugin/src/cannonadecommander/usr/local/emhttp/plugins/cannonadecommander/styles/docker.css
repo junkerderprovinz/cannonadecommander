@@ -40,7 +40,7 @@
 .cc-enh #docker_list tr.sortable td.ct-name .inner > i[id^='load-'],
 .cc-enh #docker_list tr.sortable td.ct-name .inner > span.state { display: none !important; }
 .cc-enh #docker_list tr.sortable td.ct-name .appname { font-size: 15px !important; font-weight: 600 !important; letter-spacing: .1px; }
-.cc-enh #docker_list tr.sortable > td { padding-top: var(--cc-density); padding-bottom: var(--cc-density); }
+.cc-enh #docker_list tr.sortable > td { padding-top: var(--cc-density) !important; padding-bottom: var(--cc-density) !important; }
 
 /* consolidated network column: hide the separate native IP / Port / LAN columns */
 .cc-enh.cc-c-net thead tr:last-child th:nth-child(4), .cc-enh.cc-c-net #docker_list tr.sortable > td:nth-child(4),
@@ -69,7 +69,7 @@
   font-weight: 600; line-height: 1.35; white-space: nowrap; text-decoration: none; vertical-align: middle;
 }
 /* info badges (network/IP/LAN/port/CPU/RAM/ID/Von/image tag): SOLID accent, light text */
-.cc-b, .cc-enh.cc-c-version #docker_list tr.sortable td.updatecolumn > div.advanced:last-of-type,
+.cc-b,
 .cc-enh.cc-c-res #docker_list tr.sortable td.advanced span[class^='cpu-'],
 .cc-enh.cc-c-res #docker_list tr.sortable td.advanced span[class^='mem-'] {
   background: var(--cc-accent, #2f6feb); color: var(--cc-accent-text, #fff);
@@ -97,7 +97,6 @@
 .cc-enh:not(.cc-c-update)  #docker_list tr.sortable td.updatecolumn > span.green-text,
 .cc-enh:not(.cc-c-update)  #docker_list tr.sortable td.updatecolumn span.orange-text,
 .cc-enh:not(.cc-c-force)   #docker_list tr.sortable td.updatecolumn a.exec,
-.cc-enh:not(.cc-c-version) #docker_list tr.sortable td.updatecolumn > div.advanced:last-of-type,
 .cc-enh:not(.cc-c-res)     #docker_list tr.sortable td.advanced span[class^='cpu-'],
 .cc-enh:not(.cc-c-res)     #docker_list tr.sortable td.advanced span[class^='mem-'] { display: none !important; }
 
@@ -241,6 +240,11 @@ select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repea
 .cc-days { display: flex; gap: 2px; }
 .cc-day { background: #1e1e1e; color: #8a8a8a; border: 1px solid #2a2a2a; border-radius: 4px; width: 22px; height: 22px; font-size: 10px; line-height: 1; cursor: pointer; padding: 0; }
 .cc-day-on { background: var(--cc-accent, #2f6feb); color: var(--cc-accent-text, #fff); border-color: var(--cc-accent, #2f6feb); }
+/* CPU-pinning core grid (like the VM settings): one clickable cell per logical core */
+.cc-pin-row { align-items: flex-start; }
+.cc-cores { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; }
+.cc-core { width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; background: #1e1e1e; color: #8a8a8a; border: 1px solid #2a2a2a; border-radius: 5px; font-size: 11px; cursor: pointer; user-select: none; box-sizing: border-box; }
+.cc-core-on { background: var(--cc-accent, #2f6feb); color: var(--cc-accent-text, #fff); border-color: var(--cc-accent, #2f6feb); }
 .cc-sched-x { cursor: pointer; color: #8a8a8a; padding: 0 4px; }
 .cc-sched-x:hover { color: #d9433f; }
 .cc-plan-mark { margin-left: 5px; opacity: .85; font-size: 10px; }
@@ -256,9 +260,11 @@ select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repea
 .cc-enh.cc-rainbow .cc-b-port { background: #8b5cf6; color: #fff; }
 .cc-enh.cc-rainbow .cc-b-id   { background: #0ea5a4; color: #fff; }
 .cc-enh.cc-rainbow .cc-b-von  { background: #e05299; color: #fff; }
+.cc-enh.cc-rainbow .cc-b-cpu  { background: #d9433f; color: #fff; }
+.cc-enh.cc-rainbow .cc-b-ram  { background: #2f9d8b; color: #fff; }
 .cc-enh.cc-rainbow.cc-c-res #docker_list tr.sortable td.advanced span[class^='cpu-'] { background: #d9433f; }
 .cc-enh.cc-rainbow.cc-c-res #docker_list tr.sortable td.advanced span[class^='mem-'] { background: #2f9d8b; }
-.cc-enh.cc-rainbow.cc-c-version #docker_list tr.sortable td.updatecolumn > div.advanced:last-of-type { background: #6b7280; }
+.cc-enh.cc-rainbow .cc-b-version { background: #6b7280; color: #fff; }
 
 /* rainbow + tint also apply to the card GRID (parity with the list) */
 .cc-grid-holder.cc-rainbow .cc-b-net  { background: #1f9d55; color: #fff; }
@@ -272,36 +278,48 @@ select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repea
 
 /* CPU/RAM is a headline feature: when its badge is on, force the native resource
    column (8th) visible even in Simple view (overrides Unraid's .advanced hide). */
+/* force the resource cell (8th) visible in BOTH views so our injected CPU/RAM badge
+   shows even in Simple view (Unraid marks the cell .advanced and hides it there). */
 .cc-enh.cc-c-res thead tr:last-child th:nth-child(8),
 .cc-enh.cc-c-res #docker_list tr.sortable > td:nth-child(8) { display: table-cell !important; }
-/* and force the CPU/RAM value spans themselves visible in Simple view (they are
-   .advanced, which Unraid hides) so the badges actually appear by default. */
-.cc-enh.cc-c-res #docker_list tr.sortable td.advanced span[class^='cpu-'],
-.cc-enh.cc-c-res #docker_list tr.sortable td.advanced span[class^='mem-'] { display: inline-flex !important; }
-/* likewise force-show the advanced-only pills that can be enabled for Simple view
-   (image tag / force update), so their column checkbox actually reveals them. */
-.cc-enh.cc-c-version #docker_list tr.sortable td.updatecolumn > div.advanced:last-of-type,
-.cc-enh.cc-c-force   #docker_list tr.sortable td.updatecolumn a.exec { display: inline-flex !important; }
+/* the CPU/RAM values come from our engine badge (.cc-resgroup), so hide Unraid's
+   native cpu/mem spans in the resource cell to avoid a duplicate. */
+.cc-enh.cc-c-res #docker_list tr.sortable td span[class^='cpu-'],
+.cc-enh.cc-c-res #docker_list tr.sortable td span[class^='mem-'] { display: none !important; }
+/* force-show the force-update link when its column is enabled for Simple view, so the
+   column checkbox actually reveals it (the image tag is handled in JS as a badge). */
+.cc-enh.cc-c-force #docker_list tr.sortable td.updatecolumn a.exec { display: inline-flex !important; }
 
 /* native Unraid switchButtons (the per-row AUTOSTART toggle, and the Basic/Advanced
    view toggle) restyled to a clean accent pill. Unraid's JS positions the knob via
    an inline `left`, so we ONLY recolour + round + scale up — never touch the geometry
    the JS drives, so the click behaviour is untouched. Reverts on teardown (cc-enh). */
+/* native Unraid switchButtons (per-row AUTOSTART + the Basic/Advanced view toggle):
+   made to look EXACTLY like our Settings toggle (.cc-set-toggle) — a 44x24 accent
+   pill with an 18px white knob. We override Unraid's inline geometry with !important
+   (including the knob's inline `left`, driven here by the .checked class), so the
+   widget still works and clicks are still Unraid's — only the look changes. */
 .cc-enh #docker_list .switch-button-background,
 .ToggleViewMode .switch-button-background {
+  width: 44px !important; height: 24px !important; border-radius: 999px !important;
   border: none !important; outline: none !important; box-shadow: none !important;
-  border-radius: 999px !important; background: #3a3a3a !important;
-  display: inline-block; vertical-align: middle;
-  transform: scale(2.1); transform-origin: left center; margin: 0 32px 0 4px;
-  transition: background .15s;
+  background: #3a3a3a !important; transform: none !important; position: relative !important;
+  display: inline-block; vertical-align: middle; margin: 0 12px 0 3px; cursor: pointer;
+  transition: background .15s; box-sizing: border-box;
 }
 .cc-enh #docker_list .switch-button-background.checked,
 .ToggleViewMode .switch-button-background.checked { background: var(--cc-accent, #2f6feb) !important; }
 .cc-enh #docker_list .switch-button-background .switch-button-button,
 .ToggleViewMode .switch-button-background .switch-button-button {
-  border-radius: 50% !important; background: #fff !important;
-  box-shadow: 0 1px 2px rgba(0,0,0,.45); transition: left .15s;
+  width: 18px !important; height: 18px !important; top: 3px !important; left: 3px !important;
+  border-radius: 50% !important; background: #fff !important; box-shadow: none !important;
+  border: none !important; transition: left .15s;
 }
+.cc-enh #docker_list .switch-button-background.checked .switch-button-button,
+.ToggleViewMode .switch-button-background.checked .switch-button-button { left: 21px !important; }
+/* no AN/AUS text next to the toggle */
+.cc-enh #docker_list .switch-button-label,
+.ToggleViewMode .switch-button-label { display: none !important; }
 
 /* ════════════════ SETTINGS PAGE (Settings > Utilities) ════════════════ */
 #cc-settings { --bg: #161616; --bg2: #1c1c1c; --line: #2a2a2a; --line2: #333; --txt: #e6e6e6; --dim: #9a9a9a; --dim2: #6f6f6f; color: var(--txt); font: 14px/1.5 "Segoe UI", system-ui, sans-serif; padding-bottom: 40px; }
@@ -342,6 +360,9 @@ select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repea
 #cc-settings input[type="color"]::-webkit-color-swatch { border: none; border-radius: 4px; }
 #cc-settings input[type="color"]::-moz-color-swatch { border: none; border-radius: 4px; }
 .cc-set-pick { width: 40px; height: 30px; box-sizing: border-box; }
+/* hex text field beside the colour picker (override Unraid's input underline) */
+#cc-settings .cc-set-hexin { flex: none; width: 104px; font-family: ui-monospace, "Cascadia Code", monospace; text-transform: uppercase; letter-spacing: .5px; background: #1e1e1e !important; color: var(--txt); border: 1px solid var(--line2) !important; border-radius: 6px !important; padding: 8px 10px !important; font-size: 13px; box-sizing: border-box; }
+#cc-settings .cc-set-hexin:focus { outline: none; border-color: var(--cc-accent, #2f6feb) !important; }
 .cc-set-prev { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
 .cc-set-mini { background: transparent; color: var(--dim); border: 1px solid var(--line2); border-radius: 7px; padding: 5px 12px; font-size: 12.5px; cursor: pointer; }
 .cc-set-mini-on { color: #fff; border-color: var(--cc-accent, #2f6feb); background: rgba(255,255,255,.05); }

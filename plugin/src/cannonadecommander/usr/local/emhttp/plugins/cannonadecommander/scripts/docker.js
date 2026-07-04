@@ -203,7 +203,9 @@
   // an inline filter on the actual elements is robust and re-applied on each render.
   function tintTargets() {
     // the icon per row: prefer td.ct-name's img/font-icon, else the row's first img.
-    var out = [], rows = document.querySelectorAll("#docker_list tr.sortable, #docker_containers tr.sortable, #docker_list tr.folder-element, #docker_list > tr");
+    // Use findRows() — the same robust row finder the badges use — so we hit the
+    // real Unraid rows regardless of the exact table markup.
+    var out = [], rows = findRows();
     for (var i = 0; i < rows.length; i++) { var img = rows[i].querySelector("td.ct-name img, td.ct-name i.img") || rows[i].querySelector("img"); if (img) out.push(img); }
     return out;
   }
@@ -279,19 +281,33 @@
         var inner = nameCell.querySelector(".inner") || nameCell; inner.appendChild(meta);
       }
 
-      // ── CPU/RAM limits: a gear behind EACH badge (CPU + RAM are set separately) ──
+      // ── CPU / RAM: the live values as badges FROM THE ENGINE, so they show in the
+      // Simple view too (Unraid does not populate the native resource cell there),
+      // each with a gear for its own limit editor. The native cell is hidden by CSS. ──
       if (colOn("res")) {
-        var cpuCell = tr.querySelector(":scope > td.advanced");
-        if (cpuCell) {
-          var cpuSpan = cpuCell.querySelector("span[class^='cpu-']");
-          var memSpan = cpuCell.querySelector("span[class^='mem-']");
-          if (cpuSpan && !gearAfter(cpuSpan)) cpuSpan.parentNode.insertBefore(limGear(name, "cpu"), cpuSpan.nextSibling);
-          if (memSpan && !gearAfter(memSpan)) memSpan.parentNode.insertBefore(limGear(name, "ram"), memSpan.nextSibling);
+        var resCell = tr.querySelector(":scope > td:nth-child(8)") || tr.querySelector(":scope > td.advanced");
+        if (resCell && !resCell.querySelector(".cc-resgroup")) {
+          var rg = el("div", "cc-rowbadges cc-resgroup"); rg.setAttribute(MARK, "1"); rg.dataset.name = name;
+          rg.appendChild(badgeInfo("CPU", "…", "cpu")); rg.appendChild(limGear(name, "cpu"));
+          rg.appendChild(badgeInfo("RAM", "…", "ram")); rg.appendChild(limGear(name, "ram"));
+          updateResGroup(rg, stats[name], c && c.state);
+          resCell.appendChild(rg);
         }
       }
 
-      // ── VERSION cell (col 2): native update/force/tag pills stay (CSS); add last-run ──
-      if (upCell) { var p = lastRunPill(name); if (p) { var lh = el("div", "cc-rowbadges"); lh.setAttribute(MARK, "1"); lh.appendChild(p); upCell.appendChild(lh); } }
+      // ── VERSION cell (col 2): image tag as our OWN badge (Advanced-only), + last-run.
+      // We read the tag text out of Unraid's native div.advanced then hide that div, so
+      // the tag never leaks into the Simple view and always renders as a real badge. ──
+      if (upCell) {
+        var vh = el("div", "cc-rowbadges"); vh.setAttribute(MARK, "1");
+        var advs = upCell.querySelectorAll(":scope > div.advanced");
+        var tagDiv = advs.length ? advs[advs.length - 1] : null;
+        var tagTxt = tagDiv ? tagDiv.textContent.replace(/\s+/g, " ").trim() : "";
+        Array.prototype.forEach.call(advs, function (d) { d.classList.add("cc-hidden"); });
+        if (colOn("version") && tagTxt) vh.appendChild(badgeInfo("Tag", tagTxt, "version"));
+        var p = lastRunPill(name); if (p) vh.appendChild(p);
+        if (vh.children.length) upCell.appendChild(vh);
+      }
 
       // ── NETWORK group (col 3): consolidate Netzwerk / Container IP / LAN IP / Port ──
       if (colOn("net")) {
@@ -436,7 +452,14 @@
 
   // ───────────────────────── mode
   function setMode(m) { mode = m; localStorage.setItem(VIEW_KEY, m); refresh(); }
-  function refresh() { applyMode(); if (mode === "grid") refreshStats(); }
+  function refresh() { applyMode(); if (mode === "grid" || (mode === "list" && colOn("res"))) refreshStats(); }
+  // update one CPU/RAM engine-badge group in place (values only).
+  function updateResGroup(rg, s, state) {
+    var v = rg.querySelectorAll(".cc-b-v");
+    if (state !== "running") { if (v[0]) v[0].textContent = "–"; if (v[1]) v[1].textContent = "–"; return; }
+    if (v[0]) v[0].textContent = s ? (s.cpu_percent || 0) + "%" : "…";
+    if (v[1]) v[1].textContent = s ? humanBytes(s.mem_used) + " / " + humanBytes(s.mem_limit) : "…";
+  }
   function applyMode() {
     try {
       if (dead) return;
@@ -452,6 +475,7 @@
     api("GET", "stats").then(function (m) {
       stats = m || {};
       if (mode === "grid" && gridHolder) Array.prototype.slice.call(gridHolder.querySelectorAll(".cc-card")).forEach(function (cd) { var s = stats[cd.dataset.name]; if (!s) return; var f = cd.querySelectorAll(".cc-gauge-fill"), v = cd.querySelectorAll(".cc-stat-val"); if (f[0]) f[0].style.width = Math.min(100, s.cpu_percent) + "%"; if (v[0]) v[0].textContent = (s.cpu_percent || 0) + "%"; if (f[1]) f[1].style.width = Math.min(100, s.mem_percent) + "%"; if (v[1]) v[1].textContent = humanBytes(s.mem_used) + " / " + humanBytes(s.mem_limit); });
+      if (mode === "list") Array.prototype.slice.call(document.querySelectorAll(".cc-resgroup")).forEach(function (rg) { var cn = containerByName(rg.dataset.name); updateResGroup(rg, stats[rg.dataset.name], cn && cn.state); });
     }).catch(function () {});
   }
 
@@ -554,7 +578,9 @@
   // parseCPU: 0 for empty (= leave unchanged), NanoCPUs for a valid count, or -1 for
   // unparseable input (comma decimals normalised first). RAM is a number + MB/GB unit.
   function parseCPU(s) { s = String(s || "").trim().replace(",", "."); if (!s) return 0; if (!/^[\d.]+$/.test(s)) return -1; var n = parseFloat(s); return n > 0 ? Math.round(n * 1e9) : 0; }
-  function gearAfter(span) { var n = span.nextSibling; return n && n.nodeType === 1 && n.classList && n.classList.contains("cc-limbtn"); }
+  // cpuset string ("0-3,6") <-> a sorted array of core indices, for the pin grid.
+  function cpusetToSet(str) { var out = []; String(str || "").split(",").forEach(function (p) { p = p.trim(); var m = /^(\d+)-(\d+)$/.exec(p); if (m) { for (var i = +m[1]; i <= +m[2]; i++) out.push(i); } else if (/^\d+$/.test(p)) out.push(+p); }); return out; }
+  function setToCpuset(arr) { arr = arr.slice().sort(function (a, b) { return a - b; }); var parts = [], i = 0; while (i < arr.length) { var j = i; while (j + 1 < arr.length && arr[j + 1] === arr[j] + 1) j++; parts.push(i === j ? String(arr[i]) : arr[i] + "-" + arr[j]); i = j + 1; } return parts.join(","); }
   function limGear(name, which) {
     var lb = el("span", "cc-limbtn"); lb.setAttribute(MARK, "1"); lb.textContent = "⚙";
     lb.title = which === "cpu" ? t("cpuLimit") : t("ramLimit");
@@ -570,7 +596,8 @@
     var title = which === "cpu" ? t("cpuLimit") : which === "ram" ? t("ramLimit") : "CPU / RAM";
     var pop = el("div", "cc-pop"), head = el("div", "cc-pop-head"); head.appendChild(el("b", null, name + " — " + title));
     var x = el("span", "cc-pop-x", "✕"); x.addEventListener("click", closePop); head.appendChild(x); pop.appendChild(head);
-    var body = el("div", "cc-pop-body"), memNum = null, memUnit = null, cpu = null, pin = null;
+    var body = el("div", "cc-pop-body"), memNum = null, memUnit = null, cpu = null;
+    var readCpuset = function () { return ""; }, fillCpuset = function () {};
     if (showRam) {
       var mrow = el("div", "cc-pop-row"); mrow.appendChild(el("label", "cc-pop-lbl", t("ramLimit")));
       memNum = el("input", "cc-in"); memNum.type = "number"; memNum.min = "0"; memNum.step = "0.5"; memNum.placeholder = t("ramNum");
@@ -580,8 +607,22 @@
     if (showCpu) {
       var crow = el("div", "cc-pop-row"); crow.appendChild(el("label", "cc-pop-lbl", t("cpuLimit")));
       cpu = el("input", "cc-in"); cpu.type = "text"; cpu.placeholder = t("cpuNum"); crow.appendChild(cpu); body.appendChild(crow);
-      var prow = el("div", "cc-pop-row"); prow.appendChild(el("label", "cc-pop-lbl", t("cpuPin")));
-      pin = el("input", "cc-in"); pin.type = "text"; pin.placeholder = t("cpuPinPh"); prow.appendChild(pin); body.appendChild(prow);
+      // CPU pinning as a GRAPHICAL core grid (like the VM settings): one clickable
+      // cell per logical core (count from navigator.hardwareConcurrency). Empty = all.
+      var prow = el("div", "cc-pop-row cc-pin-row"); prow.appendChild(el("label", "cc-pop-lbl", t("cpuPin")));
+      var ncpu = navigator.hardwareConcurrency || 0;
+      if (ncpu > 0 && ncpu <= 256) {
+        var grid = el("div", "cc-cores");
+        for (var ci = 0; ci < ncpu; ci++) { var core = el("span", "cc-core", String(ci)); core.dataset.core = ci; core.addEventListener("click", function () { this.classList.toggle("cc-core-on"); }); grid.appendChild(core); }
+        prow.appendChild(grid);
+        readCpuset = function () { var sel = []; Array.prototype.slice.call(grid.children).forEach(function (c) { if (c.classList.contains("cc-core-on")) sel.push(parseInt(c.dataset.core, 10)); }); return setToCpuset(sel); };
+        fillCpuset = function (str) { var s = cpusetToSet(str); Array.prototype.slice.call(grid.children).forEach(function (c) { c.classList.toggle("cc-core-on", s.indexOf(parseInt(c.dataset.core, 10)) >= 0); }); };
+      } else {
+        var pinIn = el("input", "cc-in"); pinIn.type = "text"; pinIn.placeholder = t("cpuPinPh"); prow.appendChild(pinIn);
+        readCpuset = function () { return String(pinIn.value).trim().replace(/\s+/g, ""); };
+        fillCpuset = function (str) { pinIn.value = str || ""; };
+      }
+      body.appendChild(prow);
     }
     pop.appendChild(body);
     pop.appendChild(el("div", "cc-pop-foot", t("limitsFoot")));
@@ -591,7 +632,7 @@
       if (memNum) { var v = String(memNum.value).trim().replace(",", "."); if (v) { var num = parseFloat(v); if (!(num >= 0)) { flash(t("invalid"), true); return; } mb = Math.round(num * (memUnit.value === "GB" ? 1073741824 : 1048576)); } }
       var nc = cpu ? parseCPU(cpu.value) : 0;
       if (nc < 0) { flash(t("invalid"), true); return; }
-      var cpuset = pin ? String(pin.value).trim().replace(/\s+/g, "") : "";
+      var cpuset = readCpuset();
       if (cpuset && !/^[0-9,\-]+$/.test(cpuset)) { flash(t("invalid"), true); return; }
       var payload = { name: name, mem_bytes: mb, nano_cpus: nc };
       if (cpuset) payload.cpuset_cpus = cpuset; // empty = leave unchanged, like the other fields
@@ -607,7 +648,7 @@
       if (!l) return;
       if (memNum && l.mem_bytes > 0) { if (l.mem_bytes >= 1073741824) { memNum.value = Math.round(l.mem_bytes / 1073741824 * 100) / 100; memUnit.value = "GB"; } else { memNum.value = Math.round(l.mem_bytes / 1048576); memUnit.value = "MB"; } }
       if (cpu && l.nano_cpus > 0) cpu.value = String(Math.round(l.nano_cpus / 1e9 * 100) / 100);
-      if (pin && l.cpuset_cpus) pin.value = l.cpuset_cpus;
+      if (l.cpuset_cpus) fillCpuset(l.cpuset_cpus);
     }).catch(function () {});
   }
 
@@ -688,7 +729,7 @@
     // UI down — within ~4s, and NOT blocked by an open menu/popover like the 9s
     // poll. This is what makes an uninstall visibly clean up the open tab quickly.
     timers.push(setInterval(function () { try { if (dead) return; fetch(PROXY + "?path=" + encodeURIComponent("state"), { headers: { Accept: "application/json" } }).then(function (r) { if (r.status === 404 || r.status === 410) teardown(); }).catch(function () {}); } catch (e) {} }, 4000));
-    timers.push(setInterval(function () { try { if (!dead && !openPop && mode === "grid") refreshStats(); } catch (e) {} }, 3500));
+    timers.push(setInterval(function () { try { if (!dead && !openPop && (mode === "grid" || (mode === "list" && colOn("res")))) refreshStats(); } catch (e) {} }, 3500));
     timers.push(setInterval(function () { try { if (!dead && !openPop && !menu) load(); } catch (e) {} }, 9000));
   }
 

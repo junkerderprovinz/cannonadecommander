@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.8.1">
+  <!ENTITY version   "0.9.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
@@ -30,6 +30,21 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.9.0
+- Second round of box-test UI fixes. The Settings page controls that Unraid's
+  global button CSS was still overriding (preset swatches, the Simple/Grid and
+  density segments, the "off" button, Save) are now plain switches like the toggle,
+  so no more orange borders or bloated swatches; the swatches are smaller, the
+  colour picker stays visible with a live hex, the segment group lost its grey
+  frame, and the rainbow preview now uses the REAL badge colours.
+- Badge text now auto-contrasts: dark text on a light accent, white on a dark one
+  (so a light accent colour stays readable).
+- Container logos are 15% larger. CPU / RAM shows by default in the Simple view.
+- CPU and RAM are set SEPARATELY now: a small gear behind each badge opens its own
+  limit editor. Any pop-open badge (start plan, CPU, RAM) closes again when you
+  click it a second time.
+- Container-icon tinting is applied more robustly (per row, on the actual icon).
 
 ### 0.8.1
 - CRITICAL uninstall fix, root-caused against Unraid's own plugin-manager source.
@@ -237,7 +252,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>5e597c669723f6704802fb6190a4138feb2340667eabbb082215faa8451600af</SHA256>
+  <SHA256>91a2542733aa2b16a72e5db5ee74f3fa3b55087dec22bb91a2a478b69a6ad3fb</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

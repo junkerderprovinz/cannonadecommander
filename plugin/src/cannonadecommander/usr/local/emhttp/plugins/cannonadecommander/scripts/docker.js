@@ -52,7 +52,7 @@
   // Automation config (schedules + watchdogs + notify) lives on the flash next to
   // the plan; loaded whole, mutated per-container in the editor, and PUT back whole.
   var config = { schedules: [], watchdogs: [], notify: { unraid: false, webhook: "" } };
-  var filterText = "", gridHolder = null, openPop = null, menu = null, menuAnchor = null, menuStatusEl = null, toastEl = null, toastTimer = null;
+  var filterText = "", gridHolder = null, openPop = null, openPopAnchor = null, menu = null, menuAnchor = null, menuStatusEl = null, toastEl = null, toastTimer = null;
   var mo = null, dead = false, lastAdv = false, timers = [], moPending = false, moTimer = null;
 
   // ───────────────────────── api + helpers
@@ -188,6 +188,8 @@
   // live from the Settings page (which writes the same keys + a poke event).
   // hue of a hex colour (for the icon tint), or -1 if unparseable.
   function hexHue(hex) { var m = /^#?([0-9a-f]{6})$/i.exec(hex || ""); if (!m) return -1; var n = parseInt(m[1], 16), r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255; var mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn, h = 0; if (d > 0) { if (mx === r) h = ((g - b) / d) % 6; else if (mx === g) h = (b - r) / d + 2; else h = (r - g) / d + 4; h *= 60; if (h < 0) h += 360; } return h; }
+  // ideal badge text colour for a background: dark on light, white on dark.
+  function idealText(hex) { var m = /^#?([0-9a-f]{6})$/i.exec(hex || ""); if (!m) return "#fff"; var n = parseInt(m[1], 16); var L = 0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255); return L > 150 ? "#161616" : "#fff"; }
   // The tint CSS filter for the chosen icon colour, or "" when off. Approximates a
   // single-hue tint via grayscale→sepia→hue-rotate→saturate.
   function iconFilter() {
@@ -199,18 +201,23 @@
   // Apply the tint DIRECTLY on each icon <img> as an inline style. The earlier
   // CSS-variable + deep-selector approach silently missed the real Unraid icon DOM;
   // an inline filter on the actual elements is robust and re-applied on each render.
+  function tintTargets() {
+    // the icon per row: prefer td.ct-name's img/font-icon, else the row's first img.
+    var out = [], rows = document.querySelectorAll("#docker_list tr.sortable, #docker_containers tr.sortable, #docker_list tr.folder-element, #docker_list > tr");
+    for (var i = 0; i < rows.length; i++) { var img = rows[i].querySelector("td.ct-name img, td.ct-name i.img") || rows[i].querySelector("img"); if (img) out.push(img); }
+    return out;
+  }
   function applyIconTint() {
     try {
-      var f = iconFilter();
-      var imgs = document.querySelectorAll("#docker_list td.ct-name img, #docker_containers td.ct-name img, #docker_list td.ct-name i.img, #docker_containers td.ct-name i.img");
-      for (var i = 0; i < imgs.length; i++) imgs[i].style.filter = f;
+      var f = iconFilter(), t2 = tintTargets();
+      for (var i = 0; i < t2.length; i++) t2[i].style.filter = f;
       if (gridHolder) { var g = gridHolder.querySelectorAll(".cc-card-ico"); for (var j = 0; j < g.length; j++) g[j].style.filter = f; }
     } catch (e) {}
   }
   function applySettings() {
     try {
       var root = document.documentElement.style;
-      var accent = localStorage.getItem("cc.accent"); if (accent) root.setProperty("--cc-accent", accent);
+      var accent = localStorage.getItem("cc.accent"); if (accent) { root.setProperty("--cc-accent", accent); root.setProperty("--cc-accent-text", idealText(accent)); }
       var dens = localStorage.getItem("cc.density"); root.setProperty("--cc-density", { compact: "5px", normal: "9px", airy: "14px" }[dens] || "9px");
       var f = iconFilter();
       if (f) root.setProperty("--cc-icon-filter", f); else root.removeProperty("--cc-icon-filter");
@@ -231,7 +238,7 @@
       applyIconTint();
     } catch (e) {}
   }
-  function removeEnhanceClasses() { try { var tb = nativeTable(); if (!tb) return; tb.classList.remove("cc-enh", "cc-adv", "cc-rainbow", "cc-tint-icons"); COLS.forEach(function (c) { tb.classList.remove("cc-c-" + c.key); }); var imgs = document.querySelectorAll("#docker_list td.ct-name img, #docker_containers td.ct-name img, #docker_list td.ct-name i.img, #docker_containers td.ct-name i.img"); for (var i = 0; i < imgs.length; i++) imgs[i].style.filter = ""; } catch (e) {} }
+  function removeEnhanceClasses() { try { var tb = nativeTable(); if (!tb) return; tb.classList.remove("cc-enh", "cc-adv", "cc-rainbow", "cc-tint-icons"); COLS.forEach(function (c) { tb.classList.remove("cc-c-" + c.key); }); var t2 = tintTargets(); for (var i = 0; i < t2.length; i++) t2[i].style.filter = ""; } catch (e) {} }
 
   // read a positional cell's value (docker_readmore), stripping nested advanced
   // (MAC) + Tailscale tooltip, collapsed to one short line.
@@ -272,13 +279,14 @@
         var inner = nameCell.querySelector(".inner") || nameCell; inner.appendChild(meta);
       }
 
-      // ── CPU/RAM limits editor: a small gear on the resource cell ──
+      // ── CPU/RAM limits: a gear behind EACH badge (CPU + RAM are set separately) ──
       if (colOn("res")) {
         var cpuCell = tr.querySelector(":scope > td.advanced");
-        if (cpuCell && !cpuCell.querySelector(".cc-limbtn")) {
-          var lb = el("span", "cc-limbtn"); lb.setAttribute(MARK, "1"); lb.textContent = "⚙"; lb.title = t("cpuram");
-          lb.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); openLimits(lb, name); });
-          cpuCell.appendChild(lb);
+        if (cpuCell) {
+          var cpuSpan = cpuCell.querySelector("span[class^='cpu-']");
+          var memSpan = cpuCell.querySelector("span[class^='mem-']");
+          if (cpuSpan && !gearAfter(cpuSpan)) cpuSpan.parentNode.insertBefore(limGear(name, "cpu"), cpuSpan.nextSibling);
+          if (memSpan && !gearAfter(memSpan)) memSpan.parentNode.insertBefore(limGear(name, "ram"), memSpan.nextSibling);
         }
       }
 
@@ -444,9 +452,12 @@
   }
 
   // ───────────────────────── plan editor popover
-  function closePop() { if (openPop) { openPop.remove(); openPop = null; } }
+  function closePop() { if (openPop) { openPop.remove(); openPop = null; openPopAnchor = null; } }
+  // clicking the SAME badge again closes its popover (toggle). Returns true if it closed.
+  function togglePop(anchor) { if (openPop && openPopAnchor === anchor) { closePop(); return true; } return false; }
   function refreshChip(chip, name) { var node = workingPlan[name]; chip.classList.toggle("cc-plan-on", !!node); var v = chip.querySelector(".cc-b-v"); if (v) v.textContent = depsTxt(node); }
   function openEditor(anchor, name) {
+    if (togglePop(anchor)) return;
     closePop();
     var existing = workingPlan[name], node = existing || { name: name, after: [], probe: { kind: "health" }, policy: "abort" };
     var pop = el("div", "cc-pop"), head = el("div", "cc-pop-head"); head.appendChild(el("b", null, name));
@@ -532,7 +543,7 @@
     document.body.appendChild(pop);
     var r = anchor.getBoundingClientRect(), w = pop.offsetWidth || 320;
     pop.style.left = Math.max(window.scrollX + 8, Math.min(window.scrollX + r.left, window.scrollX + document.documentElement.clientWidth - w - 12)) + "px";
-    pop.style.top = (window.scrollY + r.bottom + 6) + "px"; openPop = pop;
+    pop.style.top = (window.scrollY + r.bottom + 6) + "px"; openPop = pop; openPopAnchor = anchor;
   }
 
   // ───────────────────────── CPU/RAM limits editor (Docker container-update)
@@ -541,20 +552,29 @@
   function parseMem(s) { s = String(s || "").trim().replace(",", "."); if (!s) return 0; var m = /^([\d.]+)\s*([kmgt]?)i?b?$/i.exec(s); if (!m) return -1; var mult = { "": 1, k: 1024, m: 1048576, g: 1073741824, t: 1099511627776 }[m[2].toLowerCase()]; return Math.round(parseFloat(m[1]) * mult); }
   function parseCPU(s) { s = String(s || "").trim().replace(",", "."); if (!s) return 0; if (!/^[\d.]+$/.test(s)) return -1; var n = parseFloat(s); return n > 0 ? Math.round(n * 1e9) : 0; }
   function fmtMem(b) { if (b >= 1073741824) return (Math.round(b / 1073741824 * 100) / 100) + "G"; if (b >= 1048576) return Math.round(b / 1048576) + "M"; return String(b); }
-  function openLimits(anchor, name) {
+  function gearAfter(span) { var n = span.nextSibling; return n && n.nodeType === 1 && n.classList && n.classList.contains("cc-limbtn"); }
+  function limGear(name, which) {
+    var lb = el("span", "cc-limbtn"); lb.setAttribute(MARK, "1"); lb.textContent = "⚙";
+    lb.title = which === "cpu" ? t("cpuLimit") : t("ramLimit");
+    lb.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); openLimits(lb, name, which); });
+    return lb;
+  }
+  // which = "cpu" | "ram" (each badge's own gear) — shows only that field.
+  function openLimits(anchor, name, which) {
+    if (togglePop(anchor)) return;
     closePop();
-    var pop = el("div", "cc-pop"), head = el("div", "cc-pop-head"); head.appendChild(el("b", null, name + " — CPU / RAM"));
+    var showRam = which !== "cpu", showCpu = which !== "ram";
+    var title = which === "cpu" ? t("cpuLimit") : which === "ram" ? t("ramLimit") : "CPU / RAM";
+    var pop = el("div", "cc-pop"), head = el("div", "cc-pop-head"); head.appendChild(el("b", null, name + " — " + title));
     var x = el("span", "cc-pop-x", "✕"); x.addEventListener("click", closePop); head.appendChild(x); pop.appendChild(head);
-    var body = el("div", "cc-pop-body");
-    var mrow = el("div", "cc-pop-row"); mrow.appendChild(el("label", "cc-pop-lbl", t("ramLimit")));
-    var mem = el("input", "cc-in"); mem.type = "text"; mem.placeholder = t("ramPh"); mrow.appendChild(mem); body.appendChild(mrow);
-    var crow = el("div", "cc-pop-row"); crow.appendChild(el("label", "cc-pop-lbl", t("cpuLimit")));
-    var cpu = el("input", "cc-in"); cpu.type = "text"; cpu.placeholder = t("cpuPh"); crow.appendChild(cpu); body.appendChild(crow);
+    var body = el("div", "cc-pop-body"), mem = null, cpu = null;
+    if (showRam) { var mrow = el("div", "cc-pop-row"); mrow.appendChild(el("label", "cc-pop-lbl", t("ramLimit"))); mem = el("input", "cc-in"); mem.type = "text"; mem.placeholder = t("ramPh"); mrow.appendChild(mem); body.appendChild(mrow); }
+    if (showCpu) { var crow = el("div", "cc-pop-row"); crow.appendChild(el("label", "cc-pop-lbl", t("cpuLimit"))); cpu = el("input", "cc-in"); cpu.type = "text"; cpu.placeholder = t("cpuPh"); crow.appendChild(cpu); body.appendChild(crow); }
     pop.appendChild(body);
     pop.appendChild(el("div", "cc-pop-foot", t("limitsFoot")));
     var srow = el("div", "cc-pop-row"); var save = el("button", "cc-btn cc-btn-primary", t("save")); srow.appendChild(save); pop.appendChild(srow);
     save.addEventListener("click", function () {
-      var mb = parseMem(mem.value), nc = parseCPU(cpu.value);
+      var mb = mem ? parseMem(mem.value) : 0, nc = cpu ? parseCPU(cpu.value) : 0;
       if (mb < 0 || nc < 0) { flash(t("invalid"), true); return; }
       if (mb === 0 && nc === 0) { closePop(); return; }
       flash(t("saving")); api("POST", "limits", { name: name, mem_bytes: mb, nano_cpus: nc })
@@ -563,8 +583,8 @@
     document.body.appendChild(pop);
     var r = anchor.getBoundingClientRect(), w = pop.offsetWidth || 340;
     pop.style.left = Math.max(window.scrollX + 8, Math.min(window.scrollX + r.left, window.scrollX + document.documentElement.clientWidth - w - 12)) + "px";
-    pop.style.top = (window.scrollY + r.bottom + 6) + "px"; openPop = pop;
-    api("GET", "limits", null, "name=" + encodeURIComponent(name)).then(function (l) { if (!l) return; if (l.mem_bytes > 0) mem.value = fmtMem(l.mem_bytes); if (l.nano_cpus > 0) cpu.value = String(Math.round(l.nano_cpus / 1e9 * 100) / 100); }).catch(function () {});
+    pop.style.top = (window.scrollY + r.bottom + 6) + "px"; openPop = pop; openPopAnchor = anchor;
+    api("GET", "limits", null, "name=" + encodeURIComponent(name)).then(function (l) { if (!l) return; if (mem && l.mem_bytes > 0) mem.value = fmtMem(l.mem_bytes); if (cpu && l.nano_cpus > 0) cpu.value = String(Math.round(l.nano_cpus / 1e9 * 100) / 100); }).catch(function () {});
   }
 
   // ───────────────────────── save / apply + toast

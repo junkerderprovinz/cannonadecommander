@@ -34,7 +34,7 @@
 .cc-enh #docker_list tr.sortable td.ct-name .outer { display: flex; align-items: center; gap: 12px; }
 .cc-enh #docker_list tr.sortable td.ct-name .outer > span.hand { flex: none; display: flex; align-items: center; }
 .cc-enh #docker_list tr.sortable td.ct-name .outer > span.hand img,
-.cc-enh #docker_list tr.sortable td.ct-name .outer > span.hand i.img { width: 42px !important; height: 42px !important; font-size: 42px !important; }
+.cc-enh #docker_list tr.sortable td.ct-name .outer > span.hand i.img { width: 48px !important; height: 48px !important; font-size: 48px !important; }
 .cc-enh #docker_list tr.sortable td.ct-name .inner { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; line-height: 1.2; min-width: 0; }
 .cc-enh #docker_list tr.sortable td.ct-name .inner br { display: none; }
 .cc-enh #docker_list tr.sortable td.ct-name .inner > i[id^='load-'],
@@ -72,7 +72,7 @@
 .cc-b, .cc-enh.cc-c-version #docker_list tr.sortable td.updatecolumn > div.advanced:last-of-type,
 .cc-enh.cc-c-res #docker_list tr.sortable td.advanced span[class^='cpu-'],
 .cc-enh.cc-c-res #docker_list tr.sortable td.advanced span[class^='mem-'] {
-  background: var(--cc-accent, #2f6feb); color: #fff;
+  background: var(--cc-accent, #2f6feb); color: var(--cc-accent-text, #fff);
 }
 .cc-b-k { opacity: .72; font-weight: 500; }
 .cc-b-v { font-family: Consolas, "SFMono-Regular", monospace; }
@@ -122,7 +122,7 @@
 .cc-limbtn:hover { background: var(--cc-accent, #2f6feb); }
 
 /* plan chip = one tappable Startplan badge (accent) */
-.cc-plan { cursor: pointer; background: var(--cc-accent, #2f6feb); color: #fff; }
+.cc-plan { cursor: pointer; background: var(--cc-accent, #2f6feb); color: var(--cc-accent-text, #fff); }
 .cc-plan:hover { filter: brightness(1.12); }
 .cc-plan-on { box-shadow: 0 0 0 2px rgba(255,255,255,.25) inset; }
 
@@ -177,7 +177,7 @@
 .cc-seg { display: inline-flex; border: 1px solid var(--cc-line); border-radius: 6px; overflow: hidden; }
 .cc-seg-btn { background: var(--cc-bg2); color: var(--cc-dim); border: none; padding: 5px 14px; font-size: 12px; cursor: pointer; }
 .cc-seg-btn:hover { color: var(--cc-txt); }
-.cc-seg-btn.cc-seg-on { background: var(--cc-accent); color: #fff; font-weight: 600; }
+.cc-seg-btn.cc-seg-on { background: var(--cc-accent); color: var(--cc-accent-text, #fff); font-weight: 600; }
 
 .cc-menu { position: absolute; z-index: 99999; min-width: 190px; background: var(--cc-bg, #161616); border: 1px solid #525252; border-radius: 8px; box-shadow: 0 14px 40px rgba(0,0,0,.55); padding: 6px; font: 13px/1.5 "Segoe UI", system-ui, sans-serif; color: #e6e6e6; }
 .cc-menu-wide { min-width: 240px; max-width: 92vw; }
@@ -239,7 +239,7 @@ select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repea
 .cc-sched-time { flex: none; width: 86px; }
 .cc-days { display: flex; gap: 2px; }
 .cc-day { background: #1e1e1e; color: #8a8a8a; border: 1px solid #2a2a2a; border-radius: 4px; width: 22px; height: 22px; font-size: 10px; line-height: 1; cursor: pointer; padding: 0; }
-.cc-day-on { background: var(--cc-accent, #2f6feb); color: #fff; border-color: var(--cc-accent, #2f6feb); }
+.cc-day-on { background: var(--cc-accent, #2f6feb); color: var(--cc-accent-text, #fff); border-color: var(--cc-accent, #2f6feb); }
 .cc-sched-x { cursor: pointer; color: #8a8a8a; padding: 0 4px; }
 .cc-sched-x:hover { color: #d9433f; }
 .cc-plan-mark { margin-left: 5px; opacity: .85; font-size: 10px; }
@@ -271,6 +271,10 @@ select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repea
    column (8th) visible even in Simple view (overrides Unraid's .advanced hide). */
 .cc-enh.cc-c-res thead tr:last-child th:nth-child(8),
 .cc-enh.cc-c-res #docker_list tr.sortable > td:nth-child(8) { display: table-cell !important; }
+/* and force the CPU/RAM value spans themselves visible in Simple view (they are
+   .advanced, which Unraid hides) so the badges actually appear by default. */
+.cc-enh.cc-c-res #docker_list tr.sortable td.advanced span[class^='cpu-'],
+.cc-enh.cc-c-res #docker_list tr.sortable td.advanced span[class^='mem-'] { display: inline-flex !important; }
 /* likewise force-show the advanced-only pills that can be enabled for Simple view
    (image tag / force update), so their column checkbox actually reveals them. */
 .cc-enh.cc-c-version #docker_list tr.sortable td.updatecolumn > div.advanced:last-of-type,
@@ -283,9 +287,11 @@ select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repea
 #cc-settings button { -webkit-appearance: none; appearance: none; outline: none; font-family: inherit; text-transform: none; letter-spacing: normal; }
 #cc-settings input[type="range"] { accent-color: var(--cc-accent, #2f6feb); }
 #cc-settings .cc-set-toggle, #cc-settings .cc-set-sw, #cc-settings .cc-set-mini, #cc-settings .cc-seg-btn, #cc-settings .cc-btn { box-shadow: none; }
-#cc-settings .cc-set-toggle, #cc-settings .cc-set-sw { border: 2px solid transparent; }
-#cc-settings .cc-seg { border: 1px solid var(--line2) !important; }
-#cc-settings .cc-seg-btn { border: 0 !important; }
+#cc-settings .cc-set-sw { border: 2px solid transparent; }
+/* segments: a clean pill group, no outer frame (the "grauer Rahmen" the user meant) */
+#cc-settings .cc-seg { border: none !important; background: #232323; border-radius: 9px; padding: 3px; gap: 3px; overflow: visible; }
+#cc-settings .cc-seg-btn { border: 0 !important; border-radius: 6px; }
+#cc-settings .cc-set-disabled { opacity: .55; pointer-events: none; }
 .cc-set-head { display: flex; flex-direction: column; gap: 5px; padding: 6px 0 16px; border-bottom: 1px solid var(--line); margin-bottom: 20px; }
 .cc-set-brand { font-size: 21px; letter-spacing: .2px; } .cc-set-brand b { font-weight: 700; } .cc-set-brand span { font-weight: 400; color: var(--dim); }
 .cc-set-sub { color: var(--dim2); font-size: 12.5px; }
@@ -298,7 +304,7 @@ select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repea
 #cc-settings .cc-seg-btn { padding: 5px 12px; }
 .cc-set-spacer { flex: 1; }
 .cc-set-swatches { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin-bottom: 6px; }
-.cc-set-sw { width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+.cc-set-sw { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; flex: none; }
 .cc-set-sw-on { border-color: #fff; box-shadow: 0 0 0 2px rgba(255,255,255,.15); }
 .cc-set-pick { width: 40px; height: 30px; border: 1px solid var(--line2); border-radius: 6px; background: none; cursor: pointer; padding: 2px; }
 .cc-set-prev { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }

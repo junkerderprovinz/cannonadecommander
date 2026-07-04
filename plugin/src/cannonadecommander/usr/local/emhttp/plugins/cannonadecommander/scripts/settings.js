@@ -78,6 +78,7 @@
   function render() {
     root.innerHTML = "";
     root.style.setProperty("--cc-accent", accent);
+    root.style.setProperty("--cc-accent-text", idealText(accent));
 
     var head = el("div", "cc-set-head");
     var brand = el("div", "cc-set-brand"); brand.appendChild(el("b", null, "Cannonade")); brand.appendChild(el("span", null, "Commander"));
@@ -95,18 +96,24 @@
     var prow = el("div", "cc-set-pickrow");
     var pick = el("input", "cc-set-pick cc-set-pick-lg"); pick.type = "color"; pick.value = /^#[0-9a-f]{6}$/i.test(accent) ? accent : "#2f6feb";
     var hex = el("span", "cc-set-hex", accent);
-    pick.addEventListener("input", function () { accent = pick.value; hex.textContent = accent; set("cc.accent", accent); root.style.setProperty("--cc-accent", accent); paintPrev(); syncSwOn(); });
+    pick.addEventListener("input", function () { accent = pick.value; hex.textContent = accent; set("cc.accent", accent); root.style.setProperty("--cc-accent", accent); root.style.setProperty("--cc-accent-text", idealText(accent)); paintPrev(); syncSwOn(); });
     pick.addEventListener("change", render);
     prow.appendChild(pick); prow.appendChild(hex); c1.appendChild(prow);
     // ...and the preset swatches sit BELOW it.
     var srow = el("div", "cc-set-swatches");
     PRESETS.forEach(function (c) {
-      var sw = el("button", "cc-set-sw" + (c === accent ? " cc-set-sw-on" : "")); sw.type = "button"; sw.title = c; sw.style.background = c; sw.dataset.c = c;
+      // a <span>, NOT a <button>: Unraid's global button CSS was bloating these into
+      // big bordered rectangles. dataset.c lets syncSwOn highlight the active one.
+      var sw = el("span", "cc-set-sw" + (c === accent ? " cc-set-sw-on" : "")); sw.title = c; sw.style.background = c; sw.dataset.c = c;
       sw.addEventListener("click", function () { accent = c; set("cc.accent", accent); render(); });
       srow.appendChild(sw);
     });
     c1.appendChild(srow);
-    c1.appendChild(toggleRow(T("Regenbogen-Modus (jede Badge-Art eigene Farbe)", "Rainbow mode (each badge kind its own colour)"), rainbow, function (v) { rainbow = v; set("cc.rainbow", v ? "1" : "0"); paintPrev(); }));
+    // rainbow toggle: label + switch adjacent (no parenthetical, no far-right spacer)
+    var rr = el("div", "cc-set-row cc-set-inline");
+    rr.appendChild(el("span", null, T("Regenbogen-Modus", "Rainbow mode")));
+    rr.appendChild(toggle(rainbow, function (v) { rainbow = v; set("cc.rainbow", v ? "1" : "0"); paintPrev(); }));
+    c1.appendChild(rr);
     var prev = el("div", "cc-set-prev");
     ["net", "ip", "lan", "port"].forEach(function (k) { var b = el("span", "cc-b cc-b-" + k); b.appendChild(elk({ net: "Netzwerk", ip: "IP", lan: "LAN", port: "Port" }[k])); b.appendChild(elv("br0.20")); prev.appendChild(b); });
     prev.id = "cc-set-prev"; c1.appendChild(prev);
@@ -117,7 +124,7 @@
     var irow = el("div", "cc-set-pickrow");
     var ipick = el("input", "cc-set-pick cc-set-pick-lg"); ipick.type = "color"; ipick.value = /^#[0-9a-f]{6}$/i.test(iconcolor) ? iconcolor : accent;
     var ihex = el("span", "cc-set-hex", iconcolor || "");
-    var offbtn = el("button", "cc-set-mini" + (iconcolor ? "" : " cc-set-mini-on")); offbtn.type = "button"; offbtn.textContent = T("Aus", "Off");
+    var offbtn = el("span", "cc-set-mini" + (iconcolor ? "" : " cc-set-mini-on")); offbtn.textContent = T("Aus", "Off");
     // update LIVE on input (no render → the native colour popup stays open while
     // dragging); only settle the whole card on change, like the accent picker.
     ipick.addEventListener("input", function () { iconcolor = ipick.value; set("cc.iconcolor", iconcolor); ihex.textContent = iconcolor; offbtn.classList.remove("cc-set-mini-on"); });
@@ -161,17 +168,16 @@
     // Save stays disabled until the current config has been read once, so we never
     // save notify over a config we haven't seen (and by then there is no in-flight
     // initial GET left to race a just-saved value back to stale).
-    var save5 = el("button", "cc-btn cc-btn-primary cc-set-save", configLoaded ? T("Speichern", "Save") : T("lädt…", "loading…"));
-    save5.type = "button"; save5.disabled = !configLoaded;
-    save5.addEventListener("click", function () { if (configLoaded) saveNotify(save5); }); c5.appendChild(save5);
+    var save5 = el("span", "cc-btn cc-btn-primary cc-set-save" + (configLoaded ? "" : " cc-set-disabled"), configLoaded ? T("Speichern", "Save") : T("lädt…", "loading…"));
+    save5.addEventListener("click", function () { if (configLoaded && !save5.classList.contains("cc-set-disabled")) saveNotify(save5); }); c5.appendChild(save5);
     wrap.appendChild(c5);
 
     root.appendChild(el("div", "cc-set-foot", T("Öffne (oder wechsle zu) den Docker-Tab — die Änderungen erscheinen sofort. Zeitpläne und Watchdog stellst du pro Container über den ⛓-Chip im Docker-Tab ein.", "Open (or switch to) the Docker tab — changes appear immediately. Set schedules and the watchdog per container via the ⛓ chip in the Docker tab.")));
     paintPrev();
   }
   function saveNotify(btn) {
-    btn.textContent = T("Speichere…", "Saving…"); btn.disabled = true;
-    function reset(txt) { btn.textContent = txt; setTimeout(function () { btn.textContent = T("Speichern", "Save"); btn.disabled = false; }, 1800); }
+    btn.textContent = T("Speichere…", "Saving…"); btn.classList.add("cc-set-disabled");
+    function reset(txt) { btn.textContent = txt; setTimeout(function () { btn.textContent = T("Speichern", "Save"); btn.classList.remove("cc-set-disabled"); }, 1800); }
     // Read-modify-write against the LIVE config: re-fetch it, change ONLY notify,
     // then write it back. This never touches schedules/watchdogs — including any set
     // in the Docker tab after this page loaded — and if the fresh read fails we
@@ -182,14 +188,23 @@
       return api("PUT", "config", c).then(function () { fullConfig = c; reset(T("Gespeichert ✓", "Saved ✓")); });
     }).catch(function () { reset(T("Fehler — Engine erreichbar?", "Error — engine reachable?")); });
   }
-  function paintPrev() { var p = document.getElementById("cc-set-prev"); if (!p) return; var kinds = { net: "#7fd1a3", ip: "#86b8f0", lan: "#d9b36b", port: "#c99ad9" }; Array.prototype.slice.call(p.children).forEach(function (b) { var k = (b.className.match(/cc-b-(\w+)/) || [])[1]; b.style.background = rainbow ? kinds[k] : accent; b.style.color = "#fff"; }); }
+  // dark text on light backgrounds, white on dark (perceived luminance)
+  function idealText(hex) { var m = /^#?([0-9a-f]{6})$/i.exec(hex || ""); if (!m) return "#fff"; var n = parseInt(m[1], 16); var L = 0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255); return L > 150 ? "#161616" : "#fff"; }
+  // preview uses the REAL rainbow palette (identical to docker.css) so it matches
+  // what the Docker tab actually shows, with auto-contrast text.
+  function paintPrev() { var p = document.getElementById("cc-set-prev"); if (!p) return; var kinds = { net: "#1f9d55", ip: "#2f6feb", lan: "#e0912a", port: "#8b5cf6" }; Array.prototype.slice.call(p.children).forEach(function (b) { var k = (b.className.match(/cc-b-(\w+)/) || [])[1]; var c = rainbow ? kinds[k] : accent; b.style.background = c; b.style.color = idealText(c); }); }
   // live-highlight the preset swatch that matches the current accent (no re-render)
   function syncSwOn() { var a = (accent || "").toLowerCase(); Array.prototype.slice.call(document.querySelectorAll("#cc-settings .cc-set-sw")).forEach(function (sw) { sw.classList.toggle("cc-set-sw-on", (sw.dataset.c || "").toLowerCase() === a); }); }
   function thc(t) { var e = el("th", null, t); return e; }
   function chkCell(key, v) { var td = el("td", "cc-set-chk"); var cb = el("input"); cb.type = "checkbox"; cb.checked = !!(colview[key] && colview[key][v]); cb.addEventListener("change", function () { if (!colview[key]) colview[key] = { s: true, a: true }; colview[key][v] = cb.checked; set("cc.colview", JSON.stringify(colview)); }); td.appendChild(cb); return td; }
   function segRow(labelText, opts, cur, onChange) {
     var row = el("div", "cc-set-row"); row.appendChild(el("span", "cc-set-rl", labelText)); var seg = el("div", "cc-seg");
-    opts.forEach(function (o) { var b = el("button", "cc-seg-btn" + (cur === o[0] ? " cc-seg-on" : "")); b.type = "button"; b.textContent = o[1]; b.addEventListener("click", function () { onChange(o[0]); Array.prototype.slice.call(seg.children).forEach(function (x) { x.classList.remove("cc-seg-on"); }); b.classList.add("cc-seg-on"); }); seg.appendChild(b); });
+    opts.forEach(function (o) {
+      // <span> not <button> (Unraid's button CSS painted orange borders on these)
+      var b = el("span", "cc-seg-btn" + (cur === o[0] ? " cc-seg-on" : "")); b.textContent = o[1];
+      b.addEventListener("click", function () { onChange(o[0]); Array.prototype.slice.call(seg.children).forEach(function (x) { x.classList.remove("cc-seg-on"); }); b.classList.add("cc-seg-on"); });
+      seg.appendChild(b);
+    });
     row.appendChild(seg); return row;
   }
 

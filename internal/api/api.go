@@ -7,11 +7,13 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"sync"
 
 	"github.com/junkerderprovinz/cannonadecommander/internal/hostcpu"
 	"github.com/junkerderprovinz/cannonadecommander/internal/model"
 	"github.com/junkerderprovinz/cannonadecommander/internal/orchestrator"
+	"github.com/junkerderprovinz/cannonadecommander/internal/unraidtmpl"
 )
 
 // Docker is the read + lifecycle surface the card panel needs. It stays small on
@@ -43,9 +45,10 @@ type Runner interface {
 
 // Server wires the read/orchestrate handlers.
 type Server struct {
-	Docker Docker
-	Store  Store
-	Runner Runner
+	Docker       Docker
+	Store        Store
+	Runner       Runner
+	TemplatesDir string // Unraid dockerMan templates dir; "" disables the apply-fest template write
 
 	mu      sync.Mutex
 	lastRun model.RunResult
@@ -326,6 +329,27 @@ func (s *Server) handleSetLimits(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusInternalServerError, err)
 		return
 	}
+	// Mirror the limit into the Unraid container template so it survives an "Apply"
+	// (which recreates from the template). Best-effort — a failure never undoes the
+	// live update that already succeeded.
+	if s.TemplatesDir != "" {
+		flags := map[string]string{}
+		if req.MemBytes > 0 {
+			flags["--memory"] = strconv.FormatInt(req.MemBytes, 10)
+			flags["--memory-swap"] = strconv.FormatInt(req.MemBytes, 10)
+		}
+		if req.NanoCPUs > 0 {
+			// 'f' (not 'g') so a small value never becomes scientific notation
+			// (e.g. "1e-06"), which docker run --cpus would reject on an Apply.
+			flags["--cpus"] = strconv.FormatFloat(float64(req.NanoCPUs)/1e9, 'f', -1, 64)
+		}
+		if req.CpusetCPUs != "" {
+			flags["--cpuset-cpus"] = req.CpusetCPUs
+		}
+		if len(flags) > 0 {
+			_ = unraidtmpl.SetExtraParams(s.TemplatesDir, req.Name, flags)
+		}
+	}
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
@@ -365,6 +389,16 @@ func (s *Server) handlePutConfig(w http.ResponseWriter, r *http.Request) {
 				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "bad schedule day (want 0-6)"})
 				return
 			}
+		}
+	}
+	for _, b := range cfg.Bandwidths {
+		if b.Name == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "bandwidth entry with no container name"})
+			return
+		}
+		if b.EgressKbit < 0 || b.EgressKbit > 10_000_000 {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "bad bandwidth rate (want 0-10000000 kbit)"})
+			return
 		}
 	}
 	if err := s.Store.SaveConfig(cfg); err != nil {

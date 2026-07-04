@@ -52,12 +52,14 @@ The pieces:
   applied live via Docker container-update, no restart. The gear turns green when a
   limit is set; the CPU / RAM / network badges carry a small dot (**filled = a limit /
   custom network is set, hollow = defaults**), and a **Volumes** badge lists the mounts
-  (shown even for a stopped container).
+  (shown even for a stopped container). Limits are **apply-fest**: they are also mirrored
+  into the container's Unraid template so an "Apply" doesn't drop them.
 - **Automation, per container**: **schedules** (start / stop / restart at a
   wall-clock time on chosen weekdays), a **watchdog** (auto-restart on unhealthy or
-  a real crash — a clean/manual stop is left alone — with a per-hour cap), and
-  **notifications** (Unraid's own notifications and/or a webhook). Schedules and the
-  watchdog live in the chain-chip editor; notifications on the Settings page.
+  a real crash — a clean/manual stop is left alone — with a per-hour cap), an optional
+  **egress bandwidth cap** (Mbit/s, applied with `tc` while the container runs), and
+  **notifications** (Unraid's own notifications and/or a webhook). Schedules, watchdog
+  and bandwidth live in the chain-chip editor; notifications on the Settings page.
 - A **Settings page** (Settings → Utilities → CannonadeCommander): badge accent
   colour and rainbow mode, container-icon tint (each colour set with a visual picker
   or a hex field; optionally the VM-tab icons too), which columns show in the Simple
@@ -82,6 +84,8 @@ Docker health:
 | `running` | the container is running, plus an optional grace period |
 | `tcp` | a TCP port accepts a connection (dialed on the container's IP) |
 | `http` | an HTTP `GET` on the container returns OK (2xx/3xx), for a chosen port + path |
+| `exec` | a command run inside the container exits `0` (like a HEALTHCHECK) |
+| `log` | a marker string appears in the container's recent log output |
 
 On failure, per container: **abort** skips everything that depends on it,
 **continue** / **degrade** start dependents anyway.

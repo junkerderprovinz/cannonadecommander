@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.13.0">
+  <!ENTITY version   "0.14.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
@@ -30,6 +30,18 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.14.0
+- New readiness probes: "exec" (a command run in the container exits 0, like a
+  HEALTHCHECK) and "log" (a marker string appears in the container's recent logs) —
+  alongside health / running / tcp / http, chosen in the chain-chip editor.
+- Resource limits set here are now apply-fest: they are also written into the
+  container's Unraid template (ExtraParams --cpus/--memory/--cpuset-cpus), so an Unraid
+  "Apply" no longer drops them.
+- New per-container EGRESS bandwidth limit (experimental): set an upload cap in Mbit/s
+  in the chain-chip editor. Docker has no bandwidth API, so it is applied with tc (a tbf
+  shaper) inside the container while it runs; needs nsenter + tc on the host (interface
+  eth0), and is re-applied after a restart on the next monitor cycle.
 
 ### 0.13.0
 - Container-icon colouring is rebuilt AGAIN so it can't break: the tint is now a CSS
@@ -335,7 +347,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>b858b23fe83c18a77e9317fa6463d65e6f946233fe5adad5c5b9e75dab0da773</SHA256>
+  <SHA256>0e00895d761f4a239103be0393cdd0ea8c2ef3686793a61e2563e1b1f36adbba</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

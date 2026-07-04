@@ -1,7 +1,9 @@
 // Package dockercli is a thin client over the Docker Engine API, spoken directly
 // over the host's unix socket. Unlike a read-only viewer, this engine WRITES
-// (start/stop) as well as reads (list/inspect/stats), so it deliberately exposes
-// only a small, safe verb set and never create/exec/build.
+// (start/stop) as well as reads (list/inspect/stats). It never exposes create/build,
+// and never proxies exec to the browser: Exec exists ONLY for the readiness prober to
+// run a plan-configured exec probe (like a HEALTHCHECK). On a single-admin, same-origin
+// Unraid box the admin already has root, so this is not an escalation.
 package dockercli
 
 import (
@@ -226,6 +228,28 @@ func (c *Client) Inspect(ctx context.Context, ref string) (Inspect, error) {
 	return ins, nil
 }
 
+// PID returns the container's main process id on the host (State.Pid), for entering
+// its network namespace to shape traffic. 0 when not running.
+func (c *Client) PID(ctx context.Context, ref string) (int, error) {
+	resp, err := c.do(ctx, "GET", "/containers/"+url.PathEscape(ref)+"/json")
+	if err != nil {
+		return 0, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return 0, apiError(resp)
+	}
+	var raw struct {
+		State struct {
+			Pid int `json:"Pid"`
+		} `json:"State"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
+		return 0, fmt.Errorf("decode pid: %w", err)
+	}
+	return raw.State.Pid, nil
+}
+
 // Start starts a container. An already-running container (304) is not an error.
 func (c *Client) Start(ctx context.Context, ref string) error {
 	return c.post(ctx, "/containers/"+url.PathEscape(ref)+"/start")
@@ -345,6 +369,106 @@ func (c *Client) UpdateResources(ctx context.Context, ref string, l model.Limits
 		return apiError(resp)
 	}
 	return nil
+}
+
+// Exec runs a command inside a container and returns its exit code. Used ONLY by the
+// readiness prober (an exec readiness check, like a HEALTHCHECK) — it is not exposed as
+// a proxy verb. Detach:false blocks until the command finishes, then we inspect the
+// exec for its exit code.
+func (c *Client) Exec(ctx context.Context, ref string, cmd []string) (int, error) {
+	// AttachStdout/Stderr MUST be true: the start below only blocks until the attached
+	// output stream reaches EOF, i.e. until the process exits. With no streams attached
+	// the daemon returns as soon as the process is LAUNCHED, and the follow-up exit-code
+	// inspect would race the still-running command.
+	resp, err := c.doBody(ctx, "POST", "/containers/"+url.PathEscape(ref)+"/exec",
+		map[string]any{"AttachStdout": true, "AttachStderr": true, "Cmd": cmd})
+	if err != nil {
+		return -1, err
+	}
+	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
+		e := apiError(resp)
+		_ = resp.Body.Close()
+		return -1, e
+	}
+	var created struct {
+		ID string `json:"Id"`
+	}
+	derr := json.NewDecoder(resp.Body).Decode(&created)
+	_ = resp.Body.Close()
+	if derr != nil {
+		return -1, derr
+	}
+	if created.ID == "" {
+		return -1, fmt.Errorf("exec create: no id")
+	}
+	startResp, err := c.doBody(ctx, "POST", "/exec/"+url.PathEscape(created.ID)+"/start",
+		map[string]any{"Detach": false, "Tty": false})
+	if err != nil {
+		return -1, err
+	}
+	_, _ = io.Copy(io.Discard, io.LimitReader(startResp.Body, 1<<16))
+	_ = startResp.Body.Close()
+	insResp, err := c.do(ctx, "GET", "/exec/"+url.PathEscape(created.ID)+"/json")
+	if err != nil {
+		return -1, err
+	}
+	defer func() { _ = insResp.Body.Close() }()
+	if insResp.StatusCode != http.StatusOK {
+		return -1, apiError(insResp)
+	}
+	var ins struct {
+		ExitCode int  `json:"ExitCode"`
+		Running  bool `json:"Running"`
+	}
+	if err := json.NewDecoder(insResp.Body).Decode(&ins); err != nil {
+		return -1, err
+	}
+	if ins.Running {
+		return -1, fmt.Errorf("exec still running")
+	}
+	return ins.ExitCode, nil
+}
+
+// Logs returns the last `tail` lines of a container's combined stdout+stderr, demuxed
+// from Docker's stream framing. Read-only; used by the log-match readiness probe.
+func (c *Client) Logs(ctx context.Context, ref string, tail int) (string, error) {
+	if tail <= 0 {
+		tail = 100
+	}
+	resp, err := c.do(ctx, "GET", "/containers/"+url.PathEscape(ref)+"/logs?stdout=1&stderr=1&tail="+strconv.Itoa(tail))
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return "", apiError(resp)
+	}
+	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	return demuxLogs(raw), nil
+}
+
+// demuxLogs strips Docker's 8-byte stream headers (non-TTY containers frame each chunk
+// as [stream 0 0 0 size(4-BE)] payload). A TTY container's logs are raw — detected by
+// the header shape — and returned unchanged.
+func demuxLogs(b []byte) string {
+	// a log frame's stream byte is 1 (stdout) or 2 (stderr) — never 0 (stdin) — and the
+	// next three bytes are 0. Requiring 1/2 (not <=2) avoids misreading a raw TTY line
+	// that merely starts with a NUL byte as framed.
+	framed := len(b) >= 8 && (b[0] == 1 || b[0] == 2) && b[1] == 0 && b[2] == 0 && b[3] == 0
+	if !framed {
+		return string(b)
+	}
+	var out []byte
+	for len(b) >= 8 {
+		size := int(b[4])<<24 | int(b[5])<<16 | int(b[6])<<8 | int(b[7])
+		b = b[8:]
+		if size < 0 || size > len(b) {
+			size = len(b)
+		}
+		out = append(out, b[:size]...)
+		b = b[size:]
+	}
+	return string(out)
 }
 
 // dockerStats is the raw docker /stats response we compute a model.Stats from.

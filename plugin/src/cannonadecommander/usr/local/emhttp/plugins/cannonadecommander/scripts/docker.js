@@ -28,7 +28,7 @@
   var SHIPLOG = "/plugins/shiplog/server/status.php";
   var VIEW_KEY = "cc.view", COLS_KEY = "cc.colview"; // cols2: reset stale v0.3 prefs
   var MARK = "data-cc", ROWMARK = "data-cc-row";
-  var PROBES = ["health", "running", "tcp", "http"], POLICIES = ["abort", "continue", "degrade"];
+  var PROBES = ["health", "running", "tcp", "http", "exec", "log"], POLICIES = ["abort", "continue", "degrade"];
   var SCHED_ACTIONS = ["start", "stop", "restart"];
   var LANG = (document.documentElement.lang || navigator.language || "en").slice(0, 2).toLowerCase();
   // Mon-first day toggles; value is Go's time.Weekday (0=Sun..6=Sat).
@@ -37,8 +37,8 @@
     : [["Mo", 1], ["Tu", 2], ["We", 3], ["Th", 4], ["Fr", 5], ["Sa", 6], ["Su", 0]];
 
   var T = {
-    de: { uptodate: "Aktuell", update: "Update", start: "Starten", stop: "Stoppen", restart: "Neustart", pause: "Pause", resume: "Fortsetzen", force: "Update erzwingen", save: "Plan speichern", startorder: "In Reihenfolge starten", filter: "filtern…", cols: "Badges", view: "Ansicht", list: "Liste", grid: "Raster", plan: "Startplan", done: "erledigt", saving: "speichere…", saved: "gespeichert", after: "nach", active: "aktiv", watchdog: "Watchdog (Auto-Neustart)", wUnhealthy: "bei „unhealthy“", wExit: "bei Absturz (nicht bei normalem Stopp)", wMax: "max./Std.", schedules: "Zeitpläne", addsched: "+ Zeitplan", remove: "entfernen", manage: "Im Startplan verwalten", dependsOn: "Hängt ab von", commaSep: "kommagetrennt", startDelay: "Startverzögerung", secWait: "Sek. vor dem Start warten", readyWhen: "Bereit wenn", onFail: "Bei Fehlschlag", failhint: "abort überspringt Abhängige · continue/degrade starten sie trotzdem.", ramLimit: "RAM-Limit", cpuLimit: "CPU-Limit", cpuram: "CPU/RAM-Limits", ramPh: "z. B. 2G · 512M · leer = unverändert", cpuPh: "z. B. 1.5 · leer = unverändert", limitsFoot: "Sofort per Docker-Update angewendet, kein Neustart. Leeres Feld lässt den Wert unverändert. „Limit entfernen“ setzt auf unbegrenzt (Docker kann ein Limit live nicht ganz löschen — restlos weg erst durch Neu-Erstellen des Containers).", invalid: "Ungültige Eingabe", saveShort: "Speichern", ramNum: "z. B. 2 · leer = unverändert", cpuNum: "z. B. 1.5 · leer", cpuPin: "CPU-Pinning", cpuPinPh: "z. B. 0-3,6  (leer = alle)", cfgSet: "eingestellt", cfgUnset: "nicht eingestellt (Standard)", removeLim: "Limit entfernen" },
-    en: { uptodate: "up to date", update: "Update", start: "Start", stop: "Stop", restart: "Restart", pause: "Pause", resume: "Resume", force: "Force update", save: "Save plan", startorder: "Start in order", filter: "filter…", cols: "Badges", view: "View", list: "List", grid: "Grid", plan: "Plan", done: "done", saving: "saving…", saved: "saved", after: "after", active: "active", watchdog: "Watchdog (auto-restart)", wUnhealthy: "when unhealthy", wExit: "on crash (not on a normal stop)", wMax: "max/hour", schedules: "Schedules", addsched: "+ schedule", remove: "remove", manage: "Manage in the start plan", dependsOn: "Depends on", commaSep: "comma-separated", startDelay: "Start delay", secWait: "sec to wait before starting", readyWhen: "Ready when", onFail: "On fail", failhint: "abort skips dependents · continue/degrade start them anyway.", ramLimit: "RAM limit", cpuLimit: "CPU limit", cpuram: "CPU/RAM limits", ramPh: "e.g. 2G · 512M · empty = unchanged", cpuPh: "e.g. 1.5 · empty = unchanged", limitsFoot: "Applied instantly via Docker update, no restart. An empty field leaves the value unchanged. “Remove limit” sets it to unlimited (Docker can't fully unset a limit live — gone for good only by recreating the container).", invalid: "invalid value", saveShort: "Save", ramNum: "e.g. 2 · empty = unchanged", cpuNum: "e.g. 1.5 · empty", cpuPin: "CPU pinning", cpuPinPh: "e.g. 0-3,6  (empty = all)", cfgSet: "configured", cfgUnset: "not set (default)", removeLim: "Remove limit" },
+    de: { uptodate: "Aktuell", update: "Update", start: "Starten", stop: "Stoppen", restart: "Neustart", pause: "Pause", resume: "Fortsetzen", force: "Update erzwingen", save: "Plan speichern", startorder: "In Reihenfolge starten", filter: "filtern…", cols: "Badges", view: "Ansicht", list: "Liste", grid: "Raster", plan: "Startplan", done: "erledigt", saving: "speichere…", saved: "gespeichert", after: "nach", active: "aktiv", watchdog: "Watchdog (Auto-Neustart)", wUnhealthy: "bei „unhealthy“", wExit: "bei Absturz (nicht bei normalem Stopp)", wMax: "max./Std.", schedules: "Zeitpläne", addsched: "+ Zeitplan", remove: "entfernen", manage: "Im Startplan verwalten", dependsOn: "Hängt ab von", commaSep: "kommagetrennt", startDelay: "Startverzögerung", secWait: "Sek. vor dem Start warten", readyWhen: "Bereit wenn", onFail: "Bei Fehlschlag", failhint: "abort überspringt Abhängige · continue/degrade starten sie trotzdem.", ramLimit: "RAM-Limit", cpuLimit: "CPU-Limit", cpuram: "CPU/RAM-Limits", ramPh: "z. B. 2G · 512M · leer = unverändert", cpuPh: "z. B. 1.5 · leer = unverändert", limitsFoot: "Sofort per Docker-Update angewendet, kein Neustart. Leeres Feld lässt den Wert unverändert. „Limit entfernen“ setzt auf unbegrenzt (Docker kann ein Limit live nicht ganz löschen — restlos weg erst durch Neu-Erstellen des Containers).", invalid: "Ungültige Eingabe", saveShort: "Speichern", ramNum: "z. B. 2 · leer = unverändert", cpuNum: "z. B. 1.5 · leer", cpuPin: "CPU-Pinning", cpuPinPh: "z. B. 0-3,6  (leer = alle)", cfgSet: "eingestellt", cfgUnset: "nicht eingestellt (Standard)", removeLim: "Limit entfernen", execPh: "Befehl im Container, z. B. pg_isready", logPh: "Text im Log, z. B. ready", bandwidth: "Bandbreite", egress: "Egress (Upload)", bwFoot: "Egress-Limit per tc im Container (experimentell). Wird laufend angewendet; nach einem Container-Neustart erst im nächsten Zyklus wieder. Braucht nsenter + tc auf dem Host (Interface eth0)." },
+    en: { uptodate: "up to date", update: "Update", start: "Start", stop: "Stop", restart: "Restart", pause: "Pause", resume: "Resume", force: "Force update", save: "Save plan", startorder: "Start in order", filter: "filter…", cols: "Badges", view: "View", list: "List", grid: "Grid", plan: "Plan", done: "done", saving: "saving…", saved: "saved", after: "after", active: "active", watchdog: "Watchdog (auto-restart)", wUnhealthy: "when unhealthy", wExit: "on crash (not on a normal stop)", wMax: "max/hour", schedules: "Schedules", addsched: "+ schedule", remove: "remove", manage: "Manage in the start plan", dependsOn: "Depends on", commaSep: "comma-separated", startDelay: "Start delay", secWait: "sec to wait before starting", readyWhen: "Ready when", onFail: "On fail", failhint: "abort skips dependents · continue/degrade start them anyway.", ramLimit: "RAM limit", cpuLimit: "CPU limit", cpuram: "CPU/RAM limits", ramPh: "e.g. 2G · 512M · empty = unchanged", cpuPh: "e.g. 1.5 · empty = unchanged", limitsFoot: "Applied instantly via Docker update, no restart. An empty field leaves the value unchanged. “Remove limit” sets it to unlimited (Docker can't fully unset a limit live — gone for good only by recreating the container).", invalid: "invalid value", saveShort: "Save", ramNum: "e.g. 2 · empty = unchanged", cpuNum: "e.g. 1.5 · empty", cpuPin: "CPU pinning", cpuPinPh: "e.g. 0-3,6  (empty = all)", cfgSet: "configured", cfgUnset: "not set (default)", removeLim: "Remove limit", execPh: "command in the container, e.g. pg_isready", logPh: "text in the log, e.g. ready", bandwidth: "Bandwidth", egress: "Egress (upload)", bwFoot: "Egress limit via tc inside the container (experimental). Re-applied while running; after a container restart it returns on the next cycle. Needs nsenter + tc on the host (interface eth0)." },
   };
   function t(k) { return (T[LANG] || T.en)[k] || T.en[k]; }
   var STATE_LABELS = {
@@ -51,7 +51,7 @@
   var containers = [], containerNames = [], stats = {}, shiplog = {}, workingPlan = {}, lastRun = {}, iconCache = {};
   // Automation config (schedules + watchdogs + notify) lives on the flash next to
   // the plan; loaded whole, mutated per-container in the editor, and PUT back whole.
-  var config = { schedules: [], watchdogs: [], notify: { unraid: false, webhook: "" } };
+  var config = { schedules: [], watchdogs: [], bandwidths: [], notify: { unraid: false, webhook: "" } };
   var limits = {}; // name → CONFIGURED caps {mem_bytes,nano_cpus,cpuset_cpus}, for the "is a limit set?" dots
   var hostCpus = 0, hostCoreOf = [], hostMem = 0; // the HOST's logical-CPU count + HT grouping + total RAM (from the engine)
   var filterText = "", gridHolder = null, openPop = null, openPopAnchor = null, menu = null, menuAnchor = null, menuStatusEl = null, toastEl = null, toastTimer = null;
@@ -116,7 +116,7 @@
   }
   function loadConfig() {
     return api("GET", "config").then(function (c) {
-      if (c && typeof c === "object") config = { schedules: c.schedules || [], watchdogs: c.watchdogs || [], notify: c.notify || { unraid: false, webhook: "" } };
+      if (c && typeof c === "object") config = { schedules: c.schedules || [], watchdogs: c.watchdogs || [], bandwidths: c.bandwidths || [], notify: c.notify || { unraid: false, webhook: "" } };
     }).catch(function () { /* older engine or transient: keep the current config */ });
   }
   // bulk-load every container's CONFIGURED caps in one call (the engine inspects
@@ -135,6 +135,8 @@
   // container (and notify) untouched, so a per-row save never clobbers the rest.
   function setWatchdog(name, wd) { var k = norm(name); config.watchdogs = config.watchdogs.filter(function (w) { return norm(w.name) !== k; }); if (wd) config.watchdogs.push(wd); }
   function setSchedules(name, list) { var k = norm(name); config.schedules = config.schedules.filter(function (s) { return norm(s.name) !== k; }); list.forEach(function (s) { config.schedules.push(s); }); }
+  function bandwidthFor(name) { var k = norm(name), list = config.bandwidths || []; for (var i = 0; i < list.length; i++) if (norm(list[i].name) === k) return list[i]; return null; }
+  function setBandwidth(name, kbit) { var k = norm(name); config.bandwidths = (config.bandwidths || []).filter(function (b) { return norm(b.name) !== k; }); if (kbit > 0) config.bandwidths.push({ name: name, egress_kbit: kbit }); }
   function containerByName(name) { var k = norm(name); for (var i = 0; i < containers.length; i++) if (norm(containers[i].name) === k) return containers[i]; return null; }
   // The plan badge's LABEL already says "Startplan"; the value only adds detail
   // (or nothing when unmanaged) so the chip never reads "Startplan Startplan".
@@ -560,8 +562,10 @@
     var probe = el("select", "cc-in"); PROBES.forEach(function (p) { var o = el("option", null, p); o.value = p; if (node.probe && node.probe.kind === p) o.selected = true; probe.appendChild(o); });
     var port = el("input", "cc-in cc-port"); port.type = "number"; port.placeholder = "port"; port.value = (node.probe && node.probe.port) ? node.probe.port : "";
     var pathIn = el("input", "cc-in cc-port"); pathIn.type = "text"; pathIn.placeholder = "/health"; pathIn.value = (node.probe && node.probe.path) ? node.probe.path : "";
-    var syncPort = function () { var isTcp = probe.value === "tcp", isHttp = probe.value === "http"; port.style.display = (isTcp || isHttp) ? "" : "none"; pathIn.style.display = isHttp ? "" : "none"; }; syncPort();
-    prow.appendChild(probe); prow.appendChild(port); prow.appendChild(pathIn); body.appendChild(prow);
+    var cmdIn = el("input", "cc-in"); cmdIn.type = "text"; cmdIn.placeholder = t("execPh"); cmdIn.value = (node.probe && node.probe.command) ? node.probe.command : "";
+    var matchIn = el("input", "cc-in"); matchIn.type = "text"; matchIn.placeholder = t("logPh"); matchIn.value = (node.probe && node.probe.match) ? node.probe.match : "";
+    var syncPort = function () { var k = probe.value; port.style.display = (k === "tcp" || k === "http") ? "" : "none"; pathIn.style.display = k === "http" ? "" : "none"; cmdIn.style.display = k === "exec" ? "" : "none"; matchIn.style.display = k === "log" ? "" : "none"; }; syncPort();
+    prow.appendChild(probe); prow.appendChild(port); prow.appendChild(pathIn); prow.appendChild(cmdIn); prow.appendChild(matchIn); body.appendChild(prow);
     var polrow = el("div", "cc-pop-row"); polrow.appendChild(el("label", "cc-pop-lbl", t("onFail")));
     var pol = el("select", "cc-in"); POLICIES.forEach(function (p) { var o = el("option", null, p); o.value = p; if (node.policy === p) o.selected = true; pol.appendChild(o); });
     polrow.appendChild(pol); body.appendChild(polrow); pop.appendChild(body);
@@ -606,12 +610,22 @@
     pop.appendChild(sSec);
     function readSchedules() { var out = []; Array.prototype.slice.call(sList.children).forEach(function (r) { if (r._read) { var v = r._read(); if (v) out.push(v); } }); return out; }
 
+    // ── Bandwidth (egress rate limit) — independent of plan membership ──
+    var bwSec = el("div", "cc-pop-auto"); bwSec.appendChild(el("div", "cc-pop-sech cc-pop-sech-lone", t("bandwidth")));
+    var bwRow = el("div", "cc-pop-row"); bwRow.appendChild(el("label", "cc-pop-lbl", t("egress")));
+    var bwCur = bandwidthFor(name);
+    var bwIn = el("input", "cc-in cc-port"); bwIn.type = "number"; bwIn.min = "0"; bwIn.step = "0.1"; bwIn.placeholder = "0 = ∞"; bwIn.value = (bwCur && bwCur.egress_kbit > 0) ? (Math.round(bwCur.egress_kbit / 1000 * 100) / 100) : "";
+    bwRow.appendChild(bwIn); bwRow.appendChild(el("span", null, " Mbit/s")); bwSec.appendChild(bwRow);
+    bwSec.appendChild(el("div", "cc-pop-foot", t("bwFoot")));
+    pop.appendChild(bwSec);
+    function readBandwidth() { var v = parseFloat(String(bwIn.value).trim().replace(",", ".")); return v > 0 ? Math.round(v * 1000) : 0; }
+
     // Plan actions live here now (the Docker-tab gear is gone): save the whole plan
     // AND this container's automation, or run it in dependency order immediately.
     var act = el("div", "cc-pop-row cc-pop-act");
     var bSave = el("span", "cc-btn", t("save")), bRun = el("span", "cc-btn cc-btn-primary", t("startorder"));
-    bSave.addEventListener("click", function () { saveEditor(name, readWatchdog(), readSchedules(), false); });
-    bRun.addEventListener("click", function () { saveEditor(name, readWatchdog(), readSchedules(), true); });
+    bSave.addEventListener("click", function () { saveEditor(name, readWatchdog(), readSchedules(), readBandwidth(), false); });
+    bRun.addEventListener("click", function () { saveEditor(name, readWatchdog(), readSchedules(), readBandwidth(), true); });
     act.appendChild(bSave); act.appendChild(bRun); pop.appendChild(act);
     function commit() {
       if (!manageOn) { delete workingPlan[name]; body.classList.add("cc-dis"); refreshChip(anchor, name); return; }
@@ -620,13 +634,15 @@
       var pr = { kind: probe.value }, pv = parseInt(port.value, 10);
       if (probe.value === "tcp" && pv > 0) pr.port = pv;
       if (probe.value === "http") { if (pv > 0) pr.port = pv; var pt = pathIn.value.trim(); if (pt) pr.path = pt; }
+      if (probe.value === "exec") { var cm = cmdIn.value.trim(); if (cm) pr.command = cm; }
+      if (probe.value === "log") { var mt = matchIn.value.trim(); if (mt) pr.match = mt; }
       if (probe.value === "running") pr.grace_seconds = 3;
       var dv = parseInt(delay.value, 10);
       var n = { name: name, after: afterList, probe: pr, policy: pol.value };
       if (dv > 0) n.delay_seconds = dv;
       workingPlan[name] = n; refreshChip(anchor, name);
     }
-    [after, delay, probe, port, pathIn, pol].forEach(function (n) { n.addEventListener("change", commit); n.addEventListener("input", commit); });
+    [after, delay, probe, port, pathIn, cmdIn, matchIn, pol].forEach(function (n) { n.addEventListener("change", commit); n.addEventListener("input", commit); });
     probe.addEventListener("change", syncPort);
     // in rainbow mode, colour the editor's checkboxes too (the manage toggle + day
     // toggles are handled in CSS via .cc-pop.cc-rainbow).
@@ -758,7 +774,7 @@
   // and the notify block (set in Settings) are preserved. Config is saved FIRST and
   // independently: the automation is unrelated to the plan, so an invalid/stale
   // plan (a bad dependency) must never cause the watchdog/schedules to be lost.
-  function saveEditor(name, wd, scheds, thenApply) {
+  function saveEditor(name, wd, scheds, bw, thenApply) {
     flash(t("saving"));
     // Read-modify-write: re-fetch the LIVE config, replace ONLY this container's
     // watchdog + schedules, then write it back — so notify (set in Settings) and
@@ -771,8 +787,8 @@
         // engine always returns a config object on success, so this only guards the
         // unexpected (a null/garbage body), never a legitimate first save.
         if (!fresh || typeof fresh !== "object") throw new Error("config unreadable");
-        config = { schedules: fresh.schedules || [], watchdogs: fresh.watchdogs || [], notify: fresh.notify || { unraid: false, webhook: "" } };
-        setWatchdog(name, wd); setSchedules(name, scheds);
+        config = { schedules: fresh.schedules || [], watchdogs: fresh.watchdogs || [], bandwidths: fresh.bandwidths || [], notify: fresh.notify || { unraid: false, webhook: "" } };
+        setWatchdog(name, wd); setSchedules(name, scheds); setBandwidth(name, bw);
         return api("PUT", "config", config);
       })
       .then(function () { return api("PUT", "plan", collectPlan()); })

@@ -39,6 +39,75 @@ func (f *fakeNotifier) Notify(_ context.Context, _ model.Notify, subject, _, _ s
 	f.n = append(f.n, subject)
 }
 
+type fakePidder struct{ pids map[string]int }
+
+func (f fakePidder) PID(_ context.Context, name string) (int, error) {
+	if p, ok := f.pids[name]; ok {
+		return p, nil
+	}
+	return 0, errors.New("no pid")
+}
+
+type fakeShaper struct{ applied map[int]int }
+
+func (f *fakeShaper) Apply(pid, kbit int) error {
+	if f.applied == nil {
+		f.applied = map[int]int{}
+	}
+	f.applied[pid] = kbit
+	return nil
+}
+
+func TestBandwidthAppliedToRunningOnly(t *testing.T) {
+	fd := &fakeDocker{list: []model.Container{
+		{Name: "up", State: "running", Network: "br0.20"},
+		{Name: "down", State: "exited"},
+		{Name: "hostnet", State: "running", Network: "host"}, // shares host netns → must NOT be shaped
+	}}
+	sh := &fakeShaper{}
+	nt := &fakeNotifier{}
+	m := &Monitor{
+		Docker: fd,
+		Config: fakeCfg{c: model.Config{Bandwidths: []model.Bandwidth{
+			{Name: "up", EgressKbit: 5000},
+			{Name: "down", EgressKbit: 3000},    // stopped → skipped
+			{Name: "hostnet", EgressKbit: 2000}, // host netns → skipped (would throttle the whole host)
+		}}},
+		Pidder:   fakePidder{pids: map[string]int{"up": 4242, "down": 99, "hostnet": 7}},
+		Shaper:   sh,
+		Notifier: nt,
+		Now:      time.Now,
+	}
+	m.Tick(context.Background())
+	if len(sh.applied) != 1 || sh.applied[4242] != 5000 {
+		t.Fatalf("only the running bridge container should be shaped, got %v", sh.applied)
+	}
+	if len(nt.n) != 1 { // the host-network container must produce a "not applied" notification
+		t.Fatalf("host-network container should notify once, got %v", nt.n)
+	}
+}
+
+func TestBandwidthClearedOnRemoval(t *testing.T) {
+	fd := &fakeDocker{list: []model.Container{{Name: "up", State: "running", Network: "br0.20"}}}
+	sh := &fakeShaper{}
+	m := &Monitor{
+		Docker: fd,
+		Config: fakeCfg{c: model.Config{Bandwidths: []model.Bandwidth{{Name: "up", EgressKbit: 5000}}}},
+		Pidder: fakePidder{pids: map[string]int{"up": 4242}},
+		Shaper: sh,
+		Now:    time.Now,
+	}
+	m.Tick(context.Background()) // applies 5000
+	if sh.applied[4242] != 5000 {
+		t.Fatalf("expected 5000 applied, got %v", sh.applied)
+	}
+	m.Config = fakeCfg{c: model.Config{}} // entry removed
+	m.Tick(context.Background())
+	if sh.applied[4242] != 0 { // must be cleared (Apply with 0)
+		t.Fatalf("removing the entry must clear the rule (apply 0), got %v", sh.applied)
+	}
+}
+
 func TestScheduleFiresOncePerMinute(t *testing.T) {
 	fd := &fakeDocker{}
 	clock := time.Date(2026, 7, 3, 3, 0, 0, 0, time.Local) // 03:00

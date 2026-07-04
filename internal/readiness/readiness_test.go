@@ -149,6 +149,55 @@ func TestWaitReady_HTTP(t *testing.T) {
 	}
 }
 
+func TestWaitReady_Exec(t *testing.T) {
+	clk := &fakeClock{t: time.Unix(0, 0)}
+	insp := &scriptedInspector{snaps: []Snapshot{{Running: true}}}
+	p := newProber(insp, clk)
+	var gotCmd []string
+	attempts := 0
+	p.ExecCheck = func(_ context.Context, _ string, cmd []string) (int, error) {
+		gotCmd = cmd
+		attempts++
+		if attempts < 2 {
+			return 1, nil // not ready yet
+		}
+		return 0, nil
+	}
+	node := model.Node{Name: "db", Probe: model.Probe{Kind: model.ProbeExec, Command: "pg_isready", TimeoutSeconds: 30}}
+	ready, reason := p.WaitReady(context.Background(), node)
+	if !ready {
+		t.Fatalf("expected ready on exit 0, got %q", reason)
+	}
+	if len(gotCmd) != 3 || gotCmd[0] != "sh" || gotCmd[1] != "-c" || gotCmd[2] != "pg_isready" {
+		t.Fatalf("exec must wrap the command in sh -c, got %v", gotCmd)
+	}
+	if attempts != 2 {
+		t.Fatalf("expected 2 attempts (exit 1 then 0), got %d", attempts)
+	}
+}
+
+func TestWaitReady_Log(t *testing.T) {
+	clk := &fakeClock{t: time.Unix(0, 0)}
+	insp := &scriptedInspector{snaps: []Snapshot{{Running: true}}}
+	p := newProber(insp, clk)
+	attempts := 0
+	p.GetLogs = func(_ context.Context, _ string, _ int) (string, error) {
+		attempts++
+		if attempts < 2 {
+			return "starting up...\n", nil
+		}
+		return "starting up...\ndatabase system is ready to accept connections\n", nil
+	}
+	node := model.Node{Name: "db", Probe: model.Probe{Kind: model.ProbeLog, Match: "ready to accept connections", TimeoutSeconds: 30}}
+	ready, reason := p.WaitReady(context.Background(), node)
+	if !ready {
+		t.Fatalf("expected ready once the marker appears, got %q", reason)
+	}
+	if attempts != 2 {
+		t.Fatalf("expected 2 attempts, got %d", attempts)
+	}
+}
+
 func TestWaitReady_TCPExplicitHost(t *testing.T) {
 	clk := &fakeClock{t: time.Unix(0, 0)}
 	insp := &scriptedInspector{snaps: []Snapshot{{Running: true}}}

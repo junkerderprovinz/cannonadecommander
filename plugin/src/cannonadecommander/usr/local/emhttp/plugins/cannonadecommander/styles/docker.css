@@ -8,6 +8,12 @@
  * the stylesheet is removed and everything reappears. */
 
 :root { --cc-accent: #2f6feb; --cc-density: 9px; }
+
+/* hide Unraid's native "Docker Containers" section-title bar (a div.title emitted by
+   the tabless page layout). Scoped with :has(#docker_containers) so it fires ONLY on
+   the Docker page — this stylesheet also loads on the Settings page, whose own title
+   bar must stay. On uninstall the stylesheet is gone, so the bar returns. */
+#displaybox > .content:has(#docker_containers) > div.title { display: none !important; }
 .cc-root, .cc-grid-holder {
   --cc-bg: #161616; --cc-bg2: #1e1e1e; --cc-bg3: #262626; --cc-line: #2a2a2a;
   --cc-txt: #e6e6e6; --cc-dim: #8a8a8a;

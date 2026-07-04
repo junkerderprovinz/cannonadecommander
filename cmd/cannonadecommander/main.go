@@ -23,9 +23,11 @@ import (
 	"github.com/junkerderprovinz/cannonadecommander/internal/api"
 	"github.com/junkerderprovinz/cannonadecommander/internal/dockercli"
 	"github.com/junkerderprovinz/cannonadecommander/internal/monitor"
+	"github.com/junkerderprovinz/cannonadecommander/internal/netshape"
 	"github.com/junkerderprovinz/cannonadecommander/internal/orchestrator"
 	"github.com/junkerderprovinz/cannonadecommander/internal/readiness"
 	"github.com/junkerderprovinz/cannonadecommander/internal/store"
+	"github.com/junkerderprovinz/cannonadecommander/internal/unraidtmpl"
 )
 
 // version is overridden at build time with -ldflags "-X main.version=vX.Y.Z".
@@ -71,6 +73,11 @@ func env(key, def string) string {
 	return def
 }
 
+// shaperAdapter lets the monitor apply egress limits via the netshape package.
+type shaperAdapter struct{}
+
+func (shaperAdapter) Apply(pid, kbit int) error { return netshape.Apply(pid, kbit) }
+
 // inspectorAdapter bridges the docker client to the readiness prober's minimal
 // Inspector interface, keeping the readiness package free of docker types.
 type inspectorAdapter struct{ c *dockercli.Client }
@@ -88,11 +95,14 @@ func serve() {
 	dockerSock := env("CC_DOCKER_SOCK", defaultDockerSock)
 	apiSock := env("CC_SOCK", defaultAPISock)
 
+	if v := os.Getenv("CC_SHAPE_IFACE"); v != "" {
+		netshape.Iface = v // shape a non-eth0 interface if a box needs it
+	}
 	docker := dockercli.NewUnix(dockerSock)
 	st := store.New(filepath.Join(dataDir, "plan.json"))
-	prober := readiness.Prober{Inspector: inspectorAdapter{docker}}
+	prober := readiness.Prober{Inspector: inspectorAdapter{docker}, ExecCheck: docker.Exec, GetLogs: docker.Logs}
 	orch := &orchestrator.Orchestrator{Starter: docker, Ready: prober}
-	srv := &api.Server{Docker: docker, Store: st, Runner: orch}
+	srv := &api.Server{Docker: docker, Store: st, Runner: orch, TemplatesDir: env("CC_TEMPLATES_DIR", unraidtmpl.DefaultDir)}
 
 	if err := os.MkdirAll(dataDir, 0o755); err != nil {
 		log.Fatalf("cannonadecommander: mkdir %s: %v", dataDir, err)
@@ -118,7 +128,7 @@ func serve() {
 	}()
 
 	// The always-on automation loop: scheduled actions, the watchdog, notifications.
-	go (&monitor.Monitor{Docker: docker, Config: st, Notifier: monitor.SysNotifier{}}).Run(ctx)
+	go (&monitor.Monitor{Docker: docker, Config: st, Notifier: monitor.SysNotifier{}, Pidder: docker, Shaper: shaperAdapter{}}).Run(ctx)
 
 	log.Print("\n" + bannerArt)
 	log.Printf("CANNONADECOMMANDER %s IS READY — api %s · data %s · docker %s", version, apiSock, dataDir, dockerSock)

@@ -47,6 +47,8 @@ const (
 	ProbeRunning ProbeKind = "running" // running + a grace period
 	ProbeTCP     ProbeKind = "tcp"     // a TCP port accepts a connection
 	ProbeHTTP    ProbeKind = "http"    // an HTTP GET returns a non-error status (2xx/3xx)
+	ProbeExec    ProbeKind = "exec"    // a command run inside the container exits 0 (like a HEALTHCHECK)
+	ProbeLog     ProbeKind = "log"     // the container's recent log output contains a marker string
 )
 
 // Probe is the readiness specification for one managed container.
@@ -56,6 +58,8 @@ type Probe struct {
 	Host           string    `json:"host,omitempty"`            // ProbeTCP/HTTP: host to reach (default the container IP / 127.0.0.1)
 	Port           int       `json:"port,omitempty"`            // ProbeTCP/HTTP: port (HTTP default 80)
 	Path           string    `json:"path,omitempty"`            // ProbeHTTP: request path (default "/")
+	Command        string    `json:"command,omitempty"`         // ProbeExec: shell command run inside the container (ready when exit 0)
+	Match          string    `json:"match,omitempty"`           // ProbeLog: substring to look for in the container's recent logs
 	TimeoutSeconds int       `json:"timeout_seconds,omitempty"` // give up after this long (0 → engine default)
 }
 
@@ -146,12 +150,22 @@ type Notify struct {
 	Webhook string `json:"webhook,omitempty"` // POST a JSON body to this URL
 }
 
+// Bandwidth caps a container's EGRESS (upload) network rate. Docker has no native
+// bandwidth API, so the monitor applies it with tc (tbf qdisc) inside the container's
+// network namespace; it is re-applied while the container runs and is lost on restart
+// until re-applied. EgressKbit <= 0 means no cap.
+type Bandwidth struct {
+	Name       string `json:"name"`
+	EgressKbit int    `json:"egress_kbit"`
+}
+
 // Config is the automation configuration the daemon acts on, persisted alongside
 // the plan on the flash. Empty = nothing scheduled/watched, no notifications.
 type Config struct {
-	Schedules []Schedule `json:"schedules"`
-	Watchdogs []Watchdog `json:"watchdogs"`
-	Notify    Notify     `json:"notify"`
+	Schedules  []Schedule  `json:"schedules"`
+	Watchdogs  []Watchdog  `json:"watchdogs"`
+	Bandwidths []Bandwidth `json:"bandwidths,omitempty"`
+	Notify     Notify      `json:"notify"`
 }
 
 // Stats is a one-shot resource snapshot for a container, for the live card gauges.

@@ -185,6 +185,19 @@ func TestLimitsAndCpuset(t *testing.T) {
 	}
 }
 
+func TestDemuxLogs(t *testing.T) {
+	// non-TTY: two frames [stream 0 0 0 size] + payload
+	framed := []byte{1, 0, 0, 0, 0, 0, 0, 5, 'h', 'e', 'l', 'l', 'o', 2, 0, 0, 0, 0, 0, 0, 3, 'e', 'r', 'r'}
+	if got := demuxLogs(framed); got != "helloerr" {
+		t.Fatalf("demuxLogs(framed) = %q, want %q", got, "helloerr")
+	}
+	// TTY / raw text (no valid header shape) is returned unchanged
+	raw := []byte("plain log line without framing")
+	if got := demuxLogs(raw); got != string(raw) {
+		t.Fatalf("demuxLogs(raw) = %q, want it unchanged", got)
+	}
+}
+
 func TestExitCodeFromStatus(t *testing.T) {
 	cases := map[string]int{
 		"Exited (0) 3 minutes ago":  0,

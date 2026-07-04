@@ -7,6 +7,7 @@ package monitor
 import (
 	"context"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -26,6 +27,16 @@ type ConfigSource interface {
 	LoadConfig() (model.Config, error)
 }
 
+// Pidder returns a container's host PID (for entering its network namespace).
+type Pidder interface {
+	PID(ctx context.Context, name string) (int, error)
+}
+
+// Shaper applies an egress rate limit (kbit) to the container whose process is pid.
+type Shaper interface {
+	Apply(pid, kbit int) error
+}
+
 // Notifier delivers an alert (Unraid notification and/or webhook per cfg).
 type Notifier interface {
 	Notify(ctx context.Context, cfg model.Notify, subject, desc, importance string)
@@ -36,6 +47,8 @@ type Monitor struct {
 	Docker   Docker
 	Config   ConfigSource
 	Notifier Notifier
+	Pidder   Pidder           // optional: container PID for bandwidth shaping
+	Shaper   Shaper           // optional: applies the egress rate limit
 	Interval time.Duration    // default 30s
 	Now      func() time.Time // injectable clock (tests)
 
@@ -43,6 +56,7 @@ type Monitor struct {
 	firedAt    map[string]string      // schedule key → "YYYY-MM-DD HH:MM" it last fired
 	restarts   map[string][]time.Time // watchdog restart timestamps per container (per-hour cap)
 	notifiedAt map[string]time.Time   // notify-throttle key → last time it was sent
+	shaped     map[string]bool        // containers we have an egress tc rule on (to clear on removal)
 }
 
 // notifyThrottle is how long the monitor waits before re-sending the same kind of
@@ -80,6 +94,99 @@ func (m *Monitor) Tick(ctx context.Context) {
 	}
 	m.tickSchedules(ctx, cfg)
 	m.tickWatchdogs(ctx, cfg)
+	m.tickBandwidths(ctx, cfg)
+}
+
+// tickBandwidths (re-)applies each configured egress rate limit to its running
+// container, and clears the rule from a container whose entry was removed. tc rules
+// live in the container's netns and are lost on restart, so we re-assert them every
+// tick (tc qdisc replace is idempotent). A container that SHARES a netns (--network=host
+// or =container:X) is skipped — shaping there would hit the HOST's or another
+// container's interface. Failures/skips are notified (throttled).
+func (m *Monitor) tickBandwidths(ctx context.Context, cfg model.Config) {
+	if m.Shaper == nil || m.Pidder == nil {
+		return
+	}
+	if len(cfg.Bandwidths) == 0 {
+		m.mu.Lock()
+		empty := len(m.shaped) == 0
+		m.mu.Unlock()
+		if empty {
+			return // nothing configured and nothing to clear
+		}
+	}
+	containers, err := m.Docker.List(ctx)
+	if err != nil {
+		return
+	}
+	state := make(map[string]model.Container, len(containers))
+	for _, c := range containers {
+		state[c.Name] = c
+	}
+	desired := make(map[string]int, len(cfg.Bandwidths))
+	for _, b := range cfg.Bandwidths {
+		if b.EgressKbit > 0 {
+			desired[b.Name] = b.EgressKbit
+		}
+	}
+	// clear rules for containers no longer in the desired set (best-effort; if the
+	// container is already stopped, its netns + qdisc are gone, so just forget it).
+	m.mu.Lock()
+	if m.shaped == nil {
+		m.shaped = map[string]bool{}
+	}
+	var toClear []string
+	for name := range m.shaped {
+		if _, ok := desired[name]; !ok {
+			toClear = append(toClear, name)
+		}
+	}
+	m.mu.Unlock()
+	for _, name := range toClear {
+		if c, ok := state[name]; ok && c.State == "running" && !sharedNetns(c) {
+			if pid, e := m.Pidder.PID(ctx, name); e == nil && pid > 0 {
+				_ = m.Shaper.Apply(pid, 0) // clear the qdisc
+			}
+		}
+		m.mu.Lock()
+		delete(m.shaped, name)
+		m.mu.Unlock()
+	}
+	// apply the desired rules to running, non-shared-netns containers
+	now := m.Now()
+	for name, kbit := range desired {
+		c, ok := state[name]
+		if !ok || c.State != "running" {
+			continue
+		}
+		if sharedNetns(c) {
+			if m.throttle(name+"|bwshared", now) && m.Notifier != nil {
+				m.Notifier.Notify(ctx, cfg.Notify, "Bandwidth not applied: "+name,
+					"Egress shaping is skipped for a host/container-network container (it would shape the host or another container).", "warning")
+			}
+			continue
+		}
+		pid, perr := m.Pidder.PID(ctx, name)
+		if perr != nil || pid <= 0 {
+			continue
+		}
+		if err := m.Shaper.Apply(pid, kbit); err != nil {
+			if m.throttle(name+"|bwfail", now) && m.Notifier != nil {
+				m.Notifier.Notify(ctx, cfg.Notify, "Bandwidth shaping failed: "+name, err.Error(), "warning")
+			}
+			continue
+		}
+		m.mu.Lock()
+		m.shaped[name] = true
+		m.mu.Unlock()
+	}
+}
+
+// sharedNetns reports whether a container shares another network namespace (the host's
+// or another container's), where entering it to run tc would shape the wrong interface.
+func sharedNetns(c model.Container) bool {
+	n := c.Network
+	return n == "host" || strings.HasPrefix(n, "container:")
 }
 
 func (m *Monitor) tickSchedules(ctx context.Context, cfg model.Config) {

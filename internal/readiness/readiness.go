@@ -42,7 +42,9 @@ type Prober struct {
 	Now       func() time.Time
 	Sleep     func(ctx context.Context, d time.Duration) bool // false → cancelled
 	Dial      func(ctx context.Context, addr string) (net.Conn, error)
-	HTTPGet   func(ctx context.Context, url string) (int, error) // status code, or err
+	HTTPGet   func(ctx context.Context, url string) (int, error)                // status code, or err
+	ExecCheck func(ctx context.Context, name string, cmd []string) (int, error) // exec exit code
+	GetLogs   func(ctx context.Context, name string, tail int) (string, error)  // recent container logs
 }
 
 func (p Prober) now() time.Time {
@@ -138,6 +140,10 @@ func (p Prober) probe(ctx context.Context, node model.Node, runningSince *time.T
 		return p.probeTCP(ctx, node)
 	case model.ProbeHTTP:
 		return p.probeHTTP(ctx, node)
+	case model.ProbeExec:
+		return p.probeExec(ctx, node)
+	case model.ProbeLog:
+		return p.probeLog(ctx, node)
 	case model.ProbeRunning:
 		return p.probeRunning(ctx, node, runningSince)
 	default: // ProbeHealth (and unknown) gate on the image's HEALTHCHECK
@@ -193,6 +199,46 @@ func (p Prober) probeHTTP(ctx context.Context, node model.Node) (bool, string) {
 		return true, "http " + strconv.Itoa(code)
 	}
 	return false, "http " + strconv.Itoa(code)
+}
+
+func (p Prober) probeExec(ctx context.Context, node model.Node) (bool, string) {
+	// A misconfigured exec probe (no command, or exec unavailable) must not stall the
+	// whole start plan for the timeout — fall back to "ready once running".
+	if p.ExecCheck == nil || node.Probe.Command == "" {
+		return p.readyIfRunning(ctx, node, "exec probe unset")
+	}
+	code, err := p.ExecCheck(ctx, node.Name, []string{"sh", "-c", node.Probe.Command})
+	if err != nil {
+		return false, "exec failed: " + err.Error()
+	}
+	if code == 0 {
+		return true, "exec exit 0"
+	}
+	return false, "exec exit " + strconv.Itoa(code)
+}
+
+func (p Prober) probeLog(ctx context.Context, node model.Node) (bool, string) {
+	if p.GetLogs == nil || node.Probe.Match == "" {
+		return p.readyIfRunning(ctx, node, "log probe unset")
+	}
+	logs, err := p.GetLogs(ctx, node.Name, 200)
+	if err != nil {
+		return false, "logs failed: " + err.Error()
+	}
+	if strings.Contains(logs, node.Probe.Match) {
+		return true, "log matched"
+	}
+	return false, "log marker not seen yet"
+}
+
+// readyIfRunning is the fallback for a probe that has nothing to check: a running
+// container is treated as ready (like probeHealth with no HEALTHCHECK), so a blank
+// probe field can't hang the plan.
+func (p Prober) readyIfRunning(ctx context.Context, node model.Node, why string) (bool, string) {
+	if snap, err := p.Inspector.Snapshot(ctx, node.Name); err == nil && snap.Running {
+		return true, why + " (running)"
+	}
+	return false, why
 }
 
 func (p Prober) probeRunning(ctx context.Context, node model.Node, runningSince *time.Time) (bool, string) {

@@ -298,6 +298,10 @@
         var c3 = tr.querySelector(":scope > td:nth-child(3)");
         if (c3) {
           var netTxt = readmoreText(tr, 3), ipTxt = readmoreText(tr, 4), portTxt = readmoreText(tr, 5), lanTxt = readmoreText(tr, 6);
+          // a STOPPED container has no runtime IP in the native cell, so fall back to
+          // the engine's value (the configured static br0.x IP, which survives a stop).
+          if (!ipTxt && c && c.ip) ipTxt = c.ip;
+          if (!netTxt && c && c.network) netTxt = c.network;
           var g = el("div", "cc-rowbadges cc-netgroup"); g.setAttribute(MARK, "1");
           if (netTxt) g.appendChild(badgeInfo("Netzwerk", netTxt, "net"));
           if (ipTxt) g.appendChild(badgeInfo("Container IP", ipTxt, "ip"));

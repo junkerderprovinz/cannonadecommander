@@ -76,7 +76,10 @@ type apiPort struct {
 }
 
 type apiNetwork struct {
-	IPAddress string `json:"IPAddress"`
+	IPAddress  string `json:"IPAddress"` // runtime IP (empty when the container is stopped)
+	IPAMConfig *struct {
+		IPv4Address string `json:"IPv4Address"` // the CONFIGURED static IP (e.g. a br0.x address) — survives a stop
+	} `json:"IPAMConfig"`
 }
 
 type apiContainer struct {
@@ -123,7 +126,10 @@ func (c *Client) List(ctx context.Context) ([]model.Container, error) {
 	return out, nil
 }
 
-// firstNetwork returns a deterministic primary network name + its IP.
+// firstNetwork returns a deterministic primary network name + its IP. For a
+// stopped container the runtime IPAddress is empty, so fall back to the configured
+// static IP (IPAMConfig) — that's the br0.x address the user assigned, which should
+// still show while the container is off.
 func firstNetwork(nets map[string]apiNetwork) (string, string) {
 	if len(nets) == 0 {
 		return "", ""
@@ -133,7 +139,12 @@ func firstNetwork(nets map[string]apiNetwork) (string, string) {
 		names = append(names, k)
 	}
 	sort.Strings(names)
-	return names[0], nets[names[0]].IPAddress
+	n := nets[names[0]]
+	ip := n.IPAddress
+	if ip == "" && n.IPAMConfig != nil {
+		ip = n.IPAMConfig.IPv4Address
+	}
+	return names[0], ip
 }
 
 // formatPorts renders published ports as "public:private/proto" (or just

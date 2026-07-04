@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.9.0">
+  <!ENTITY version   "0.9.1">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
@@ -30,6 +30,15 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.9.1
+- The native Unraid toggles in the Docker tab (the per-row AUTOSTART switch and the
+  Basic/Advanced view switch) are now styled to match: a clean accent pill with a
+  white knob, instead of Unraid's tiny grey slider. Only the look changes - Unraid
+  still drives the switch, so the click behaviour is untouched.
+- A stopped container now shows its IP again: Docker reports no runtime IP while a
+  container is off, so the engine falls back to the container's CONFIGURED static IP
+  (its br0.x address), which the Docker-tab badge then displays.
 
 ### 0.9.0
 - Second round of box-test UI fixes. The Settings page controls that Unraid's
@@ -252,7 +261,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>91a2542733aa2b16a72e5db5ee74f3fa3b55087dec22bb91a2a478b69a6ad3fb</SHA256>
+  <SHA256>dd77fd51d522582b11151c86ae50f3657c2969075fe0d4563e5b01a57780d3ca</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

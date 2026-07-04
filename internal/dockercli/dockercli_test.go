@@ -17,7 +17,7 @@ func testServer(t *testing.T) (*Client, *httptest.Server) {
 			{"Id":"aaa","Names":["/gluetun"],"Image":"qmcgaw/gluetun","State":"running","Status":"Up 2 hours (healthy)",
 			 "Ports":[{"PrivatePort":8000,"PublicPort":8888,"Type":"tcp"},{"PrivatePort":8000,"PublicPort":8888,"Type":"tcp"}],
 			 "NetworkSettings":{"Networks":{"br0.20":{"IPAddress":"192.168.20.51"}}}},
-			{"Id":"bbb","Names":["/sonarr"],"Image":"lscr.io/linuxserver/sonarr","State":"exited","Status":"Exited (0) 5 minutes ago"}
+			{"Id":"bbb","Names":["/sonarr"],"Image":"lscr.io/linuxserver/sonarr","State":"exited","Status":"Exited (0) 5 minutes ago","NetworkSettings":{"Networks":{"br0.20":{"IPAddress":"","IPAMConfig":{"IPv4Address":"192.168.20.9"}}}}}
 		]`))
 	})
 	mux.HandleFunc("/v1.44/containers/gluetun/json", func(w http.ResponseWriter, _ *http.Request) {
@@ -69,6 +69,10 @@ func TestList(t *testing.T) {
 	}
 	if cs[1].Name != "sonarr" || cs[1].State != "exited" || cs[1].Health != "" {
 		t.Fatalf("sonarr parsed wrong: %+v", cs[1])
+	}
+	// a stopped container has no runtime IP; fall back to the configured static IP
+	if cs[1].Network != "br0.20" || cs[1].IP != "192.168.20.9" {
+		t.Fatalf("stopped container should show its static IP, got %+v", cs[1])
 	}
 }
 

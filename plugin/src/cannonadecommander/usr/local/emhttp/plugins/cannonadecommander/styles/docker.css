@@ -280,6 +280,25 @@ select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repea
 .cc-enh.cc-c-version #docker_list tr.sortable td.updatecolumn > div.advanced:last-of-type,
 .cc-enh.cc-c-force   #docker_list tr.sortable td.updatecolumn a.exec { display: inline-flex !important; }
 
+/* native Unraid switchButtons (the per-row AUTOSTART toggle, and the Basic/Advanced
+   view toggle) restyled to a clean accent pill. Unraid's JS positions the knob via
+   an inline `left`, so we ONLY recolour + round + scale up — never touch the geometry
+   the JS drives, so the click behaviour is untouched. Reverts on teardown (cc-enh). */
+.cc-enh #docker_list .switch-button-background,
+.ToggleViewMode .switch-button-background {
+  border-radius: 999px !important; background: #3a3a3a !important;
+  display: inline-block; vertical-align: middle;
+  transform: scale(2.1); transform-origin: left center; margin: 0 32px 0 4px;
+  transition: background .15s;
+}
+.cc-enh #docker_list .switch-button-background.checked,
+.ToggleViewMode .switch-button-background.checked { background: var(--cc-accent, #2f6feb) !important; }
+.cc-enh #docker_list .switch-button-background .switch-button-button,
+.ToggleViewMode .switch-button-background .switch-button-button {
+  border-radius: 50% !important; background: #fff !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,.45); transition: left .15s;
+}
+
 /* ════════════════ SETTINGS PAGE (Settings > Utilities) ════════════════ */
 #cc-settings { --bg: #161616; --bg2: #1c1c1c; --line: #2a2a2a; --line2: #333; --txt: #e6e6e6; --dim: #9a9a9a; --dim2: #6f6f6f; color: var(--txt); font: 14px/1.5 "Segoe UI", system-ui, sans-serif; padding-bottom: 40px; }
 /* Unraid's global button CSS paints an orange border on every <button>; neutralise

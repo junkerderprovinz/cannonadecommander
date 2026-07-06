@@ -804,7 +804,12 @@
     closePop();
     var existing = workingPlan[name], node = existing || { name: name, after: [], probe: { kind: "health" }, policy: "abort" };
     var pop = el("div", "cc-pop"); if (localStorage.getItem("cc.rainbow") === "1") pop.classList.add("cc-rainbow");
-    var head = el("div", "cc-pop-head"); head.appendChild(el("b", null, name));
+    // NO container name and NO separator line in the head (explicit user call) — just the
+    // close ✕, slim and borderless.
+    var head = el("div", "cc-pop-head");
+    head.style.setProperty("border-bottom", "none", "important");
+    head.style.setProperty("padding", "6px 10px 0 10px", "important");
+    head.style.setProperty("justify-content", "flex-end", "important");
     var x = el("span", "cc-pop-x", "✕"); x.addEventListener("click", closePop); head.appendChild(x); pop.appendChild(head);
     // "Manage in the start plan" is a TOGGLE (not a checkbox). manageOn drives commit().
     var manageOn = !!existing;
@@ -909,6 +914,7 @@
     // Plan actions live here now (the Docker-tab gear is gone): save the whole plan
     // AND this container's automation, or run it in dependency order immediately.
     var act = el("div", "cc-pop-row cc-pop-act");
+    act.style.setProperty("border-top", "none", "important"); // no bottom separator line either (user call)
     var bSave = el("span", "cc-btn", t("save")), bRun = el("span", "cc-btn cc-btn-primary", t("startorder"));
     bSave.addEventListener("click", function () { saveEditor(name, readWatchdog(), readSchedules(), false); });
     bRun.addEventListener("click", function () { saveEditor(name, readWatchdog(), readSchedules(), true); });

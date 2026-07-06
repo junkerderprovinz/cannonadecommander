@@ -42,8 +42,10 @@
   };
   function t(k) { return (T[LANG] || T.en)[k] || T.en[k]; }
   var STATE_LABELS = {
-    de: { running: "läuft", exited: "gestoppt", created: "erstellt", paused: "pausiert", restarting: "startet neu", removing: "wird entfernt", dead: "tot" },
-    en: { running: "running", exited: "stopped", created: "created", paused: "paused", restarting: "restarting", removing: "removing", dead: "dead" },
+    // "created" (built but never started, e.g. right after an Unraid edit/recreate) reads
+    // as plain "stopped" — to the user it IS a stopped container ("bei gestoppten steht erstellt").
+    de: { running: "läuft", exited: "gestoppt", created: "gestoppt", paused: "pausiert", restarting: "startet neu", removing: "wird entfernt", dead: "tot" },
+    en: { running: "running", exited: "stopped", created: "stopped", paused: "paused", restarting: "restarting", removing: "removing", dead: "dead" },
   };
   function stateLabel(s) { var m = STATE_LABELS[LANG] || STATE_LABELS.en; return m[s] || s || "?"; }
 
@@ -63,7 +65,7 @@
   var hostCpus = 0, hostCoreOf = [], hostMem = 0; // the HOST's logical-CPU count + HT grouping + total RAM (from the engine)
   var hostPCores = [], hostECores = []; // Intel hybrid P/E-core CPU lists (empty on non-hybrid CPUs)
   var filterText = "", gridHolder = null, openPop = null, openPopAnchor = null, menu = null, menuAnchor = null, menuStatusEl = null, toastEl = null, toastTimer = null;
-  var mo = null, dead = false, lastAdv = false, timers = [], moPending = false, moTimer = null;
+  var mo = null, dead = false, lastAdv = false, timers = [], moPending = false, moTimer = null, lastObsLoad = 0;
 
   // ───────────────────────── api + helpers
   function api(method, path, body, query) {
@@ -289,11 +291,16 @@
     var ic = localStorage.getItem("cc.iconcolor"), m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(ic || "");
     var host = document.getElementById("cc-tint-svg");
     if (!m) { if (host) host.remove(); return false; }
-    var tr = (parseInt(m[1], 16) / 255).toFixed(4), tg = (parseInt(m[2], 16) / 255).toFixed(4), tb = (parseInt(m[3], 16) / 255).toFixed(4);
+    var tr = parseInt(m[1], 16) / 255, tg = parseInt(m[2], 16) / 255, tb = parseInt(m[3], 16) / 255;
     var s = (Math.max(10, parseInt(localStorage.getItem("cc.iconstrength") || "100", 10)) / 100).toFixed(3);
     if (!host) { host = document.createElement("div"); host.id = "cc-tint-svg"; host.setAttribute("aria-hidden", "true"); host.style.cssText = "position:absolute;width:0;height:0;overflow:hidden"; document.body.appendChild(host); }
+    // SHADING-PRESERVING tint: each output channel = the pixel's LUMINANCE × the target
+    // colour, so shadows stay dark and highlights stay bright in the chosen hue (the old
+    // matrix mapped every opaque pixel to ONE flat colour, losing all shading). The
+    // strength slider still blends the tinted result back over the original.
+    var lum = function (c) { return (0.2126 * c).toFixed(4) + " " + (0.7152 * c).toFixed(4) + " " + (0.0722 * c).toFixed(4); };
     host.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg"><filter id="cc-icon-tint" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%">'
-      + '<feColorMatrix in="SourceGraphic" type="matrix" result="flat" values="0 0 0 0 ' + tr + ' 0 0 0 0 ' + tg + ' 0 0 0 0 ' + tb + ' 0 0 0 1 0"/>'
+      + '<feColorMatrix in="SourceGraphic" type="matrix" result="flat" values="' + lum(tr) + ' 0 0 ' + lum(tg) + ' 0 0 ' + lum(tb) + ' 0 0 0 0 0 1 0"/>'
       + '<feComponentTransfer in="flat" result="faded"><feFuncA type="linear" slope="' + s + '"/></feComponentTransfer>'
       + '<feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="faded"/></feMerge>'
       + '</filter></svg>';
@@ -1110,6 +1117,12 @@
           moTimer = null;
           if (dead) { moPending = false; return; } // a teardown may have fired during the debounce window
           try { applyEnhanceClasses(); injectAllRowBadges(); } catch (e) {}
+          // A native-list rebuild usually means Unraid just FINISHED a container action
+          // (stop/start via ITS buttons/menu) — our state map is stale until the next 9s
+          // poll, so the re-injected badge showed the OLD state ("only switches after the
+          // page refreshes"). Pull fresh state now, throttled so our own idempotent
+          // re-injects can't turn this into a request loop.
+          try { if (Date.now() - lastObsLoad > 2000) { lastObsLoad = Date.now(); load(); } } catch (e) {}
           // release the guard AFTER our own DOM writes flush (defence vs a re-inject loop)
           Promise.resolve().then(function () { moPending = false; });
         }, 250);

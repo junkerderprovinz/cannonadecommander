@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.24.0">
+  <!ENTITY version   "0.25.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
@@ -30,6 +30,19 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.25.0
+- Icon tinting now KEEPS the icon's shading: each pixel becomes its brightness in the chosen
+  colour (shadows stay dark, highlights stay bright) instead of a flat one-colour silhouette.
+  Applies to container icons (list + grid) and VM icons alike.
+- State badges react to NATIVE Unraid actions too: when a container is stopped/started via
+  Unraid's own buttons/menu, the badge follows as soon as Unraid refreshes its list — not
+  only after the next 9-second poll ("only switches after the page refreshes").
+- A container in Docker's "created" state (built but never started, e.g. right after an
+  Unraid edit) now reads "gestoppt" like any stopped container — no more "erstellt".
+- The start-plan editor is formatted as CARDS: the plan fields, the watchdog and the
+  schedules each sit in their own tidy block, and the top rows sit close together instead
+  of drifting far apart.
 
 ### 0.24.0
 - CPU / RAM limits: setting AND removing now works on containers that were capped via the
@@ -498,7 +511,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>a5ddaa91947fb0d391a77f433fee9b9d5aa6f15863a9fa987b7576f1d5df1fcd</SHA256>
+  <SHA256>0a739e178725b75c7220420c390d72fa43d13880a7c8786c7b8fa17fccffd0c0</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

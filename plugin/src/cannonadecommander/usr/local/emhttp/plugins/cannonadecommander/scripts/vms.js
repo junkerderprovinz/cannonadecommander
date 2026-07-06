@@ -28,17 +28,19 @@
     var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(ls("cc.iconcolor") || "");
     var host = document.getElementById("cc-vm-tint-svg");
     if (dead || vmTintOff() || !m) { if (host) host.remove(); return false; }
-    var tr = (parseInt(m[1], 16) / 255).toFixed(4), tg = (parseInt(m[2], 16) / 255).toFixed(4), tb = (parseInt(m[3], 16) / 255).toFixed(4);
+    var tr = parseInt(m[1], 16) / 255, tg = parseInt(m[2], 16) / 255, tb = parseInt(m[3], 16) / 255;
     var s = (Math.max(10, parseInt(ls("cc.iconstrength") || "100", 10)) / 100).toFixed(3);
+    // shading-preserving: channel = luminance × target colour (matches docker.js)
+    var lum = function (c) { return (0.2126 * c).toFixed(4) + " " + (0.7152 * c).toFixed(4) + " " + (0.0722 * c).toFixed(4); };
     if (!host) { host = document.createElement("div"); host.id = "cc-vm-tint-svg"; host.setAttribute("aria-hidden", "true"); host.style.cssText = "position:absolute;width:0;height:0;overflow:hidden"; document.body.appendChild(host); }
     // IDEMPOTENT: only rewrite the SVG when the colour/strength actually changed. The host
     // lives on document.body; a blind innerHTML write on every apply() would be a DOM
     // mutation that — if an observer ever watched body — re-triggers apply() into a
     // ~300ms CPU-pegging loop (the classic non-idempotent-inject + MutationObserver trap).
-    var sig = tr + "|" + tg + "|" + tb + "|" + s;
+    var sig = tr + "|" + tg + "|" + tb + "|" + s + "|lum";
     if (host.dataset.sig !== sig) {
       host.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg"><filter id="cc-vm-icon-tint" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%">'
-        + '<feColorMatrix in="SourceGraphic" type="matrix" result="flat" values="0 0 0 0 ' + tr + ' 0 0 0 0 ' + tg + ' 0 0 0 0 ' + tb + ' 0 0 0 1 0"/>'
+        + '<feColorMatrix in="SourceGraphic" type="matrix" result="flat" values="' + lum(tr) + ' 0 0 ' + lum(tg) + ' 0 0 ' + lum(tb) + ' 0 0 0 0 0 1 0"/>'
         + '<feComponentTransfer in="flat" result="faded"><feFuncA type="linear" slope="' + s + '"/></feComponentTransfer>'
         + '<feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="faded"/></feMerge>'
         + '</filter></svg>';

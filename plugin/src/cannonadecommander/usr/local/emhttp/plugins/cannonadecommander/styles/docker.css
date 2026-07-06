@@ -44,8 +44,8 @@
 .cc-enh #docker_list tr.sortable td.ct-name .outer > span.hand { flex: none; display: flex; align-items: center; }
 /* object-fit:contain so a NON-square logo keeps its aspect ratio instead of being squashed
    into the 48x48 box ("verzogene Icons"); the glyph <i> keeps font-size, not object-fit. */
-.cc-enh #docker_list tr.sortable td.ct-name .outer > span.hand img { width: 48px !important; height: 48px !important; object-fit: contain !important; }
-.cc-enh #docker_list tr.sortable td.ct-name .outer > span.hand i.img { width: 48px !important; height: 48px !important; font-size: 48px !important; }
+.cc-enh #docker_list tr.sortable td.ct-name .outer > span.hand img { width: 62px !important; height: 62px !important; object-fit: contain !important; }
+.cc-enh #docker_list tr.sortable td.ct-name .outer > span.hand i.img { width: 62px !important; height: 62px !important; font-size: 62px !important; }
 .cc-enh #docker_list tr.sortable td.ct-name .inner { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; line-height: 1.2; min-width: 0; }
 .cc-enh #docker_list tr.sortable td.ct-name .inner br { display: none; }
 .cc-enh #docker_list tr.sortable td.ct-name .inner > i[id^='load-'],
@@ -58,7 +58,7 @@
 .cc-enh.cc-dens-compact .cc-rowbadges { gap: 3px; margin-top: 2px; }
 .cc-enh.cc-dens-compact .cc-namemeta, .cc-enh.cc-dens-compact .cc-resgroup, .cc-enh.cc-dens-compact .cc-netgroup { gap: 3px; }
 .cc-enh.cc-dens-compact .cc-b { margin-top: 1px; margin-bottom: 1px; padding-top: 2px; padding-bottom: 2px; }
-.cc-enh.cc-dens-compact #docker_list td.ct-name .img, .cc-enh.cc-dens-compact #docker_list td.ct-name img { max-height: 34px; object-fit: contain; }
+.cc-enh.cc-dens-compact #docker_list td.ct-name .img, .cc-enh.cc-dens-compact #docker_list td.ct-name img { max-height: 44px; object-fit: contain; }
 .cc-enh.cc-dens-airy .cc-rowbadges { gap: 8px; margin-top: 6px; }
 .cc-enh.cc-dens-airy .cc-namemeta, .cc-enh.cc-dens-airy .cc-resgroup, .cc-enh.cc-dens-airy .cc-netgroup { gap: 8px; }
 
@@ -191,7 +191,7 @@
 .cc-card { background: var(--cc-bg2); border: 1px solid var(--cc-line); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; transition: border-color .12s, transform .12s, box-shadow .12s; }
 .cc-card:hover { border-color: #3a3a3a; transform: translateY(-1px); box-shadow: 0 8px 22px rgba(0,0,0,.35); }
 .cc-card-head { display: flex; align-items: center; gap: 10px; }
-.cc-card-ico { width: 34px; height: 34px; border-radius: 7px; object-fit: contain; background: var(--cc-bg3); flex: none; }
+.cc-card-ico { width: 44px; height: 44px; border-radius: 7px; object-fit: contain; background: var(--cc-bg3); flex: none; }
 .cc-card-ico-ph { background: var(--cc-bg3); }
 .cc-card-name { flex: 1; min-width: 0; }
 .cc-card-title { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -265,6 +265,12 @@
 .cc-pop-err { display: none; margin: 8px 14px 2px; padding: 7px 9px; border-radius: 6px; background: rgba(220,53,69,.13); border: 1px solid rgba(220,53,69,.55); color: #ff7a7a; font-size: 12px; line-height: 1.45; word-break: break-word; white-space: pre-wrap; }
 /* the same slot in green: the VERIFIED applied values after a successful save */
 .cc-pop-err.cc-pop-ok { background: rgba(31,157,85,.14); border-color: rgba(31,157,85,.6); color: #4bd58a; }
+/* multi-select dropdown under "Hängt ab von": stays open, every click toggles a container */
+.cc-drop { position: absolute; z-index: 100001; background: #1c1c1c; border: 1px solid #3a3a3a; border-radius: 8px; box-shadow: 0 12px 30px rgba(0,0,0,.55); max-height: 220px; overflow: auto; padding: 4px; }
+.cc-drop-it { padding: 5px 11px; border-radius: 5px; font-size: 12px; color: #c9c9c9; cursor: pointer; white-space: nowrap; }
+.cc-drop-it:hover { background: #2a2a2a; color: #fff; }
+.cc-drop-on { color: var(--cc-accent, #6ea0ff); font-weight: 600; }
+.cc-drop-on::after { content: " ✓"; }
 /* ⓘ info bubble beside a dropdown label — hover/focus reveals a small explainer card that
    lists what each option (health/running/… · abort/continue/degrade) actually does. */
 .cc-lbl-info { display: inline-flex; align-items: center; gap: 6px; }

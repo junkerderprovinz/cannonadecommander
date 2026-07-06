@@ -334,7 +334,16 @@
     try {
       var f = iconFilter();
       var imgs = tintTargets();
-      for (var i = 0; i < imgs.length; i++) imgs[i].style.filter = f;
+      for (var i = 0; i < imgs.length; i++) {
+        var n = imgs[i];
+        n.style.filter = f;
+        // Size hardened INLINE (+30% per user call: 48 → 62px): Unraid's theme kept
+        // beating our stylesheet on the real page and the icons "shrank back".
+        n.style.setProperty("width", "62px", "important");
+        n.style.setProperty("height", "62px", "important");
+        if (n.tagName === "IMG") n.style.setProperty("object-fit", "contain", "important");
+        else n.style.setProperty("font-size", "62px", "important");
+      }
       if (gridHolder) { var g = gridHolder.querySelectorAll("img.cc-card-ico"); for (var j = 0; j < g.length; j++) g[j].style.filter = f; }
     } catch (e) {}
   }
@@ -724,7 +733,30 @@
   }
 
   // ───────────────────────── plan editor popover
-  function closePop() { if (openPop) { openPop.remove(); openPop = null; openPopAnchor = null; } }
+  // INLINE style hardening: Unraid's theme styles inputs/rows with selectors that beat
+  // our stylesheet on the REAL page (the harness renders looked right, the box didn't —
+  // "Abstände passen immer noch nicht", "Felder haben keinen helleren Hintergrund").
+  // Inline styles with priority "important" cannot be beaten by ANY stylesheet.
+  function hardenPop(root) {
+    try {
+      Array.prototype.slice.call(root.querySelectorAll(".cc-pop-row")).forEach(function (r) {
+        r.style.setProperty("padding", "3px 10px", "important");
+        r.style.setProperty("margin", "0", "important");
+      });
+      Array.prototype.slice.call(root.querySelectorAll(".cc-in")).forEach(function (i) {
+        i.style.setProperty("background", "#2e2e2e", "important");
+        i.style.setProperty("border", "none", "important");
+        i.style.setProperty("box-shadow", "none", "important");
+        i.style.setProperty("margin", "0", "important");
+        i.style.setProperty("min-height", "0", "important");
+        i.style.setProperty("height", "auto", "important");
+        i.style.setProperty("padding", "5px 8px", "important");
+        i.style.setProperty("border-radius", "6px", "important");
+        i.style.setProperty("line-height", "1.35", "important");
+      });
+    } catch (e) {}
+  }
+  function closePop() { if (openPop) { openPop.remove(); openPop = null; openPopAnchor = null; } Array.prototype.slice.call(document.querySelectorAll(".cc-drop")).forEach(function (n) { n.remove(); }); }
   // clicking the SAME badge again closes its popover (toggle). Returns true if it closed.
   function togglePop(anchor) { if (openPop && openPopAnchor === anchor) { closePop(); return true; } return false; }
   function refreshChip(chip, name) { var node = workingPlan[name]; chip.classList.toggle("cc-plan-on", !!node); var v = chip.querySelector(".cc-b-v"); if (v) v.textContent = depsTxt(node); }
@@ -763,9 +795,37 @@
     var mrow = el("div", "cc-pop-row cc-pop-toggle"); mrow.appendChild(el("span", "cc-pop-sech", t("manage"))); mrow.appendChild(el("span", "cc-set-spacer")); mrow.appendChild(manageTog); pop.appendChild(mrow);
     var body = el("div", "cc-pop-body" + (existing ? "" : " cc-dis"));
     var arow = el("div", "cc-pop-row"); arow.appendChild(el("label", "cc-pop-lbl", t("dependsOn")));
-    var after = el("input", "cc-in"); after.type = "text"; after.setAttribute("list", "cc-names"); after.placeholder = t("commaSep"); after.value = (node.after || []).join(", "); arow.appendChild(after); body.appendChild(arow);
-    // (No chip list here — the datalist popup is enough; a chip wall under the field
-    // just added height. Explicit user call.)
+    var after = el("input", "cc-in"); after.type = "text"; after.placeholder = t("commaSep"); after.value = (node.after || []).join(", "); arow.appendChild(after); body.appendChild(arow);
+    // MULTI-select dropdown (a native datalist replaces the whole value = only ONE
+    // container pickable): our own list opens on focus, every click TOGGLES a container
+    // in the comma list, and it stays open for picking several.
+    (function () {
+      var panel = null;
+      function closePanel() { if (panel) { panel.remove(); panel = null; document.removeEventListener("mousedown", onDoc, true); } }
+      function onDoc(e) { if (panel && !panel.contains(e.target) && e.target !== after) closePanel(); }
+      function vals() { return after.value.split(",").map(function (s2) { return s2.trim(); }).filter(Boolean); }
+      after.addEventListener("focus", function () {
+        if (panel) return;
+        panel = el("div", "cc-drop");
+        containerNames.forEach(function (n2) {
+          if (n2 === name) return;
+          var it = el("div", "cc-drop-it", n2);
+          var sync = function () { it.classList.toggle("cc-drop-on", vals().indexOf(n2) >= 0); };
+          sync();
+          it.addEventListener("mousedown", function (ev) {
+            ev.preventDefault(); ev.stopPropagation(); // keep focus, keep the panel open
+            var l2 = vals(), ix = l2.indexOf(n2);
+            if (ix >= 0) l2.splice(ix, 1); else l2.push(n2);
+            after.value = l2.join(", "); sync(); commit();
+          });
+          panel.appendChild(it);
+        });
+        var r2 = after.getBoundingClientRect();
+        panel.style.left = (window.scrollX + r2.left) + "px"; panel.style.top = (window.scrollY + r2.bottom + 3) + "px"; panel.style.minWidth = r2.width + "px";
+        document.body.appendChild(panel);
+        document.addEventListener("mousedown", onDoc, true);
+      });
+    })();
     var drow = el("div", "cc-pop-row"); drow.appendChild(el("label", "cc-pop-lbl", t("startDelay")));
     var delay = el("input", "cc-in cc-port"); delay.type = "number"; delay.min = "0"; delay.placeholder = "sec"; delay.value = node.delay_seconds ? node.delay_seconds : "";
     drow.appendChild(delay); drow.appendChild(el("span", null, " " + t("secWait"))); body.appendChild(drow);
@@ -854,7 +914,7 @@
       var rbc = ["#1f9d55", "#2f6feb", "#8b5cf6", "#e0912a", "#d9433f", "#0ea5a4"];
       Array.prototype.slice.call(pop.querySelectorAll("input[type=checkbox]")).forEach(function (cb, i) { cb.style.accentColor = rbc[i % rbc.length]; });
     }
-    document.body.appendChild(pop);
+    document.body.appendChild(pop); hardenPop(pop);
     var r = anchor.getBoundingClientRect(), w = pop.offsetWidth || 320;
     pop.style.left = Math.max(window.scrollX + 8, Math.min(window.scrollX + r.left, window.scrollX + document.documentElement.clientWidth - w - 12)) + "px";
     pop.style.top = (window.scrollY + r.bottom + 6) + "px"; openPop = pop; openPopAnchor = anchor;
@@ -914,7 +974,7 @@
     var rem = el("span", "cc-btn", t("removeLim")); rem.addEventListener("click", function () { saveBandwidth(name, 0, 0); });
     var save = el("span", "cc-btn cc-btn-primary", t("saveShort")); save.addEventListener("click", function () { saveBandwidth(name, readKbit(upIn), 0); });
     srow.appendChild(rem); srow.appendChild(save); pop.appendChild(srow);
-    document.body.appendChild(pop);
+    document.body.appendChild(pop); hardenPop(pop);
     var r = anchor.getBoundingClientRect(), w = pop.offsetWidth || 300;
     pop.style.left = Math.max(window.scrollX + 8, Math.min(window.scrollX + r.left, window.scrollX + document.documentElement.clientWidth - w - 12)) + "px";
     pop.style.top = (window.scrollY + r.bottom + 6) + "px"; openPop = pop; openPopAnchor = anchor;
@@ -1097,7 +1157,7 @@
       submitLimits(payload);
     });
     srow.appendChild(rem); srow.appendChild(save); pop.appendChild(srow);
-    document.body.appendChild(pop);
+    document.body.appendChild(pop); hardenPop(pop);
     var r = anchor.getBoundingClientRect(), w = pop.offsetWidth || 340;
     pop.style.left = Math.max(window.scrollX + 8, Math.min(window.scrollX + r.left, window.scrollX + document.documentElement.clientWidth - w - 12)) + "px";
     pop.style.top = (window.scrollY + r.bottom + 6) + "px"; openPop = pop; openPopAnchor = anchor;

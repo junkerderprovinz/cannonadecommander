@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.30.0">
+  <!ENTITY version   "0.31.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
@@ -30,6 +30,20 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.31.0
+- Editor styling is now applied INLINE on every popup element: Unraid's own theme was
+  overriding our stylesheet on the real page (which is why row gaps and field styling kept
+  "coming back" despite fixes that rendered correctly in isolation). Tight rows and
+  borderless, lighter input fields can no longer be beaten by any theme.
+- Container icons are 30% bigger (62px) and their size is likewise enforced inline - they
+  cannot shrink back again.
+- "Haengt ab von" now has a real MULTI-select dropdown: it opens on focus, every click
+  toggles a container in the list, and it stays open to pick several (a native suggestion
+  list could only ever insert ONE).
+- CI now PROVES the CPU/RAM limit chain against a REAL docker daemon on every push: set,
+  raise past the auto swap cap, remove, quota-family CPU, NanoCpus + pinning, first-time
+  cap - all asserted via docker inspect.
 
 ### 0.30.0
 - Editor input fields have NO border anymore - just a lighter background (focus = accent ring).
@@ -565,7 +579,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>e167c6e0405be7531b259a47f30ea0a26597d6bb11726d243cc65f6bbd1c7c8b</SHA256>
+  <SHA256>2e88099df009237c1d12d47b9d589a2395e3f4d7462a194bf751143892c6f8f3</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

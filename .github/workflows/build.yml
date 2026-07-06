@@ -43,6 +43,38 @@ jobs:
           echo "✅ supervisor booted and served /api/health + /api/state"
           kill "$PID" || true
 
+      # END-TO-END limits proof against a REAL dockerd (the runner ships docker): the
+      # daemon must set, raise and REMOVE CPU/RAM caps on real containers — including
+      # the "Extra Parameters" cases (--memory with its auto swap cap, --cpu-quota) that
+      # broke on the box. If this is green, the daemon→docker chain provably works.
+      - name: Limits integration — real docker
+        run: |
+          set -euo pipefail
+          BIN=plugin/src/cannonadecommander/usr/local/emhttp/plugins/cannonadecommander/bin/cannonadecommander
+          CC_SOCK=/tmp/cc-int.sock CC_DATA_DIR=/tmp/ccdata-int "$BIN" serve &
+          for _ in $(seq 1 20); do [ -S /tmp/cc-int.sock ] && break; sleep 0.5; done
+          CURL="curl -fsS --unix-socket /tmp/cc-int.sock"
+          docker run -d --name cc_mem --memory 1g busybox sleep 300
+          docker run -d --name cc_quota --cpu-quota 150000 --cpu-period 100000 busybox sleep 300
+          docker run -d --name cc_plain busybox sleep 300
+          # RAM: raise past the stored auto swap cap (2G > 2×1G? no — use 4G to be sure)
+          $CURL -X POST -d '{"name":"cc_mem","mem_bytes":4294967296}' http://localhost/api/limits
+          [ "$(docker inspect -f '{{.HostConfig.Memory}}' cc_mem)" = "4294967296" ] || { echo "RAM raise FAILED"; exit 1; }
+          # RAM: remove (engine sets host RAM) — must exceed any stored swap cap
+          $CURL -X POST -d '{"name":"cc_mem","remove_mem":true}' http://localhost/api/limits
+          M=$(docker inspect -f '{{.HostConfig.Memory}}' cc_mem); [ "$M" -gt 4294967296 ] || { echo "RAM remove FAILED (Memory=$M)"; exit 1; }
+          # CPU on a quota-family container → expressed as quota = cpus × period
+          $CURL -X POST -d '{"name":"cc_quota","nano_cpus":2500000000}' http://localhost/api/limits
+          [ "$(docker inspect -f '{{.HostConfig.CpuQuota}}' cc_quota)" = "250000" ] || { echo "CPU quota-family FAILED"; exit 1; }
+          # CPU + cpuset on a plain container → NanoCpus + pinning
+          $CURL -X POST -d '{"name":"cc_plain","nano_cpus":1500000000,"cpuset_cpus":"0-1"}' http://localhost/api/limits
+          [ "$(docker inspect -f '{{.HostConfig.NanoCpus}}' cc_plain)" = "1500000000" ] || { echo "CPU NanoCpus FAILED"; exit 1; }
+          [ "$(docker inspect -f '{{.HostConfig.CpusetCpus}}' cc_plain)" = "0-1" ] || { echo "cpuset FAILED"; exit 1; }
+          # first-time RAM cap on a NEVER-capped container (stored swap 0 — the raw-compare trap)
+          $CURL -X POST -d '{"name":"cc_plain","mem_bytes":2147483648}' http://localhost/api/limits
+          [ "$(docker inspect -f '{{.HostConfig.Memory}}' cc_plain)" = "2147483648" ] || { echo "first RAM cap FAILED"; exit 1; }
+          echo "✅ limits set/raise/remove PROVEN against real dockerd"
+
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
         with:

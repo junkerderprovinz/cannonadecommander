@@ -787,6 +787,13 @@
         });
       });
       Array.prototype.slice.call(root.querySelectorAll(".cc-in")).forEach(function (i) {
+        // narrow fields (delay, max/h, port, unit, schedule) keep their SHORT width —
+        // enforced inline, since the stylesheet width loses to Unraid's input rules
+        // ("Startverzögerung und max./Std. sind zu lang").
+        if (i.classList.contains("cc-port")) { i.style.setProperty("width", "80px", "important"); i.style.setProperty("flex", "0 0 auto", "important"); }
+        else if (i.classList.contains("cc-unit")) { i.style.setProperty("width", "68px", "important"); i.style.setProperty("flex", "0 0 auto", "important"); }
+        else if (i.classList.contains("cc-sched-act")) { i.style.setProperty("width", "92px", "important"); i.style.setProperty("flex", "0 0 auto", "important"); }
+        else if (i.classList.contains("cc-sched-time")) { i.style.setProperty("width", "100px", "important"); i.style.setProperty("flex", "0 0 auto", "important"); }
         i.style.setProperty("min-width", "0", "important");
         i.style.setProperty("max-width", "100%", "important");
         i.style.setProperty("box-sizing", "border-box", "important");

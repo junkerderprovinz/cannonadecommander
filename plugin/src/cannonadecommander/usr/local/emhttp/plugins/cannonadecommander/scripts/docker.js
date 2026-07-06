@@ -742,6 +742,19 @@
       Array.prototype.slice.call(root.querySelectorAll(".cc-pop-row")).forEach(function (r) {
         r.style.setProperty("padding", "3px 10px", "important");
         r.style.setProperty("margin", "0", "important");
+        // the row itself: one tight flex line, nothing may wrap or stretch it
+        r.style.setProperty("display", "flex", "important");
+        r.style.setProperty("align-items", "center", "important");
+        r.style.setProperty("flex-wrap", "nowrap", "important");
+        r.style.setProperty("min-height", "0", "important");
+        r.style.setProperty("row-gap", "0", "important");
+        // EVERY child (labels and spans too, not only .cc-in): the remaining gaps sat
+        // exactly after the text-input rows — some child still carried theme margins.
+        Array.prototype.slice.call(r.children).forEach(function (ch) {
+          ch.style.setProperty("margin", "0", "important");
+          ch.style.setProperty("line-height", "1.4", "important");
+          ch.style.setProperty("min-height", "0", "important");
+        });
       });
       Array.prototype.slice.call(root.querySelectorAll(".cc-in")).forEach(function (i) {
         i.style.setProperty("background", "#2e2e2e", "important");
@@ -828,7 +841,9 @@
     })();
     var drow = el("div", "cc-pop-row"); drow.appendChild(el("label", "cc-pop-lbl", t("startDelay")));
     var delay = el("input", "cc-in cc-port"); delay.type = "number"; delay.min = "0"; delay.placeholder = "sec"; delay.value = node.delay_seconds ? node.delay_seconds : "";
-    drow.appendChild(delay); drow.appendChild(el("span", null, " " + t("secWait"))); body.appendChild(drow);
+    // no trailing "sec to wait" span: the placeholder already says "sec", and the extra
+    // flex child could wrap and double the row height (one source of the stubborn gap).
+    drow.appendChild(delay); body.appendChild(drow);
     var prow = el("div", "cc-pop-row"); prow.appendChild(lblInfo(t("readyWhen"), probeItems()));
     var probe = el("select", "cc-in"); PROBES.forEach(function (p) { var o = el("option", null, p); o.value = p; if (node.probe && node.probe.kind === p) o.selected = true; probe.appendChild(o); });
     var port = el("input", "cc-in cc-port"); port.type = "number"; port.placeholder = "port"; port.value = (node.probe && node.probe.port) ? node.probe.port : "";

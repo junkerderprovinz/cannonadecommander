@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.26.0">
+  <!ENTITY version   "0.27.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
@@ -30,6 +30,17 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.27.0
+- Every CPU/RAM limit change is now VERIFIED and LOGGED: after a save the editor shows the
+  values docker actually applied (a green line), and a new "Diagnostics: CPU/RAM limits"
+  card on the Settings page lists the recent limit operations with docker's exact result -
+  so "did it apply, and if not why" is readable at any time, not only in a fleeting popup.
+- The colour picker is PERMANENTLY EMBEDDED on the Settings page (a saturation/value field
+  plus a hue bar, always visible) - no more OS colour dialog opening in its own window.
+- The start-plan editor rows sit tight together (Unraid's global input margins are now
+  overridden hard), and the "Hängt ab von" field has ONE-CLICK container chips underneath -
+  no more double-clicking to open the suggestion list.
 
 ### 0.26.0
 - The native "apply update" button is back. Our styling hid EVERY update-column action link
@@ -518,7 +529,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>e70f1ddf4f794a374d1a4e6a4fd4cc6eb727dcb593e4e5d59cfb27ad43144f49</SHA256>
+  <SHA256>578152ebce02b1b8583c1be302a4e5d2855c9647f2ae751cba1d204347893335</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

@@ -6,9 +6,11 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/junkerderprovinz/cannonadecommander/internal/hostcpu"
 	"github.com/junkerderprovinz/cannonadecommander/internal/model"
@@ -66,6 +68,9 @@ type Server struct {
 
 	mu      sync.Mutex
 	lastRun model.RunResult
+
+	opsMu    sync.Mutex
+	limitOps []limitOp // last limit operations, for the Settings diagnostics card
 }
 
 // Handler returns the HTTP router.
@@ -81,6 +86,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/action", s.handleAction)
 	mux.HandleFunc("GET /api/stats", s.handleStats)
 	mux.HandleFunc("GET /api/limits", s.handleGetLimits)
+	mux.HandleFunc("GET /api/limitlog", s.handleLimitLog)
 	mux.HandleFunc("POST /api/limits", s.handleSetLimits)
 	mux.HandleFunc("GET /api/config", s.handleGetConfig)
 	mux.HandleFunc("PUT /api/config", s.handlePutConfig)
@@ -401,11 +407,62 @@ func (s *Server) handleSetLimits(w http.ResponseWriter, r *http.Request) {
 			_ = unraidtmpl.SetExtraParams(s.TemplatesDir, req.Name, flags)
 		}
 	}
+	// Every limit operation is RECORDED (ring buffer + supervisor log) and, on success,
+	// VERIFIED by re-reading the container's live caps — so "did it actually apply?" is
+	// answerable from the Settings diagnostics card instead of a fleeting popup.
+	reqTxt := "mem=" + strconv.FormatInt(req.MemBytes, 10) + " nano=" + strconv.FormatInt(req.NanoCPUs, 10) + " cpuset=" + req.CpusetCPUs
+	if req.RemoveMem {
+		reqTxt += " remove_mem"
+	}
+	if req.RemoveCPU {
+		reqTxt += " remove_cpu"
+	}
 	if err := s.Docker.UpdateResources(r.Context(), req.Name, model.Limits{MemBytes: req.MemBytes, NanoCPUs: req.NanoCPUs, CpusetCPUs: req.CpusetCPUs}); err != nil {
+		s.recordOp(req.Name, reqTxt, err.Error(), "")
 		writeErr(w, http.StatusInternalServerError, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	after := map[string]any{"status": "ok"}
+	afterTxt := ""
+	if l, e := s.Docker.Limits(r.Context(), req.Name); e == nil {
+		after["after_mem"] = l.MemBytes
+		after["after_nano"] = l.NanoCPUs
+		after["after_cpuset"] = l.CpusetCPUs
+		afterTxt = "mem=" + strconv.FormatInt(l.MemBytes, 10) + " nano=" + strconv.FormatInt(l.NanoCPUs, 10) + " cpuset=" + l.CpusetCPUs
+	}
+	s.recordOp(req.Name, reqTxt, "ok", afterTxt)
+	writeJSON(w, http.StatusOK, after)
+}
+
+// limitOp is one recorded limit change (for the Settings diagnostics card).
+type limitOp struct {
+	Time   string `json:"time"`
+	Name   string `json:"name"`
+	Req    string `json:"req"`
+	Result string `json:"result"`
+	After  string `json:"after,omitempty"`
+}
+
+func (s *Server) recordOp(name, req, result, after string) {
+	log.Printf("limits: %s: %s -> %s %s", name, req, result, after)
+	s.opsMu.Lock()
+	defer s.opsMu.Unlock()
+	s.limitOps = append(s.limitOps, limitOp{Time: time.Now().Format("15:04:05"), Name: name, Req: req, Result: result, After: after})
+	if len(s.limitOps) > 20 {
+		s.limitOps = s.limitOps[len(s.limitOps)-20:]
+	}
+}
+
+// handleLimitLog returns the last recorded limit operations, newest first.
+func (s *Server) handleLimitLog(w http.ResponseWriter, _ *http.Request) {
+	s.opsMu.Lock()
+	out := make([]limitOp, len(s.limitOps))
+	copy(out, s.limitOps)
+	s.opsMu.Unlock()
+	for i, j := 0, len(out)-1; i < j; i, j = i+1, j-1 {
+		out[i], out[j] = out[j], out[i]
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 // handleGetConfig returns the automation config (schedules / watchdogs / notify).

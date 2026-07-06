@@ -263,6 +263,14 @@
 .cc-pop-foot { padding: 9px 14px; border-top: 1px solid #2a2a2a; color: #8a8a8a; font-size: 11px; }
 /* backend/Docker rejection — stays on screen (not a 2.6s toast) so the exact reason is readable, and wraps long messages */
 .cc-pop-err { display: none; margin: 8px 14px 2px; padding: 7px 9px; border-radius: 6px; background: rgba(220,53,69,.13); border: 1px solid rgba(220,53,69,.55); color: #ff7a7a; font-size: 12px; line-height: 1.45; word-break: break-word; white-space: pre-wrap; }
+/* the same slot in green: the VERIFIED applied values after a successful save */
+.cc-pop-err.cc-pop-ok { background: rgba(31,157,85,.14); border-color: rgba(31,157,85,.6); color: #4bd58a; }
+/* one-click dependency chips under "Hängt ab von" */
+.cc-dep-row { align-items: flex-start; }
+.cc-dep-chips { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; max-height: 88px; overflow: auto; }
+.cc-dep-chip { background: #242424; border: 1px solid #333; border-radius: 999px; padding: 2px 9px; font-size: 11px; color: #9a9a9a; cursor: pointer; user-select: none; }
+.cc-dep-chip:hover { border-color: var(--cc-accent, #2f6feb); color: #e6e6e6; }
+.cc-dep-chip-on { background: var(--cc-accent, #2f6feb); color: var(--cc-accent-text, #fff); border-color: var(--cc-accent, #2f6feb); }
 /* ⓘ info bubble beside a dropdown label — hover/focus reveals a small explainer card that
    lists what each option (health/running/… · abort/continue/degrade) actually does. */
 .cc-lbl-info { display: inline-flex; align-items: center; gap: 6px; }
@@ -284,8 +292,11 @@ select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repea
 /* Plan editor: each section is a CARD (like the schedule rows) — plan fields, watchdog and
    schedules get their own bordered block, rows sit tight instead of drifting apart. */
 .cc-pop-body { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; margin: 10px 14px 6px; padding: 3px 0; }
-.cc-pop-body .cc-pop-row { padding: 6px 10px; }
-.cc-pop-body .cc-pop-row * { margin-top: 0; margin-bottom: 0; } /* Unraid's global input/label margins pushed the rows apart */
+/* Unraid's theme gives inputs/labels chunky margins+min-heights that pushed the editor rows
+   far apart — force them flat (!important: Unraid's sheet can load after ours). */
+.cc-pop-body .cc-pop-row, .cc-pop-auto .cc-pop-row { padding: 5px 10px !important; }
+.cc-pop .cc-pop-row > *, .cc-pop .cc-pop-row .cc-in { margin-top: 0 !important; margin-bottom: 0 !important; min-height: 0 !important; }
+.cc-pop .cc-in { padding-top: 5px !important; padding-bottom: 5px !important; line-height: 1.35 !important; }
 .cc-pop-auto { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; margin: 6px 14px; padding: 5px 0 7px; border-top: 1px solid #2a2a2a; }
 .cc-pop-auto .cc-pop-row { padding: 5px 10px; }
 .cc-pop-auto .cc-pop-lbl { width: 90px; }
@@ -494,6 +505,18 @@ select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repea
 .cc-set-prev { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
 .cc-set-mini { background: transparent; color: var(--dim); border: 1px solid var(--line2); border-radius: 7px; padding: 5px 12px; font-size: 12.5px; cursor: pointer; }
 .cc-set-mini-on { color: #fff; border-color: var(--cc-accent, #2f6feb); background: rgba(255,255,255,.05); }
+/* limit-diagnostics card: monospace log lines, red on a docker rejection */
+.cc-set-diag { font-family: Consolas, "SFMono-Regular", monospace; font-size: 11px; line-height: 1.6; color: #b9b9b9; max-height: 200px; overflow: auto; }
+.cc-set-diag-row { white-space: pre-wrap; word-break: break-word; padding: 2px 0; border-bottom: 1px solid #242424; }
+.cc-set-diag-bad { color: #ff7a7a; }
+/* PERMANENTLY EMBEDDED colour picker (no OS popup window): a saturation/value square +
+   a hue bar, drawn with CSS gradients, draggable dots. Replaces <input type=color>. */
+.cc-ip { flex: 1; min-width: 190px; }
+.cc-ip-sv { position: relative; height: 112px; border-radius: 8px; border: 1px solid #2a2a2a; cursor: crosshair; }
+.cc-ip-dot { position: absolute; width: 12px; height: 12px; border: 2px solid #fff; border-radius: 50%; margin: -6px 0 0 -6px; box-shadow: 0 0 3px rgba(0,0,0,.8); pointer-events: none; }
+.cc-ip-hue { position: relative; height: 14px; margin-top: 8px; border-radius: 999px; background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00); cursor: pointer; }
+.cc-ip-hdot { position: absolute; top: -2px; width: 8px; height: 18px; margin-left: -4px; background: #fff; border-radius: 3px; box-shadow: 0 0 3px rgba(0,0,0,.8); pointer-events: none; }
+#cc-settings .cc-set-pickrow { align-items: flex-start; }
 .cc-set-toggle { width: 44px; height: 24px; border-radius: 999px; border: none !important; padding: 0 !important; background: #3a3a3a; position: relative; cursor: pointer; transition: background .15s; flex: none; box-sizing: border-box; }
 .cc-set-toggle-on { background: var(--cc-accent, #2f6feb); }
 /* in rainbow mode the ON toggles wear the rainbow, matching the badge scheme */

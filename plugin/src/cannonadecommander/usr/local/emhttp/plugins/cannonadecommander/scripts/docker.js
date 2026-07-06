@@ -744,6 +744,23 @@
     var body = el("div", "cc-pop-body" + (existing ? "" : " cc-dis"));
     var arow = el("div", "cc-pop-row"); arow.appendChild(el("label", "cc-pop-lbl", t("dependsOn")));
     var after = el("input", "cc-in"); after.type = "text"; after.setAttribute("list", "cc-names"); after.placeholder = t("commaSep"); after.value = (node.after || []).join(", "); arow.appendChild(after); body.appendChild(arow);
+    // ONE-CLICK container chips under the field (a datalist needs a second click to open —
+    // "muss man zweimal anklicken"): clicking a chip toggles that container in the list.
+    var chipWrap = el("div", "cc-dep-chips");
+    function chipSync() { var cur2 = after.value.split(",").map(function (s2) { return s2.trim(); }).filter(Boolean); Array.prototype.slice.call(chipWrap.children).forEach(function (ch) { ch.classList.toggle("cc-dep-chip-on", cur2.indexOf(ch.textContent) >= 0); }); }
+    containerNames.forEach(function (n2) {
+      if (n2 === name) return;
+      var ch = el("span", "cc-dep-chip", n2);
+      ch.addEventListener("click", function () {
+        var list2 = after.value.split(",").map(function (s2) { return s2.trim(); }).filter(Boolean);
+        var ix = list2.indexOf(n2);
+        if (ix >= 0) list2.splice(ix, 1); else list2.push(n2);
+        after.value = list2.join(", "); chipSync(); commit();
+      });
+      chipWrap.appendChild(ch);
+    });
+    var crow2 = el("div", "cc-pop-row cc-dep-row"); crow2.appendChild(el("label", "cc-pop-lbl", "")); crow2.appendChild(chipWrap); body.appendChild(crow2);
+    after.addEventListener("input", chipSync); chipSync();
     var drow = el("div", "cc-pop-row"); drow.appendChild(el("label", "cc-pop-lbl", t("startDelay")));
     var delay = el("input", "cc-in cc-port"); delay.type = "number"; delay.min = "0"; delay.placeholder = "sec"; delay.value = node.delay_seconds ? node.delay_seconds : "";
     drow.appendChild(delay); drow.appendChild(el("span", null, " " + t("secWait"))); body.appendChild(drow);
@@ -906,9 +923,16 @@
     var p = openPop; if (!p) { flash("Error: " + m, true); return; }
     var box = p.querySelector(".cc-pop-err");
     if (!box) { box = el("div", "cc-pop-err"); var foot = p.querySelector(".cc-pop-foot"); if (foot && foot.nextSibling) p.insertBefore(box, foot.nextSibling); else p.appendChild(box); }
-    box.textContent = "✕ " + m; box.style.display = "block";
+    box.classList.remove("cc-pop-ok"); box.textContent = "✕ " + m; box.style.display = "block";
   }
-  function popClearError() { var p = openPop; if (!p) return; var box = p.querySelector(".cc-pop-err"); if (box) { box.textContent = ""; box.style.display = "none"; } }
+  function popClearError() { var p = openPop; if (!p) return; var box = p.querySelector(".cc-pop-err"); if (box) { box.textContent = ""; box.style.display = "none"; box.classList.remove("cc-pop-ok"); } }
+  // Green confirmation in the SAME slot as the error line — the verified applied values.
+  function popOk(msg) {
+    var p = openPop; if (!p) { flash(msg); return; }
+    var box = p.querySelector(".cc-pop-err");
+    if (!box) { box = el("div", "cc-pop-err"); var foot = p.querySelector(".cc-pop-foot"); if (foot && foot.nextSibling) p.insertBefore(box, foot.nextSibling); else p.appendChild(box); }
+    box.classList.add("cc-pop-ok"); box.textContent = msg; box.style.display = "block";
+  }
   // Persist ONE container's up/down caps (0/0 = remove), read-modify-write against the LIVE
   // config so schedules/watchdogs/notify/shape_iface and every other container survive.
   function saveBandwidth(name, egressKbit, ingressKbit) {
@@ -993,8 +1017,19 @@
     pop.appendChild(el("div", "cc-pop-foot", t("limitsFoot")));
     function submitLimits(payload) {
       popClearError(); flash(t("saving")); api("POST", "limits", payload)
-        .then(function () { flash(t("done")); closePop(); return loadLimits(); })
-        .then(function () { if (mode === "list") reinjectRowBadges(); else renderGrid(); })
+        .then(function (resp) {
+          // The engine now VERIFIES the change by re-reading the live caps and returns
+          // them — show the confirmed values in green so "did it apply?" is answered
+          // right in the editor, then close.
+          var msg = "✓ " + (LANG === "de" ? "Angewendet" : "Applied");
+          if (resp && resp.after_mem != null) {
+            msg += " · RAM " + humanBytes(resp.after_mem);
+            if (resp.after_nano > 0) msg += " · CPU " + (Math.round(resp.after_nano / 1e7) / 100);
+            if (resp.after_cpuset) msg += " · " + resp.after_cpuset;
+          }
+          popOk(msg); flash(t("done")); return loadLimits();
+        })
+        .then(function () { if (mode === "list") reinjectRowBadges(); else renderGrid(); setTimeout(closePop, 1800); })
         .catch(function (e) { popError(e); });
     }
     var srow = el("div", "cc-pop-row cc-pop-act");

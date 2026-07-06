@@ -59,6 +59,51 @@
       return r.text().then(function (tx) { var d = null; try { d = tx ? JSON.parse(tx) : null; } catch (e) {} if (!r.ok) throw new Error((d && d.error) || ("HTTP " + r.status)); return d; });
     });
   }
+  // ── permanently embedded colour picker (no OS popup window) ──
+  function hexToHsv(hex) {
+    var m = /^#?([0-9a-f]{6})$/i.exec(hex || ""); if (!m) return null;
+    var n = parseInt(m[1], 16), r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
+    var mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn, h = 0;
+    if (d) { if (mx === r) h = 60 * (((g - b) / d) % 6); else if (mx === g) h = 60 * ((b - r) / d + 2); else h = 60 * ((r - g) / d + 4); }
+    if (h < 0) h += 360;
+    return { h: h, s: mx ? d / mx : 0, v: mx };
+  }
+  function hsvToHex(h, s, v) {
+    var c = v * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = v - c, r = 0, g = 0, b = 0;
+    if (h < 60) { r = c; g = x; } else if (h < 120) { r = x; g = c; } else if (h < 180) { g = c; b = x; }
+    else if (h < 240) { g = x; b = c; } else if (h < 300) { r = x; b = c; } else { r = c; b = x; }
+    var f = function (u) { return ("0" + Math.round((u + m) * 255).toString(16)).slice(-2); };
+    return "#" + f(r) + f(g) + f(b);
+  }
+  // An always-visible SV-square + hue bar; el._set(hex) syncs it, el._get() reads it.
+  function inlinePicker(hex, onChange) {
+    var box = el("div", "cc-ip"), sv = el("div", "cc-ip-sv"), dot = el("span", "cc-ip-dot"), hue = el("div", "cc-ip-hue"), hdot = el("span", "cc-ip-hdot");
+    sv.appendChild(dot); hue.appendChild(hdot); box.appendChild(sv); box.appendChild(hue);
+    var st = hexToHsv(hex) || { h: 220, s: 0.8, v: 0.9 };
+    function paint() {
+      sv.style.background = "linear-gradient(to top, #000, rgba(0,0,0,0)), linear-gradient(to right, #fff, hsl(" + Math.round(st.h) + ",100%,50%))";
+      dot.style.left = (st.s * 100) + "%"; dot.style.top = ((1 - st.v) * 100) + "%";
+      hdot.style.left = (st.h / 360 * 100) + "%";
+    }
+    function emit() { onChange(hsvToHex(st.h, st.s, st.v)); }
+    function drag(target, apply2) {
+      function mv(e) {
+        var r = target.getBoundingClientRect();
+        var cx = e.touches ? e.touches[0].clientX : e.clientX, cy = e.touches ? e.touches[0].clientY : e.clientY;
+        apply2(Math.min(1, Math.max(0, (cx - r.left) / r.width)), Math.min(1, Math.max(0, (cy - r.top) / r.height)));
+        paint(); emit(); e.preventDefault();
+      }
+      function up() { document.removeEventListener("mousemove", mv); document.removeEventListener("mouseup", up); document.removeEventListener("touchmove", mv); document.removeEventListener("touchend", up); }
+      function down(e) { mv(e); document.addEventListener("mousemove", mv); document.addEventListener("mouseup", up); document.addEventListener("touchmove", mv); document.addEventListener("touchend", up); }
+      target.addEventListener("mousedown", down); target.addEventListener("touchstart", down);
+    }
+    drag(sv, function (x, y) { st.s = x; st.v = 1 - y; });
+    drag(hue, function (x) { st.h = Math.min(359.9, x * 360); });
+    box._set = function (h2) { var p = hexToHsv(h2); if (p) { st = p; paint(); } };
+    box._get = function () { return hsvToHex(st.h, st.s, st.v); };
+    paint(); return box;
+  }
+
   // Serialise config read-modify-write so the Notifications and Bandwidth cards saving
   // near-simultaneously can't lose each other's field: each GET-modify-PUT waits for the
   // previous to settle, so the second GET always sees the first's PUT.
@@ -116,12 +161,12 @@
     // both edit the same value and stay in sync.
     c1.appendChild(el("div", "cc-set-lbl", T("Akzentfarbe", "Accent colour")));
     var prow = el("div", "cc-set-pickrow");
-    var pick = el("input", "cc-set-pick cc-set-pick-lg"); pick.type = "color"; pick.value = /^#[0-9a-f]{6}$/i.test(accent) ? accent : "#2f6feb";
+    // PERMANENTLY EMBEDDED picker (an <input type=color> opens the OS colour dialog in
+    // its own window — "ich will das Farbwählfeld fest integriert").
     var hexIn = el("input", "cc-set-hexin"); hexIn.type = "text"; hexIn.value = accent; hexIn.placeholder = "#2f6feb"; hexIn.maxLength = 7; hexIn.spellcheck = false;
-    function setAccent(v) { accent = v; pick.value = v; hexIn.value = v; set("cc.accent", accent); root.style.setProperty("--cc-accent", accent); root.style.setProperty("--cc-accent-text", idealText(accent)); paintPrev(); syncSwOn(); }
-    pick.addEventListener("input", function () { setAccent(pick.value); });
+    var pick = inlinePicker(/^#[0-9a-f]{6}$/i.test(accent) ? accent : "#2f6feb", function (v) { accent = v; hexIn.value = v; set("cc.accent", v); root.style.setProperty("--cc-accent", v); root.style.setProperty("--cc-accent-text", idealText(v)); paintPrev(); syncSwOn(); });
+    function setAccent(v) { accent = v; pick._set(v); hexIn.value = v; set("cc.accent", accent); root.style.setProperty("--cc-accent", accent); root.style.setProperty("--cc-accent-text", idealText(accent)); paintPrev(); syncSwOn(); }
     hexIn.addEventListener("input", function () { var v = normHex(hexIn.value); if (v) setAccent(v); });
-    pick.addEventListener("change", render);
     prow.appendChild(pick); prow.appendChild(hexIn); c1.appendChild(prow);
     // ...and the preset swatches sit BELOW it.
     var srow = el("div", "cc-set-swatches");
@@ -145,18 +190,17 @@
 
     // ── Container icons ──
     var c2 = card(T("Container-Icons einfärben", "Colourise container icons"), T("Färbt alle Icons in einer Farbe. Der Schalter aktiviert die Färbung.", "Colours every icon in one colour. The switch turns it on."));
-    var ipick = el("input", "cc-set-pick cc-set-pick-lg"); ipick.type = "color"; ipick.value = /^#[0-9a-f]{6}$/i.test(iconcolor) ? iconcolor : (/^#[0-9a-f]{6}$/i.test(accent) ? accent : "#1f9d55");
     var ihexIn = el("input", "cc-set-hexin"); ihexIn.type = "text"; ihexIn.value = iconcolor || ""; ihexIn.placeholder = "#1f9d55"; ihexIn.maxLength = 7; ihexIn.spellcheck = false;
+    var ipick = inlinePicker(/^#[0-9a-f]{6}$/i.test(iconcolor) ? iconcolor : (/^#[0-9a-f]{6}$/i.test(accent) ? accent : "#1f9d55"), function (v) { iconcolor = v; ihexIn.value = v; set("cc.iconcolor", v); syncIconTog(); });
     // A real ON/OFF toggle drives the tint (empty cc.iconcolor = off). The picker/hex
     // set WHICH colour; changing either also switches the tint on.
     function iconOn() { return !!iconcolor; }
     var iconTog = el("span", "cc-set-toggle" + (iconOn() ? " cc-set-toggle-on" : "")); iconTog.setAttribute("role", "switch"); iconTog.setAttribute("tabindex", "0"); iconTog.setAttribute("aria-checked", iconOn() ? "true" : "false"); iconTog.appendChild(el("span", "cc-set-knob"));
     function syncIconTog() { var on = iconOn(); iconTog.classList.toggle("cc-set-toggle-on", on); iconTog.setAttribute("aria-checked", on ? "true" : "false"); }
-    function setIcon(v) { iconcolor = v; ipick.value = v; ihexIn.value = v; set("cc.iconcolor", iconcolor); syncIconTog(); }
-    function setIconOn(on) { if (on) { setIcon(ipick.value); } else { iconcolor = ""; del("cc.iconcolor"); ihexIn.value = ""; syncIconTog(); } }
+    function setIcon(v) { iconcolor = v; ipick._set(v); ihexIn.value = v; set("cc.iconcolor", iconcolor); syncIconTog(); }
+    function setIconOn(on) { if (on) { setIcon(ipick._get()); } else { iconcolor = ""; del("cc.iconcolor"); ihexIn.value = ""; syncIconTog(); } }
     iconTog.addEventListener("click", function () { setIconOn(!iconOn()); });
     iconTog.addEventListener("keydown", function (e) { if (e.key === " " || e.key === "Enter") { e.preventDefault(); setIconOn(!iconOn()); } });
-    ipick.addEventListener("input", function () { setIcon(ipick.value); });
     ihexIn.addEventListener("input", function () { var v = normHex(ihexIn.value); if (v) setIcon(v); });
     var togRow = el("div", "cc-set-row cc-set-inline"); togRow.appendChild(el("span", null, T("Einfärben", "Colourise"))); togRow.appendChild(iconTog); c2.appendChild(togRow);
     var irow = el("div", "cc-set-pickrow"); irow.appendChild(ipick); irow.appendChild(ihexIn); c2.appendChild(irow);
@@ -168,6 +212,22 @@
     c2.appendChild(strow);
     c2.appendChild(toggleRow(T("VM-Icons auch einfärben", "Also tint VM icons"), vmicons, function (v) { vmicons = v; set("cc.vmicons", v ? "1" : "0"); }));
     wrap.appendChild(c2);
+
+    // ── Limit diagnostics: the engine's last CPU/RAM limit operations, VERIFIED ──
+    // Every set/remove is recorded server-side with docker's actual result AND the
+    // re-read caps after — so "did it apply / why not" is readable here at any time
+    // instead of only in a fleeting popup.
+    var cd = card(T("Diagnose: CPU/RAM-Limits", "Diagnostics: CPU/RAM limits"), T("Die letzten Limit-Änderungen mit Docker-Ergebnis und verifizierten Werten danach.", "The most recent limit changes with docker's result and the verified values after."));
+    var diag = el("div", "cc-set-diag"); diag.textContent = "…"; cd.appendChild(diag); wrap.appendChild(cd);
+    api("GET", "limitlog").then(function (ops) {
+      diag.textContent = "";
+      if (!ops || !ops.length) { diag.textContent = T("Noch keine Limit-Änderung seit dem Daemon-Start.", "No limit change since the daemon started."); return; }
+      ops.forEach(function (o) {
+        var row = el("div", "cc-set-diag-row" + (o.result === "ok" ? "" : " cc-set-diag-bad"));
+        row.textContent = o.time + "  " + o.name + "  [" + o.req + "]  → " + o.result + (o.after ? "  · " + T("danach", "after") + ": " + o.after : "");
+        diag.appendChild(row);
+      });
+    }).catch(function (e) { diag.textContent = T("Diagnose nicht verfügbar: ", "Diagnostics unavailable: ") + e.message; });
 
     // ── Columns matrix ──
     var c3 = card(T("Spalten / Badges je Ansicht", "Columns / badges per view"), T("Welche Badges in der einfachen und in der Advanced-Ansicht erscheinen.", "Which badges appear in the Simple and the Advanced view."));

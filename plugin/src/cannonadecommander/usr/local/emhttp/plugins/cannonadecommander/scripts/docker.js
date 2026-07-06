@@ -754,9 +754,16 @@
           ch.style.setProperty("margin", "0", "important");
           ch.style.setProperty("line-height", "1.4", "important");
           ch.style.setProperty("min-height", "0", "important");
+          // flex children default to min-width:auto — an <input>'s intrinsic width then
+          // refuses to shrink and pokes out of the popup ("Textfelder schießen über den
+          // Rand"). min-width:0 lets every child shrink to fit the nowrap row.
+          ch.style.setProperty("min-width", "0", "important");
         });
       });
       Array.prototype.slice.call(root.querySelectorAll(".cc-in")).forEach(function (i) {
+        i.style.setProperty("min-width", "0", "important");
+        i.style.setProperty("max-width", "100%", "important");
+        i.style.setProperty("box-sizing", "border-box", "important");
         i.style.setProperty("background", "#2e2e2e", "important");
         i.style.setProperty("border", "none", "important");
         i.style.setProperty("box-shadow", "none", "important");

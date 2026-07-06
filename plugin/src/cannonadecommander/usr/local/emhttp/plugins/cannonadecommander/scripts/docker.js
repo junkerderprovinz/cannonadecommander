@@ -497,7 +497,14 @@
       // ── PLAN chip → autostart cell (col 9), grouped with the native autostart toggle ──
       if (colOn("plan")) {
         var c9 = tr.querySelector(":scope > td:nth-child(9)");
-        if (c9) { var ph = el("div", "cc-rowbadges cc-planholder"); ph.setAttribute(MARK, "1"); ph.appendChild(planBadge(name)); c9.appendChild(ph); }
+        if (c9) {
+          var ph = el("div", "cc-rowbadges cc-planholder"); ph.setAttribute(MARK, "1"); ph.appendChild(planBadge(name));
+          // gap toggle↔chip = EXACTLY the CPU↔RAM badge gap (5px), enforced inline; stray
+          // <br>s in the native autostart cell inflated it, so they are switched off too.
+          ph.style.setProperty("margin", "5px 0 0 0", "important");
+          Array.prototype.slice.call(c9.querySelectorAll("br")).forEach(function (b2) { b2.style.setProperty("display", "none", "important"); });
+          c9.appendChild(ph);
+        }
       }
     } catch (e) { /* one bad row must never break Unraid's page */ }
   }

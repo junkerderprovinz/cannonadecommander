@@ -180,7 +180,7 @@
 .cc-pill-skipped { background: #3a3a3a; color: #c8c8c8; }
 
 /* ════════════════ GRID mode + gear menu + toast + editor ════════════════ */
-.cc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 12px; padding-top: 8px; }
+.cc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 12px; padding-top: 30px; } /* room for the grid gear pinned top-right */
 .cc-card { background: var(--cc-bg2); border: 1px solid var(--cc-line); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; transition: border-color .12s, transform .12s, box-shadow .12s; }
 .cc-card:hover { border-color: #3a3a3a; transform: translateY(-1px); box-shadow: 0 8px 22px rgba(0,0,0,.35); }
 .cc-card-head { display: flex; align-items: center; gap: 10px; }
@@ -297,15 +297,20 @@ select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repea
 .cc-sched-x { margin-left: auto; }
 /* CPU-pinning core grid (like the VM settings): one clickable cell per logical core */
 .cc-pin-row { align-items: flex-start; }
-/* COMPACT wrapping grid: all cores flow and wrap (no one-core-per-row break), so a 32-thread
-   CPU is ~4-5 short rows instead of a very long column. Cores are number-labelled, so the
-   HT grouping no longer needs its own row. */
-.cc-cores { display: flex; flex-wrap: wrap; gap: 3px; flex: 1; }
-.cc-core { width: 23px; height: 21px; display: inline-flex; align-items: center; justify-content: center; background: #1e1e1e; color: #8a8a8a; border: 1px solid #2a2a2a; border-radius: 4px; font-size: 10px; cursor: pointer; user-select: none; box-sizing: border-box; }
-.cc-core:hover { border-color: var(--cc-accent, #2f6feb); }
+/* VM-manager-style core picker: one BOX per physical core, its hyperthreads stacked
+   vertically inside, boxes wrapping into rows — readable AND compact ("viel zu klein"
+   fixed: bigger cells, clear grouping). On Intel hybrid CPUs each box carries a P / E tag. */
+.cc-pop-wide { width: 430px; }
+.cc-cores { display: flex; flex-wrap: wrap; gap: 5px; flex: 1; }
+.cc-corebox { display: inline-flex; flex-direction: column; gap: 3px; padding: 4px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 7px; align-items: stretch; }
+.cc-corebox-tag { text-align: center; font-size: 9px; line-height: 1; color: #8a8a8a; letter-spacing: .5px; user-select: none; }
+.cc-corebox-p { border-top: 2px solid var(--cc-accent, #2f6feb); }
+.cc-corebox-p .cc-corebox-tag { color: var(--cc-accent, #6ea0ff); }
+.cc-corebox-e { border-top: 2px solid #e0912a; }
+.cc-corebox-e .cc-corebox-tag { color: #e0912a; }
+.cc-core { width: 34px; height: 24px; display: inline-flex; align-items: center; justify-content: center; background: #242424; color: #9a9a9a; border: 1px solid #333; border-radius: 5px; font-size: 12px; cursor: pointer; user-select: none; box-sizing: border-box; transition: background .1s, color .1s, border-color .1s; }
+.cc-core:hover { border-color: var(--cc-accent, #2f6feb); color: #e6e6e6; }
 .cc-core-on { background: var(--cc-accent, #2f6feb); color: var(--cc-accent-text, #fff); border-color: var(--cc-accent, #2f6feb); }
-/* a thin spacer between physical-core groups (a hint, not a full row break) */
-.cc-core-gap { flex-basis: 6px; height: 0; margin: 0; }
 /* rainbow mode: selected cores wear their physical-core group's colour */
 .cc-pop.cc-rainbow .cc-core-on.cc-rb-0 { background: #1f9d55; border-color: #1f9d55; color: #fff; }
 .cc-pop.cc-rainbow .cc-core-on.cc-rb-1 { background: #2f6feb; border-color: #2f6feb; color: #fff; }

@@ -61,6 +61,7 @@
   var config = { schedules: [], watchdogs: [], bandwidths: [], notify: { unraid: false, webhook: "" } };
   var limits = {}; // name → CONFIGURED caps {mem_bytes,nano_cpus,cpuset_cpus}, for the "is a limit set?" dots
   var hostCpus = 0, hostCoreOf = [], hostMem = 0; // the HOST's logical-CPU count + HT grouping + total RAM (from the engine)
+  var hostPCores = [], hostECores = []; // Intel hybrid P/E-core CPU lists (empty on non-hybrid CPUs)
   var filterText = "", gridHolder = null, openPop = null, openPopAnchor = null, menu = null, menuAnchor = null, menuStatusEl = null, toastEl = null, toastTimer = null;
   var mo = null, dead = false, lastAdv = false, timers = [], moPending = false, moTimer = null;
 
@@ -111,6 +112,8 @@
     containers = (state && state.containers) || [];
     if (state && state.host_cpus) hostCpus = state.host_cpus;
     if (state && state.host_core_of) hostCoreOf = state.host_core_of;
+    if (state && state.host_pcores) hostPCores = state.host_pcores;
+    if (state && state.host_ecores) hostECores = state.host_ecores;
     if (state && state.host_mem) hostMem = state.host_mem;
     if (state && state.version) daemonVersion = state.version;
     containerNames = containers.map(function (c) { return c.name; }).sort();
@@ -173,8 +176,37 @@
     var s = state || "unknown", b = el("span", "cc-badge cc-badge-" + s + " cc-badge-toggle", stateLabel(s)); b.dataset.name = name;
     var action = s === "running" ? "stop" : (s === "paused" ? "unpause" : "start");
     b.title = t(action === "stop" ? "stop" : action === "unpause" ? "resume" : "start");
-    b.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); doAction(name, action); });
+    // Decide the action AT CLICK TIME from the CURRENT state, not the state the badge was
+    // built with: badges are now live-synced in place (syncStateBadges), so a badge that
+    // flipped running→stopped must start (not re-stop) on the next click.
+    b.addEventListener("click", function (e) {
+      e.preventDefault(); e.stopPropagation();
+      var c = containerByName(name), st = (c && c.state) || s;
+      doAction(name, st === "running" ? "stop" : (st === "paused" ? "unpause" : "start"));
+    });
     return b;
+  }
+  // Live-sync every state badge IN PLACE from the freshly-loaded container state. The list
+  // rows are injected ONCE and then skipped (ROWMARK), so without this the list badge kept
+  // its old label forever ("the badge doesn't switch on stop/restart"); it also replaces a
+  // transient "wird gestoppt…" badge with the confirmed state on the next load.
+  function syncStateBadges() {
+    try {
+      Array.prototype.slice.call(document.querySelectorAll(".cc-badge[data-name]")).forEach(function (b) {
+        if (pendingAction[b.dataset.name]) return; // action in flight — keep the transient badge
+        var c = containerByName(b.dataset.name);
+        if (!c) return;
+        var s = c.state || "unknown", label = stateLabel(s);
+        if (c.health === "unhealthy") label += " ✕"; else if (c.health === "starting") label += " …";
+        var isToggle = b.classList.contains("cc-badge-toggle");
+        var cls = "cc-badge cc-badge-" + s + (isToggle ? " cc-badge-toggle" : "") + (c.health === "unhealthy" ? " cc-badge-alert" : "");
+        if (b.textContent !== label) b.textContent = label;
+        if (b.className !== cls) b.className = cls;
+        // keep the toggle's tooltip in step with the NEW state (the click handler already
+        // re-derives its action at click time).
+        if (isToggle) b.title = t(s === "running" ? "stop" : s === "paused" ? "resume" : "start");
+      });
+    } catch (e) {}
   }
   function badgeInfo(label, value, kind) { var b = el("span", "cc-b cc-b-info" + (kind ? " cc-b-" + kind : "")); b.appendChild(el("span", "cc-b-k", label)); b.appendChild(el("span", "cc-b-v", value)); return b; }
   // one resource line: a badge + its gear, side by side; the res-group stacks these.
@@ -452,6 +484,10 @@
     var m = { stop: de ? "wird gestoppt" : "stopping", restart: de ? "startet neu" : "restarting", start: de ? "startet" : "starting", unpause: de ? "startet" : "resuming", pause: de ? "pausiert…" : "pausing" };
     return m[action] || "";
   }
+  // Names with an action in flight: syncStateBadges skips them so an OVERLAPPING load()
+  // (started before the click, landing during the action) can't revert the optimistic
+  // transient badge to the stale pre-action state mid-action.
+  var pendingAction = {};
   function markTransient(name, action) {
     var lbl = transientLabel(action); if (!lbl) return;
     try {
@@ -463,7 +499,13 @@
       });
     } catch (e) {}
   }
-  function doAction(name, action) { markTransient(name, action); flash(action + " " + name + "…"); api("POST", "action", { name: name, action: action }).then(function () { return load(); }).then(function () { flash(t("done")); }).catch(function (e) { flash("Error: " + e.message, true); }); }
+  function doAction(name, action) {
+    pendingAction[name] = true; markTransient(name, action); flash(action + " " + name + "…");
+    api("POST", "action", { name: name, action: action })
+      .then(function () { delete pendingAction[name]; return load(); }) // clear BEFORE the confirming load so its sync updates this badge
+      .then(function () { flash(t("done")); })
+      .catch(function (e) { delete pendingAction[name]; flash("Error: " + e.message, true); syncStateBadges(); });
+  }
   function actionBtn(label, name, action, primary) { var b = el("button", "cc-abtn" + (primary ? " cc-abtn-primary" : ""), label); b.addEventListener("click", function (e) { e.stopPropagation(); doAction(name, action); }); return b; }
   function lifecycle(c) {
     var box = el("span", "cc-life");
@@ -528,6 +570,14 @@
     ensureGridHolder(); gridHolder.innerHTML = "";
     gridHolder.classList.toggle("cc-rainbow", localStorage.getItem("cc.rainbow") === "1");
     gridHolder.classList.toggle("cc-tint-icons", !!localStorage.getItem("cc.iconcolor"));
+    // The grid needs its OWN gear: the list-toolbar gear lives in/near the native table
+    // area, which is not a reliable anchor in card view ("which gear menu?"). This one is
+    // pinned to the grid holder's top-right corner. A rebuild detaches the old gear — if
+    // the menu is open and anchored to it, re-anchor to the NEW gear so positionMenu()
+    // doesn't compute from a disconnected node (menu teleporting to the corner).
+    var hg = makeGear("cc-hgear-grid");
+    gridHolder.appendChild(hg);
+    if (menu && menuAnchor && !menuAnchor.isConnected) { menuAnchor = hg; positionMenu(); }
     var grid = el("div", "cc-grid");
     containers.slice().sort(function (a, b) { return a.name.localeCompare(b.name); }).forEach(function (c) { grid.appendChild(card(c)); });
     gridHolder.appendChild(grid);
@@ -887,26 +937,40 @@
     if (showCpu) {
       var crow = el("div", "cc-pop-row"); crow.appendChild(el("label", "cc-pop-lbl", t("cpuLimit")));
       cpu = el("input", "cc-in"); cpu.type = "text"; cpu.placeholder = t("cpuNum"); crow.appendChild(cpu); body.appendChild(crow);
-      // CPU pinning as a GRAPHICAL core grid like the VM core picker: one clickable
-      // cell per logical CPU (every core + hyperthread), grouped by physical core so HT
-      // siblings sit together. The count comes from the ENGINE (the HOST's CPUs), not
-      // navigator.hardwareConcurrency (which is the BROWSER machine's count). Empty = all.
+      // CPU pinning as a GRAPHICAL core picker like the VM manager: one BOX per physical
+      // core, its hyperthreads stacked vertically inside, wrapping into rows — so a
+      // 32-thread CPU is a tidy block, not a long column. On an Intel hybrid CPU the boxes
+      // carry a P / E tag (from the engine's /sys cpu_core+cpu_atom lists). The counts come
+      // from the ENGINE (the HOST's CPUs), not navigator.hardwareConcurrency. Empty = all.
+      pop.classList.add("cc-pop-wide"); // pinning needs the extra width
       var prow = el("div", "cc-pop-row cc-pin-row"); prow.appendChild(el("label", "cc-pop-lbl", t("cpuPin")));
       var ncpu = hostCpus || navigator.hardwareConcurrency || 0;
       var coreOf = (hostCoreOf && hostCoreOf.length === ncpu) ? hostCoreOf : null;
+      var isE = {}; hostECores.forEach(function (n) { isE[n] = true; });
+      var hybrid = hostPCores.length > 0 && hostECores.length > 0;
       if (ncpu > 0 && ncpu <= 512) {
         var grid = el("div", "cc-cores");
-        var order = []; for (var ci = 0; ci < ncpu; ci++) order.push(ci);
-        if (coreOf) order.sort(function (a, b) { return (coreOf[a] - coreOf[b]) || (a - b); });
-        var prevCore = -1;
-        order.forEach(function (cpu2) {
-          var grp = coreOf ? coreOf[cpu2] : cpu2;
-          if (coreOf && prevCore !== -1 && grp !== prevCore) grid.appendChild(el("span", "cc-core-gap")); // gap between physical cores
-          prevCore = grp;
-          var core = el("span", "cc-core cc-rb-" + (grp % 8), String(cpu2)); core.dataset.core = cpu2;
-          core.title = coreOf ? ("CPU " + cpu2 + " · core " + grp) : ("CPU " + cpu2);
-          core.addEventListener("click", function () { this.classList.toggle("cc-core-on"); });
-          grid.appendChild(core);
+        // group the logical CPUs by physical core (flat: every CPU is its own group)
+        var groups = {}, order = [];
+        for (var ci = 0; ci < ncpu; ci++) {
+          var g = coreOf ? coreOf[ci] : ci;
+          if (!groups[g]) { groups[g] = []; order.push(g); }
+          groups[g].push(ci);
+        }
+        order.forEach(function (g) {
+          var box = el("span", "cc-corebox");
+          if (hybrid) {
+            var e = groups[g].every(function (n) { return isE[n]; });
+            box.classList.add(e ? "cc-corebox-e" : "cc-corebox-p");
+            box.appendChild(el("span", "cc-corebox-tag", e ? "E" : "P"));
+          }
+          groups[g].forEach(function (cpu2) {
+            var core = el("span", "cc-core cc-rb-" + (g % 8), String(cpu2)); core.dataset.core = cpu2; // cc-rb-N: rainbow mode colours selected cores per physical-core group
+            core.title = "CPU " + cpu2 + (coreOf ? " · core " + g : "") + (hybrid ? (isE[cpu2] ? " · E-core" : " · P-core") : "");
+            core.addEventListener("click", function () { this.classList.toggle("cc-core-on"); });
+            box.appendChild(core);
+          });
+          grid.appendChild(box);
         });
         prow.appendChild(grid);
         readCpuset = function () { var sel = []; Array.prototype.slice.call(grid.querySelectorAll(".cc-core")).forEach(function (c) { if (c.classList.contains("cc-core-on")) sel.push(parseInt(c.dataset.core, 10)); }); return setToCpuset(sel); };
@@ -1097,7 +1161,7 @@
   function load() {
     if (dead) return Promise.resolve();
     return Promise.all([api("GET", "state"), loadShiplog(), loadConfig()]).then(function (res) {
-      daemonUp = true; indexState(res[0]); ensureNames(); refresh(); updateGearHealth();
+      daemonUp = true; indexState(res[0]); ensureNames(); refresh(); syncStateBadges(); updateGearHealth();
       if (res[0] && res[0].docker_error) flash("docker: " + res[0].docker_error, true);
     }).catch(function (e) {
       // 404/410 = proxy file gone (uninstalled) → self-remove now; the re-probe

@@ -98,6 +98,13 @@
     var brand = el("div", "cc-set-brand"); brand.appendChild(el("b", null, "Cannonade")); brand.appendChild(el("span", null, "Commander"));
     head.appendChild(brand);
     head.appendChild(el("div", "cc-set-sub", T("Aussehen des Docker-Tab-Panels — wirkt sofort im Docker-Tab (pro Browser gespeichert).", "Look of the Docker-tab panel — applies live in the Docker tab (per browser).")));
+    // The RUNNING engine version, always findable HERE (the Docker-tab gear was hard to
+    // locate) — an old value after an update = the update didn't take / daemon not restarted.
+    var verLine = el("div", "cc-set-sub cc-set-version", T("Engine: verbinde…", "Engine: connecting…"));
+    head.appendChild(verLine);
+    api("GET", "state").then(function (s) {
+      verLine.textContent = (s && s.version) ? ("Engine " + String(s.version).replace(/^v/, "v")) + " · " + T("läuft", "running") : T("Engine läuft (Version unbekannt)", "Engine running (version unknown)");
+    }).catch(function (e) { verLine.textContent = T("Engine NICHT erreichbar", "Engine NOT reachable") + " — " + (e && e.message ? e.message : ""); verLine.style.color = "#d9433f"; });
     root.appendChild(head);
 
     var wrap = el("div", "cc-set-wrap");

@@ -188,14 +188,129 @@ func TestLimitsAndCpuset(t *testing.T) {
 	if !strings.Contains(gotBody, `"CpusetCpus":"0-3"`) {
 		t.Fatalf("update body missing cpuset: %s", gotBody)
 	}
-	// A memory cap must send Memory and NOT MemorySwap at all: any MemorySwap value (even
-	// -1) triggers a memsw cgroup write, which fails on Unraid hosts without swap accounting
-	// and silently broke set/remove of a RAM limit. Omitting it keeps swap unlimited.
+	// Never-capped container (stored MemorySwap 0): moby's raw check `Memory > stored
+	// MemorySwap && incoming MemorySwap == 0` trips for ANY positive Memory, so the body
+	// MUST carry MemorySwap:-1 or the very first RAM cap fails.
 	if err := c.UpdateResources(context.Background(), "pinme", model.Limits{MemBytes: 2147483648}); err != nil {
 		t.Fatalf("update mem: %v", err)
 	}
-	if !strings.Contains(gotBody, `"Memory":2147483648`) || strings.Contains(gotBody, `"MemorySwap"`) {
-		t.Fatalf("memory update must send Memory and NOT MemorySwap, got: %s", gotBody)
+	if !strings.Contains(gotBody, `"Memory":2147483648`) || !strings.Contains(gotBody, `"MemorySwap":-1`) {
+		t.Fatalf("first RAM cap on a never-capped container must send MemorySwap:-1, got: %s", gotBody)
+	}
+}
+
+// A container CREATED with --memory (Unraid "Extra Parameters") carries MemorySwap = 2×Memory.
+// Raising Memory past it — or REMOVING the cap (= set to host RAM) — is rejected unless the
+// swap cap is raised in the same update → MemorySwap:-1. A container with a stored CFS
+// quota/period REFUSES NanoCpus outright (moby validates against the STORED values before
+// merging), so the new limit must be expressed in the quota scheme instead.
+func TestUpdateLiftsSwapAndQuotaCaps(t *testing.T) {
+	var gotBody string
+	mux := http.NewServeMux()
+	mux.HandleFunc("/v1.44/containers/capped/json", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"HostConfig":{"Memory":2147483648,"MemorySwap":4294967296,"CpuQuota":150000,"CpuPeriod":100000}}`))
+	})
+	mux.HandleFunc("/v1.44/containers/capped/update", func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		gotBody = string(b)
+		w.WriteHeader(http.StatusOK)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	c := New(srv.Client(), srv.URL)
+	// "remove RAM limit" = set to host RAM (say 64G) — far above the stored 4G swap cap.
+	if err := c.UpdateResources(context.Background(), "capped", model.Limits{MemBytes: 68719476736}); err != nil {
+		t.Fatalf("update mem: %v", err)
+	}
+	if !strings.Contains(gotBody, `"Memory":68719476736`) || !strings.Contains(gotBody, `"MemorySwap":-1`) {
+		t.Fatalf("memory update on a swap-capped container must lift the swap cap (MemorySwap:-1), got: %s", gotBody)
+	}
+	// 2.5 cores on a quota-family container → CpuQuota = 2.5 × period, NO NanoCpus.
+	if err := c.UpdateResources(context.Background(), "capped", model.Limits{NanoCPUs: 2500000000}); err != nil {
+		t.Fatalf("update cpu: %v", err)
+	}
+	if !strings.Contains(gotBody, `"CpuQuota":250000`) || !strings.Contains(gotBody, `"CpuPeriod":100000`) || strings.Contains(gotBody, "NanoCpus") {
+		t.Fatalf("cpu update on a quota-family container must use CpuQuota=cpus*period and no NanoCpus, got: %s", gotBody)
+	}
+}
+
+// The user's own swap semantics survive a RAM edit: MemorySwap == Memory is the deliberate
+// "no swap" recipe and must FOLLOW the new Memory; a new Memory that fits under a bigger
+// stored swap cap must leave it untouched; and the SECOND edit after our own -1 (stored
+// MemorySwap -1) must send -1 again (raw int64: Memory > -1 is always true).
+func TestUpdateMemoryPreservesSwapSemantics(t *testing.T) {
+	cases := []struct {
+		name, hostCfg, wantIn, wantOut string
+		mem                            int64
+	}{
+		{"noswap", `{"HostConfig":{"Memory":4294967296,"MemorySwap":4294967296}}`, `"MemorySwap":2147483648`, "", 2147483648},
+		{"fits", `{"HostConfig":{"Memory":1073741824,"MemorySwap":8589934592}}`, "", `"MemorySwap"`, 2147483648},
+		{"afterUnlimited", `{"HostConfig":{"Memory":8589934592,"MemorySwap":-1}}`, `"MemorySwap":-1`, "", 4294967296},
+	}
+	for _, tc := range cases {
+		var gotBody string
+		mux := http.NewServeMux()
+		cfg := tc.hostCfg
+		mux.HandleFunc("/v1.44/containers/x/json", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte(cfg)) })
+		mux.HandleFunc("/v1.44/containers/x/update", func(w http.ResponseWriter, r *http.Request) {
+			b, _ := io.ReadAll(r.Body)
+			gotBody = string(b)
+			w.WriteHeader(http.StatusOK)
+		})
+		srv := httptest.NewServer(mux)
+		c := New(srv.Client(), srv.URL)
+		if err := c.UpdateResources(context.Background(), "x", model.Limits{MemBytes: tc.mem}); err != nil {
+			t.Fatalf("%s: %v", tc.name, err)
+		}
+		if tc.wantIn != "" && !strings.Contains(gotBody, tc.wantIn) {
+			t.Fatalf("%s: body missing %s: %s", tc.name, tc.wantIn, gotBody)
+		}
+		if tc.wantOut != "" && strings.Contains(gotBody, tc.wantOut) {
+			t.Fatalf("%s: body must not contain %s: %s", tc.name, tc.wantOut, gotBody)
+		}
+		srv.Close()
+	}
+}
+
+// The update body cannot be built without the stored caps — an inspect failure must
+// surface as an error (not silently degrade to a body the daemon will reject).
+func TestUpdateFailsFastWhenInspectFails(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/v1.44/containers/gone/json", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusInternalServerError) })
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	c := New(srv.Client(), srv.URL)
+	if err := c.UpdateResources(context.Background(), "gone", model.Limits{MemBytes: 1}); err == nil || !strings.Contains(err.Error(), "inspect") {
+		t.Fatalf("want inspect error, got %v", err)
+	}
+}
+
+// A cgroup-v1 box without swap accounting rejects the memsw write itself — the update is
+// then retried WITHOUT MemorySwap so at least the Memory cap applies.
+func TestUpdateRetriesWithoutSwapOnMemswError(t *testing.T) {
+	var bodies []string
+	mux := http.NewServeMux()
+	mux.HandleFunc("/v1.44/containers/v1box/json", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"HostConfig":{"Memory":1073741824,"MemorySwap":2147483648}}`))
+	})
+	mux.HandleFunc("/v1.44/containers/v1box/update", func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		bodies = append(bodies, string(b))
+		if strings.Contains(string(b), "MemorySwap") {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte(`{"message":"failed to write memory.memsw.limit_in_bytes: no such file or directory"}`))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	c := New(srv.Client(), srv.URL)
+	if err := c.UpdateResources(context.Background(), "v1box", model.Limits{MemBytes: 4294967296}); err != nil {
+		t.Fatalf("update should succeed via the no-swap retry: %v", err)
+	}
+	if len(bodies) != 2 || !strings.Contains(bodies[0], `"MemorySwap":-1`) || strings.Contains(bodies[1], "MemorySwap") {
+		t.Fatalf("want swap attempt then no-swap retry, got: %v", bodies)
 	}
 }
 

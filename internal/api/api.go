@@ -108,6 +108,8 @@ type stateResp struct {
 	DockerError string            `json:"docker_error,omitempty"`
 	HostCPUs    int               `json:"host_cpus"`              // host logical-CPU count, for the pin grid
 	HostCoreOf  []int             `json:"host_core_of,omitempty"` // physical-core id per logical CPU (HT grouping)
+	HostPCores  []int             `json:"host_pcores,omitempty"`  // Intel hybrid P-core CPUs (empty on non-hybrid)
+	HostECores  []int             `json:"host_ecores,omitempty"`  // Intel hybrid E-core CPUs (empty on non-hybrid)
 	HostMem     int64             `json:"host_mem,omitempty"`     // host total RAM bytes, for "remove RAM limit"
 	Version     string            `json:"version,omitempty"`      // the running daemon's build version, so the UI can show which backend is live
 }
@@ -119,6 +121,7 @@ func (s *Server) handleState(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	resp := stateResp{Plan: plan, HostCPUs: hostcpu.Count(), HostCoreOf: hostcpu.CoreOf(), HostMem: s.hostMem(r.Context()), Version: s.Version}
+	resp.HostPCores, resp.HostECores = hostcpu.HybridPE()
 	containers, derr := s.Docker.List(r.Context())
 	if derr != nil {
 		// Tolerate a docker hiccup: still return the plan + the last run, so the

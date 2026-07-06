@@ -366,22 +366,60 @@ func (c *Client) HostMemTotal(ctx context.Context) int64 {
 // REMOVE a cap; that needs recreating the container). Setting NanoCpus also
 // clears any legacy CpuQuota/CpuPeriod so the two can't conflict on next restart.
 func (c *Client) UpdateResources(ctx context.Context, ref string, l model.Limits) error {
+	// The RIGHT update body depends on the caps the container was CREATED with. moby
+	// validates every update against the container's STORED HostConfig BEFORE merging
+	// (container_unix.go UpdateContainer), so the stored values decide what is legal —
+	// an inspect failure means we cannot build a correct body: fail fast with the cause.
+	cur, err := c.hostCaps(ctx, ref)
+	if err != nil {
+		return fmt.Errorf("inspect %s before update: %w", ref, err)
+	}
 	body := map[string]any{}
 	if l.MemBytes > 0 {
 		body["Memory"] = l.MemBytes
-		// Do NOT send MemorySwap at all. Most Unraid hosts run WITHOUT swap accounting (no
-		// `swapaccount=1` on the kernel cmdline), so the memory.memsw cgroup does not exist —
-		// and runc writes memsw.limit_in_bytes for ANY MemorySwap value, INCLUDING -1, which
-		// then fails with ENOENT and makes the whole `docker update` error. That silently broke
-		// BOTH setting and REMOVING a memory limit (v0.16.0's "-1" did not actually avoid the
-		// memsw write). Omitting MemorySwap leaves it at the container's default (unlimited), so
-		// Memory <= MemorySwap always holds and no memsw write is ever attempted — the update
-		// succeeds on a swapless box. The RAM cap still applies; swap (if any) is just unlimited.
+		// moby rejects a Memory update UNLESS Memory <= the STORED MemorySwap or the body
+		// carries a MemorySwap of its own: `resources.Memory > cResources.MemorySwap &&
+		// resources.MemorySwap == 0` — a RAW int64 comparison, so a stored swap of 0 (never
+		// capped) or -1 (unlimited) trips it for ANY positive Memory. That is why setting a
+		// RAM cap failed on this box for days ("Memory limit should be smaller than already
+		// set memoryswap limit"): a container created with --memory carries MemorySwap =
+		// 2×Memory, and raising/removing past it — or capping a never-capped container —
+		// needs the swap sent along. Policy, preserving the user's own swap semantics:
+		//   · stored swap == stored memory (the deliberate "no swap" recipe)
+		//       → keep swap disabled: MemorySwap = new Memory.
+		//   · new Memory fits under a finite stored swap → send nothing, cap is untouched.
+		//   · anything else (stored 0, stored -1, finite-but-too-small)
+		//       → MemorySwap = -1 (unlimited swap; valid for any Memory).
+		switch {
+		case cur.Memory > 0 && cur.MemorySwap == cur.Memory:
+			body["MemorySwap"] = l.MemBytes
+		case cur.MemorySwap > 0 && l.MemBytes <= cur.MemorySwap:
+			// fits — leave the existing swap cap alone
+		default:
+			body["MemorySwap"] = int64(-1)
+		}
 	}
 	if l.NanoCPUs > 0 {
-		body["NanoCpus"] = l.NanoCPUs
-		body["CpuQuota"] = 0
-		body["CpuPeriod"] = 0
+		// moby refuses NanoCpus while the STORED HostConfig carries a CFS quota OR period
+		// ("Conflicting options: Nano CPUs cannot be updated as CPU Quota has already been
+		// set") — the check runs against the stored values BEFORE any merge, so clearing
+		// the quota in the same body cannot help, and a stored CpuPeriod cannot be cleared
+		// at all (period -1 fails validation). For such containers the new limit is
+		// expressed IN THEIR OWN scheme instead: CpuQuota = cpus × period.
+		if cur.CpuQuota > 0 || cur.CpuPeriod > 0 {
+			period := cur.CpuPeriod
+			if period <= 0 {
+				period = 100000 // Docker's default CFS period (100ms)
+			}
+			quota := l.NanoCPUs * period / 1_000_000_000
+			if quota < 1000 {
+				quota = 1000 // moby's minimum (1ms)
+			}
+			body["CpuQuota"] = quota
+			body["CpuPeriod"] = period
+		} else {
+			body["NanoCpus"] = l.NanoCPUs
+		}
 	}
 	if l.CpusetCPUs != "" {
 		body["CpusetCpus"] = l.CpusetCPUs // CPU pinning, e.g. "0-3,6"
@@ -389,6 +427,19 @@ func (c *Client) UpdateResources(ctx context.Context, ref string, l model.Limits
 	if len(body) == 0 {
 		return nil // nothing to change
 	}
+	err = c.postUpdate(ctx, ref, body)
+	if err != nil && body["MemorySwap"] != nil && mentionsSwap(err) {
+		// Defensive only: moby never forwards a MemorySwap <= 0 to the cgroup writer, so
+		// the classic cgroup-v1 memsw-ENOENT cannot come from OUR -1 — but should an older
+		// or patched daemon still reject the swap field, retry the Memory change alone.
+		delete(body, "MemorySwap")
+		err = c.postUpdate(ctx, ref, body)
+	}
+	return err
+}
+
+// postUpdate POSTs one container-update body.
+func (c *Client) postUpdate(ctx context.Context, ref string, body map[string]any) error {
 	resp, err := c.doBody(ctx, "POST", "/containers/"+url.PathEscape(ref)+"/update", body)
 	if err != nil {
 		return err
@@ -398,6 +449,36 @@ func (c *Client) UpdateResources(ctx context.Context, ref string, l model.Limits
 		return apiError(resp)
 	}
 	return nil
+}
+
+// mentionsSwap reports whether a docker error is about the swap/memsw cgroup write.
+func mentionsSwap(err error) bool {
+	m := strings.ToLower(err.Error())
+	return strings.Contains(m, "memsw") || strings.Contains(m, "swap")
+}
+
+// hostCaps are the CURRENT HostConfig caps an update must be built against.
+type hostCaps struct {
+	Memory, MemorySwap, NanoCpus, CpuQuota, CpuPeriod int64
+}
+
+// hostCaps reads the container's current Memory/MemorySwap/NanoCpus/CpuQuota/CpuPeriod.
+func (c *Client) hostCaps(ctx context.Context, ref string) (hostCaps, error) {
+	resp, err := c.do(ctx, "GET", "/containers/"+url.PathEscape(ref)+"/json")
+	if err != nil {
+		return hostCaps{}, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return hostCaps{}, apiError(resp)
+	}
+	var raw struct {
+		HostConfig hostCaps `json:"HostConfig"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
+		return hostCaps{}, fmt.Errorf("decode hostcaps: %w", err)
+	}
+	return raw.HostConfig, nil
 }
 
 // Exec runs a command inside a container and returns its exit code. Used ONLY by the

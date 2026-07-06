@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.23.0">
+  <!ENTITY version   "0.24.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
@@ -30,6 +30,26 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.24.0
+- CPU / RAM limits: setting AND removing now works on containers that were capped via the
+  Unraid template's "Extra Parameters". THE cause of the endless "it just doesn't save":
+  a container created with --memory automatically carries MemorySwap = 2x that value, and a
+  live update that raises Memory past it (setting a higher cap, or REMOVING the cap = set to
+  host RAM) is rejected by Docker with "Memory limit should be smaller than already set
+  memoryswap limit". The engine now inspects the container first and lifts the swap cap
+  (MemorySwap -1) in the same update whenever one exists; likewise a legacy CFS CPU quota is
+  cleared (CpuQuota -1) so a NanoCpus update can't be rejected with "Conflicting options".
+  On a cgroup-v1 box the update is retried without the swap change.
+- State badges now update live everywhere: the list-row badge kept its old label forever
+  ("the badge doesn't switch on stop/restart") because rows are only enhanced once — every
+  refresh now syncs all badges in place (and the click action/tooltip follow the new state).
+- The grid (card) view has its OWN gear, pinned top-right above the cards — "which gear
+  menu?" answered. The Settings page header additionally shows the RUNNING engine version.
+- The CPU-pinning picker is a real core picker like the VM manager: one box per physical
+  core with its hyperthreads stacked inside, wrapping into rows, bigger readable cells —
+  and on Intel hybrid CPUs each box is tagged P or E (blue / amber) so E-cores are
+  distinguishable. The editor popup is wider to fit it.
 
 ### 0.23.0
 - CRITICAL SAFETY FIX: the DOWNLOAD (ingress) bandwidth limit is removed — it could CRASH the
@@ -478,7 +498,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>fbcf8b3f825fe1b613d9d3ad7b950b7ca416de20e463f092a3727f2f362ab7be</SHA256>
+  <SHA256>a5ddaa91947fb0d391a77f433fee9b9d5aa6f15863a9fa987b7576f1d5df1fcd</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

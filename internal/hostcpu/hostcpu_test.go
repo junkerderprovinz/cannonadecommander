@@ -75,3 +75,28 @@ func TestParseMemTotal(t *testing.T) {
 		t.Fatalf("no MemTotal line should yield 0, got %d", got)
 	}
 }
+
+func TestParseCPUList(t *testing.T) {
+	cases := []struct {
+		in   string
+		want []int
+	}{
+		{"0-3", []int{0, 1, 2, 3}},
+		{"0-1,4,6-7\n", []int{0, 1, 4, 6, 7}},
+		{"16-23", []int{16, 17, 18, 19, 20, 21, 22, 23}},
+		{"", nil},
+		{"junk", nil},
+		{"5-2", nil}, // inverted range
+	}
+	for _, c := range cases {
+		got := parseCPUList(c.in)
+		if len(got) != len(c.want) {
+			t.Fatalf("parseCPUList(%q) = %v, want %v", c.in, got, c.want)
+		}
+		for i := range got {
+			if got[i] != c.want[i] {
+				t.Fatalf("parseCPUList(%q) = %v, want %v", c.in, got, c.want)
+			}
+		}
+	}
+}

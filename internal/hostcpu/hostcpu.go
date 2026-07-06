@@ -40,6 +40,55 @@ func parseMemTotal(data string) int64 {
 	return 0
 }
 
+// HybridPE returns the logical CPUs that are Intel hybrid P-cores and E-cores, read from
+// /sys/devices/cpu_core/cpus (P) and /sys/devices/cpu_atom/cpus (E) — the sysfs interface
+// hybrid CPUs (12th gen+) expose. Both nil on a non-hybrid machine (either file absent or
+// empty), so the pin grid only draws P/E tags when the distinction really exists.
+func HybridPE() (p, e []int) {
+	p = readCPUList("/sys/devices/cpu_core/cpus")
+	e = readCPUList("/sys/devices/cpu_atom/cpus")
+	if len(p) == 0 || len(e) == 0 {
+		return nil, nil
+	}
+	return p, e
+}
+
+func readCPUList(path string) []int {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil
+	}
+	return parseCPUList(string(data))
+}
+
+// parseCPUList parses a kernel cpulist ("0-15,32,34-35") into the individual CPU numbers.
+// Split out so it is unit-testable without /sys. nil on any malformed part.
+func parseCPUList(s string) []int {
+	var out []int
+	for _, part := range strings.Split(strings.TrimSpace(s), ",") {
+		if part == "" {
+			continue
+		}
+		if lo, hi, ok := strings.Cut(part, "-"); ok {
+			a, e1 := strconv.Atoi(strings.TrimSpace(lo))
+			b, e2 := strconv.Atoi(strings.TrimSpace(hi))
+			if e1 != nil || e2 != nil || b < a || b-a > 4096 {
+				return nil
+			}
+			for i := a; i <= b; i++ {
+				out = append(out, i)
+			}
+			continue
+		}
+		n, err := strconv.Atoi(strings.TrimSpace(part))
+		if err != nil {
+			return nil
+		}
+		out = append(out, n)
+	}
+	return out
+}
+
 // Count is the host's logical CPU count (every core + hyperthread). It counts the
 // processor entries in /proc/cpuinfo — the TRUE host total — because runtime.NumCPU()
 // is affinity-aware: isolcpus (the cores a VM user reserves, exactly the ones the pin

@@ -379,6 +379,7 @@ func (s *Server) handleSetLimits(w http.ResponseWriter, r *http.Request) {
 	// on this box, so a later Apply/recreate still lifts it. Best-effort; an empty value
 	// REMOVES the flag. No --memory-swap is written (it needs the memsw cgroup, absent on
 	// hosts without swap accounting — matching the live path, which omits MemorySwap).
+	tmplResult := "template: no change"
 	if s.TemplatesDir != "" {
 		flags := map[string]string{}
 		switch {
@@ -404,7 +405,14 @@ func (s *Server) handleSetLimits(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if len(flags) > 0 {
-			_ = unraidtmpl.SetExtraParams(s.TemplatesDir, req.Name, flags)
+			// NOT silent anymore: a failing template mirror means every Unraid recreate
+			// (edit/apply/update) WIPES the live limits — the exact "green message but
+			// nothing sticks" triple symptom. The result lands in the diagnostics log.
+			if merr := unraidtmpl.SetExtraParams(s.TemplatesDir, req.Name, flags); merr != nil {
+				tmplResult = "template FAILED: " + merr.Error()
+			} else {
+				tmplResult = "template ok"
+			}
 		}
 	}
 	// Every limit operation is RECORDED (ring buffer + supervisor log) and, on success,
@@ -418,11 +426,11 @@ func (s *Server) handleSetLimits(w http.ResponseWriter, r *http.Request) {
 		reqTxt += " remove_cpu"
 	}
 	if err := s.Docker.UpdateResources(r.Context(), req.Name, model.Limits{MemBytes: req.MemBytes, NanoCPUs: req.NanoCPUs, CpusetCPUs: req.CpusetCPUs}); err != nil {
-		s.recordOp(req.Name, reqTxt, err.Error(), "")
+		s.recordOp(req.Name, reqTxt, err.Error(), tmplResult)
 		writeErr(w, http.StatusInternalServerError, err)
 		return
 	}
-	after := map[string]any{"status": "ok"}
+	after := map[string]any{"status": "ok", "template": tmplResult}
 	afterTxt := ""
 	if l, e := s.Docker.Limits(r.Context(), req.Name); e == nil {
 		after["after_mem"] = l.MemBytes
@@ -430,7 +438,7 @@ func (s *Server) handleSetLimits(w http.ResponseWriter, r *http.Request) {
 		after["after_cpuset"] = l.CpusetCPUs
 		afterTxt = "mem=" + strconv.FormatInt(l.MemBytes, 10) + " nano=" + strconv.FormatInt(l.NanoCPUs, 10) + " cpuset=" + l.CpusetCPUs
 	}
-	s.recordOp(req.Name, reqTxt, "ok", afterTxt)
+	s.recordOp(req.Name, reqTxt, "ok", afterTxt+" · "+tmplResult)
 	writeJSON(w, http.StatusOK, after)
 }
 

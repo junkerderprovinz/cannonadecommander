@@ -1150,6 +1150,7 @@
             limits[name] = { mem_bytes: resp.after_mem, nano_cpus: resp.after_nano || 0, cpuset_cpus: resp.after_cpuset || "" };
             cur = limits[name]; curLoaded = true;
           }
+          if (resp && resp.template && resp.template.indexOf("FAILED") >= 0) msg += " · ⚠ " + resp.template; // a failed template mirror = limits vanish on the next Unraid recreate
           popOk(msg); flash(t("done")); return loadLimits();
         })
         .then(function () {

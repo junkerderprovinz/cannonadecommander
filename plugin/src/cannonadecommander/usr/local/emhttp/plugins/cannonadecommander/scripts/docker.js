@@ -341,6 +341,9 @@
         // beating our stylesheet on the real page and the icons "shrank back".
         n.style.setProperty("width", "62px", "important");
         n.style.setProperty("height", "62px", "important");
+        n.style.setProperty("vertical-align", "middle", "important");
+        n.style.setProperty("margin", "0", "important");
+        if (n.parentNode && n.parentNode.style) { n.parentNode.style.setProperty("display", "flex", "important"); n.parentNode.style.setProperty("align-items", "center", "important"); n.parentNode.style.setProperty("align-self", "center", "important"); n.parentNode.style.setProperty("margin", "0", "important"); }
         if (n.tagName === "IMG") n.style.setProperty("object-fit", "contain", "important");
         else n.style.setProperty("font-size", "62px", "important");
       }
@@ -799,6 +802,14 @@
           // Rand"). min-width:0 lets every child shrink to fit the nowrap row.
           ch.style.setProperty("min-width", "0", "important");
         });
+      });
+      // FILLED buttons in every popup (match the badge look): primary = accent fill,
+      // secondary = solid grey fill — no more outline style.
+      Array.prototype.slice.call(root.querySelectorAll(".cc-btn")).forEach(function (b) {
+        var prim = b.classList.contains("cc-btn-primary");
+        b.style.setProperty("background", prim ? "var(--cc-accent, #2f6feb)" : "#3a3a3a", "important");
+        b.style.setProperty("color", prim ? "var(--cc-accent-text, #fff)" : "#e6e6e6", "important");
+        b.style.setProperty("border", "none", "important");
       });
       // uniform popup style everywhere, applied automatically: no head/foot separator lines
       var hh = root.querySelector(".cc-pop-head"); if (hh) hh.style.setProperty("border-bottom", "none", "important");

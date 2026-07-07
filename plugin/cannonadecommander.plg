@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.38.0">
+  <!ENTITY version   "0.39.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
@@ -30,6 +30,21 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.39.0
+- Fixes the v0.38 column chaos: the actions cell was injected AFTER the shifted
+  column lookups ran, so resource badges landed in Autostart, the plan chip in
+  uptime and the network badge in a hidden column. The cell is now injected
+  first; every badge is back in its own column.
+- Fixes the missing WebUI/Edit icons: Unraid registers its context menus from
+  AJAX-loaded HTML that jQuery executes without adding script nodes to the DOM,
+  so scanning script tags found nothing. The registration function itself is now
+  wrapped and every registration harvested live; action cells rebuild as soon as
+  the data arrives.
+- The actions block is ALWAYS a stable 2x3 icon grid - WebUI, console,
+  stop/start, restart, pause/resume, edit; actions without a target render
+  greyed out instead of vanishing. The dots button is a slim full-width bar
+  under the grid and expands the remaining harvested links in the same style.
 
 ### 0.38.0
 - The ACTIONS column moved between the application and the version column; the
@@ -675,7 +690,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>539ff577748df4ca07339fdbf815ab1ac95b0ba65fb3c0b6ad69f1722a91cab8</SHA256>
+  <SHA256>d65af97078fa39c9cfbb85f5bd2308a8f5a9b3a4567a6f6458e5ce1a01d19e56</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

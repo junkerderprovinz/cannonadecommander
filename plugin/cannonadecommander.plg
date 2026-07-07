@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.32.0">
+  <!ENTITY version   "0.33.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
@@ -30,6 +30,18 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.33.0
+- The green save confirmation is now the COMPLETE verdict, always: the docker-verified
+  values ("RAM 100M"), or an explicit "verify read missing (engine older than UI?)" when
+  the re-read is absent/fails, plus the template-mirror result (ok AND failed) every time.
+  One save now answers every open question at once.
+- ONE popup style everywhere, enforced centrally: no container name in the CPU/RAM/
+  bandwidth titles, no separator lines in any popup, buttons as wide as the cards above
+  with a roomier gap to the bottom edge.
+- Narrow numeric fields (start delay, max/h, port, unit, schedule) keep their SHORT width.
+- Icons and names sit vertically CENTRED in the row.
+- Rainbow rotation is toggleable in Settings ("rotate colours on every reload", default on).
 
 ### 0.32.0
 - Plan-editor rows finally sit TIGHT (the row itself and every child are now styled inline,
@@ -598,7 +610,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>b289bf0bb9e5699a368eec1769fa13dbc5f20e14550f25400a4150b232e2e1fb</SHA256>
+  <SHA256>5082fd0689638fbd6e2c0a545a14743df33fc88afd3b201272434f33c47bc7bc</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

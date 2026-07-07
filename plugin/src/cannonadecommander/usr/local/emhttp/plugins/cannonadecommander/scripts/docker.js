@@ -486,7 +486,7 @@
       // Simple view too (Unraid does not populate the native resource cell there),
       // each with a gear for its own limit editor. The native cell is hidden by CSS. ──
       if (colOn("res")) {
-        var resCell = tr.querySelector(":scope > td:nth-child(8)") || tr.querySelector(":scope > td.advanced");
+        var resCell = tr.querySelector(":scope > td:nth-child(9)") || tr.querySelector(":scope > td.advanced"); // +1: actions column sits at position 2
         if (resCell && !resCell.querySelector(".cc-resgroup")) {
           var rg = el("div", "cc-rowbadges cc-resgroup"); rg.setAttribute(MARK, "1"); rg.dataset.name = name;
           var lm = limits[name] || {};
@@ -538,9 +538,9 @@
 
       // ── NETWORK group (col 3): consolidate Netzwerk / Container IP / LAN IP / Port ──
       if (colOn("net")) {
-        var c3 = tr.querySelector(":scope > td:nth-child(3)");
+        var c3 = tr.querySelector(":scope > td:nth-child(4)"); // +1: actions column
         if (c3) {
-          var netTxt = readmoreText(tr, 3), ipTxt = readmoreText(tr, 4), portTxt = readmoreText(tr, 5), lanTxt = readmoreText(tr, 6);
+          var netTxt = readmoreText(tr, 4), ipTxt = readmoreText(tr, 5), portTxt = readmoreText(tr, 6), lanTxt = readmoreText(tr, 7); // +1: actions column
           // a STOPPED container has no runtime IP in the native cell, so fall back to
           // the engine's value (the configured static br0.x IP, which survives a stop).
           if (!ipTxt && c && c.ip) ipTxt = c.ip;
@@ -561,7 +561,7 @@
 
       // ── PLAN chip → autostart cell (col 9), grouped with the native autostart toggle ──
       if (colOn("plan")) {
-        var c9 = tr.querySelector(":scope > td:nth-child(9)");
+        var c9 = tr.querySelector(":scope > td:nth-child(10)"); // +1: actions column
         if (c9) {
           var ph = el("div", "cc-rowbadges cc-planholder"); ph.setAttribute(MARK, "1"); ph.appendChild(planBadge(name));
           // gap toggle↔chip = EXACTLY the CPU↔RAM badge gap (5px), enforced inline; stray
@@ -588,9 +588,9 @@
             var toks = m3[1].match(/'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"/g) || [];
             var vals = toks.map(function (q) { return q.slice(1, -1); });
             if (!vals.length) continue;
-            var entry = { webui: "", xml: "" };
+            var entry = { webui: "", xml: "", urls: [] };
             vals.forEach(function (v) {
-              if (!entry.webui && v.indexOf("://") > 0) entry.webui = v;
+              if (v.indexOf("://") > 0) { if (!entry.webui) entry.webui = v; if (entry.urls.indexOf(v) < 0) entry.urls.push(v); }
               if (!entry.xml && /\.xml$/i.test(v)) entry.xml = v;
             });
             ctxMap[vals[0]] = entry;
@@ -609,10 +609,18 @@
   // The ACTIONS column: appended at the END of each row (existing nth-child rules
   // stay valid). Core one-click actions + "…" for the full native menu (Entfernen
   // etc. stay deliberately behind a second click).
+  // rainbow: every action icon takes a rotating palette colour (falls back to grey)
+  function tintAct(bar) {
+    Array.prototype.slice.call(bar.querySelectorAll(".cc-actbtn")).forEach(function (b2, i2) {
+      var k2 = RB_KINDS[i2 % RB_KINDS.length];
+      b2.style.setProperty("background", "var(--cc-rb-" + k2 + ", #2e2e2e)");
+      b2.style.setProperty("color", "var(--cc-rb-" + k2 + "-t, #c9c9c9)");
+    });
+  }
   function injectActionCell(tr, name, c) {
     try {
       var hr2 = headerRow();
-      if (hr2 && !hr2.querySelector(".cc-act-th")) hr2.appendChild(el("th", "cc-act-th", LANG === "de" ? "Aktionen" : "Actions"));
+      if (hr2 && !hr2.querySelector(".cc-act-th")) { var th2 = el("th", "cc-act-th", LANG === "de" ? "Aktionen" : "Actions"); hr2.insertBefore(th2, hr2.children[1] || null); }
       if (tr.querySelector(".cc-actcell")) return;
       var tda = el("td", "cc-actcell"); tda.setAttribute(MARK, "1");
       var bar = el("div", "cc-actbar");
@@ -623,11 +631,20 @@
       bar.appendChild(actBtn(running ? "⏹" : "▶", running ? t("stop") : t("start"), function () { var cc2 = containerByName(name); doAction(name, cc2 && cc2.state === "running" ? "stop" : "start"); }));
       bar.appendChild(actBtn("⟳", t("restart"), function () { doAction(name, "restart"); }));
       if (cx.xml) bar.appendChild(actBtn("🔧", LANG === "de" ? "Bearbeiten" : "Edit", function () { location.href = "/Docker/UpdateContainer?xmlTemplate=edit:" + encodeURIComponent(cx.xml); }));
-      bar.appendChild(actBtn("⋯", LANG === "de" ? "Menü" : "Menu", function () {
-        var a2 = tr.querySelector("td.ct-name span.hand .img") || tr.querySelector("td.ct-name span.hand");
-        if (a2) a2.click(); // the native anchor opens Unraid's full context menu
-      }));
-      tda.appendChild(bar); tr.appendChild(tda);
+      // "…" expands the REMAINING actions in the SAME icon style (not the native list):
+      // pause/resume + every additional harvested link (project page, support, donate…).
+      var more = el("div", "cc-actbar cc-actmore");
+      more.appendChild(actBtn(running ? "⏸" : "▶", running ? t("pause") : t("resume"), function () { var cc3 = containerByName(name); doAction(name, cc3 && cc3.state === "paused" ? "unpause" : "pause"); }));
+      (cx.urls || []).forEach(function (u2) {
+        if (u2 === cx.webui) return;
+        var host = ""; try { host = new URL(u2).hostname; } catch (e2) {}
+        var g2 = /paypal|ko-?fi|buymeacoffee|donate|liberapay/i.test(u2) ? "💰" : (/github|gitlab/i.test(u2) ? "📖" : "🔗");
+        more.appendChild(actBtn(g2, host || u2, function () { window.open(u2, "_blank"); }));
+      });
+      bar.appendChild(actBtn("⋯", LANG === "de" ? "Mehr" : "More", function () { more.classList.toggle("cc-open"); tintAct(more); }));
+      tda.appendChild(bar); tda.appendChild(more);
+      tintAct(bar);
+      tr.insertBefore(tda, tr.children[1] || null); // BETWEEN the name and the version column
     } catch (e) {}
   }
   function injectAllRowBadges() { findRows().forEach(injectRowBadges); }
@@ -1067,14 +1084,13 @@
     // (Bandwidth moved out of this editor: it now has its own gear in the CPU/RAM
     // resource group — a third stacked badge, so all three limits sit together.)
 
-    // Plan actions live here now (the Docker-tab gear is gone): save the whole plan
-    // AND this container's automation, or run it in dependency order immediately.
+    // ONE save button is enough (user call) — it stores the whole plan plus this
+    // container's automation; running the start order stays a daemon/apply concern.
     var act = el("div", "cc-pop-row cc-pop-act");
     act.style.setProperty("border-top", "none", "important"); // no bottom separator line either (user call)
-    var bSave = el("span", "cc-btn", t("save")), bRun = el("span", "cc-btn cc-btn-primary", t("startorder"));
+    var bSave = el("span", "cc-btn cc-btn-primary", t("save"));
     bSave.addEventListener("click", function () { saveEditor(name, readWatchdog(), readSchedules(), false); });
-    bRun.addEventListener("click", function () { saveEditor(name, readWatchdog(), readSchedules(), true); });
-    act.appendChild(bSave); act.appendChild(bRun); pop.appendChild(act);
+    act.appendChild(bSave); pop.appendChild(act);
     function commit() {
       if (!manageOn) { delete workingPlan[name]; body.classList.add("cc-dis"); refreshChip(anchor, name); return; }
       body.classList.remove("cc-dis");
@@ -1542,6 +1558,20 @@
       });
       // persistent re-probe (NEVER cleared by teardown): rebuild when the proxy returns
       setInterval(function () { try { if (!dead) return; fetch(PROXY + "?path=" + encodeURIComponent("state"), { headers: { Accept: "application/json" } }).then(function (r) { if (r.ok) rearm(); }).catch(function () {}); } catch (e) {} }, 8000);
+      // Clicking a container ICON no longer opens the native list — the action icons
+      // flash briefly instead, pointing the user at the actions column.
+      document.addEventListener("click", function (e) {
+        try {
+          if (dead || mode !== "list") return;
+          var hand = e.target && e.target.closest ? e.target.closest("td.ct-name span.hand") : null;
+          if (!hand) return;
+          var row2 = hand.closest("tr"); var bar2 = row2 && row2.querySelector(".cc-actbar");
+          if (!bar2) return;
+          e.preventDefault(); e.stopPropagation();
+          bar2.classList.add("cc-act-flash");
+          setTimeout(function () { bar2.classList.remove("cc-act-flash"); }, 1600);
+        } catch (e2) {}
+      }, true);
       window.addEventListener("scroll", function () { try { if (menu) positionMenu(); } catch (e) {} }, true);
       document.addEventListener("click", function (e) { try { if (openPop && !openPop.contains(e.target) && !e.target.closest(".cc-plan")) closePop(); if (menu && !menu.contains(e.target) && !e.target.closest(".cc-hgear")) closeMenu(); } catch (e2) {} });
       document.addEventListener("keydown", function (e) { if (e.key === "Escape") { try { closePop(); closeMenu(); } catch (e2) {} } });

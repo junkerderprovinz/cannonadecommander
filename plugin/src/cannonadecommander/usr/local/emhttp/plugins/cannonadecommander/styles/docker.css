@@ -63,27 +63,36 @@
 .cc-enh.cc-dens-airy .cc-namemeta, .cc-enh.cc-dens-airy .cc-resgroup, .cc-enh.cc-dens-airy .cc-netgroup { gap: 8px; }
 
 /* consolidated network column: hide the separate native IP / Port / LAN columns */
-.cc-enh.cc-c-net thead tr:last-child th:nth-child(4), .cc-enh.cc-c-net #docker_list tr.sortable > td:nth-child(4),
 .cc-enh.cc-c-net thead tr:last-child th:nth-child(5), .cc-enh.cc-c-net #docker_list tr.sortable > td:nth-child(5),
-.cc-enh.cc-c-net thead tr:last-child th:nth-child(6), .cc-enh.cc-c-net #docker_list tr.sortable > td:nth-child(6) { display: none !important; }
+.cc-enh.cc-c-net thead tr:last-child th:nth-child(6), .cc-enh.cc-c-net #docker_list tr.sortable > td:nth-child(6),
+.cc-enh.cc-c-net thead tr:last-child th:nth-child(7), .cc-enh.cc-c-net #docker_list tr.sortable > td:nth-child(7) { display: none !important; }
+/* NARROW version + network columns → more room for volumes (actions col = position 2) */
+.cc-enh thead tr:last-child th:nth-child(3) { width: 165px; }
+.cc-enh #docker_list tr.sortable > td:nth-child(3) { max-width: 165px; }
+.cc-enh thead tr:last-child th:nth-child(4) { width: 185px; }
+.cc-enh #docker_list tr.sortable > td:nth-child(4) { max-width: 185px; }
 
 /* volumes (col 7): NARROW column; long paths scroll as a marquee on mouseover */
-.cc-enh thead tr:last-child th:nth-child(7) { width: 160px; }
-.cc-enh #docker_list tr.sortable > td:nth-child(7) { max-width: 160px; }
-.cc-enh #docker_list tr.sortable > td:nth-child(7) span.docker_readmore { display: block; max-width: 160px; max-height: 6.4em; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.cc-enh #docker_list tr.sortable > td:nth-child(7):hover span.docker_readmore { text-overflow: clip; animation: cc-marquee 9s linear infinite; }
+.cc-enh thead tr:last-child th:nth-child(8) { width: 260px; }
+.cc-enh #docker_list tr.sortable > td:nth-child(8) { max-width: 260px; }
+.cc-enh #docker_list tr.sortable > td:nth-child(8) span.docker_readmore { display: block; max-width: 260px; max-height: 6.4em; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.cc-enh #docker_list tr.sortable > td:nth-child(8):hover span.docker_readmore { text-overflow: clip; animation: cc-marquee 9s linear infinite; }
 @keyframes cc-marquee { 0%, 8% { text-indent: 0; } 92%, 100% { text-indent: -105%; } }
 
 /* ACTIONS column: icon buttons, name as tooltip; "…" opens the native menu */
 .cc-actcell { white-space: nowrap; }
 .cc-act-th { font-size: 11px; }
-.cc-actbar { display: flex; gap: 4px; align-items: center; }
+.cc-actbar { display: grid; grid-template-columns: repeat(3, 27px); gap: 4px; } /* two rows of three */
+.cc-actmore { display: none; margin-top: 4px; }
+.cc-actmore.cc-open { display: grid; }
+.cc-act-flash .cc-actbtn { animation: cc-actflash .5s ease 3; }
+@keyframes cc-actflash { 0%, 100% { box-shadow: none; } 50% { box-shadow: 0 0 0 3px var(--cc-btn-accent, var(--cc-accent, #2f6feb)); } }
 .cc-actbtn { width: 27px; height: 26px; border-radius: 6px; background: #2e2e2e; color: #c9c9c9; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 13px; user-select: none; transition: background .12s, color .12s; }
 .cc-actbtn:hover { background: var(--cc-btn-accent, var(--cc-accent, #2f6feb)); color: var(--cc-accent-text, #fff); }
 
 /* Betriebszeit (col 10): advanced-view only */
-.cc-enh:not(.cc-adv) thead tr:last-child th:nth-child(10),
-.cc-enh:not(.cc-adv) #docker_list tr.sortable > td:nth-child(10) { display: none !important; }
+.cc-enh:not(.cc-adv) thead tr:last-child th:nth-child(11),
+.cc-enh:not(.cc-adv) #docker_list tr.sortable > td:nth-child(11) { display: none !important; }
 
 /* the ONE badge shape (padding/radius/font) shared by every pill, native + ours */
 .cc-b,
@@ -116,7 +125,7 @@
 .cc-enh.cc-c-res #docker_list tr.sortable td.advanced span[class^='mem-']::before { content: "RAM"; opacity: .72; font-weight: 500; margin-right: 4px; }
 .cc-enh.cc-c-res #docker_list tr.sortable td.advanced { white-space: normal; }
 .cc-enh.cc-c-res #docker_list tr.sortable td.advanced .usage-disk { display: none; }
-.cc-enh.cc-c-ip #docker_list tr.sortable > td:nth-child(4) span.docker_readmore span.advanced { display: none !important; }
+.cc-enh.cc-c-ip #docker_list tr.sortable > td:nth-child(5) span.docker_readmore span.advanced { display: none !important; }
 
 /* update status keeps meaning: up-to-date = green, update-ready = amber, force = accent */
 .cc-enh.cc-c-update #docker_list tr.sortable td.updatecolumn > span.green-text { background: #1f9d55; color: #fff !important; }

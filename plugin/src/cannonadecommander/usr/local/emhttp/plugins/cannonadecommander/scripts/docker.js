@@ -604,25 +604,27 @@
       if (ts && ts !== "#") out.tswebui = ts;
       if (/\.xml$/i.test(xml)) out.xml = xml;
       var L = LANG === "de";
-      [[q[7 + off], "Support", "❓"],
-       [q[8 + off], L ? "Projektseite" : "Project page", "📖"],
-       [q[9 + off], L ? "Mehr Infos" : "More info", "ℹ️"],
-       [q[10 + off], L ? "Spenden" : "Donate", "💰"],
-       [q[11 + off], L ? "Zuerst lesen" : "Read me first", "📕"]].forEach(function (l2) {
+      [[q[7 + off], "Support", "fa-question"],
+       [q[8 + off], L ? "Projektseite" : "Project page", "fa-life-ring"],
+       [q[9 + off], L ? "Mehr Infos" : "More info", "fa-info-circle"],
+       [q[10 + off], L ? "Spenden" : "Donate", "fa-external-link"],
+       [q[11 + off], L ? "Zuerst lesen" : "Read me first", "fa-book"]].forEach(function (l2) {
         if (l2[0] && l2[0].indexOf("://") > 0) out.links.push({ url: l2[0], tip: l2[1], glyph: l2[2] });
       });
     } catch (e) {}
     return out;
   }
-  // one action-icon button (name shows as tooltip on mouseover)
-  function actBtn(glyph, tip, fn) {
-    var b = el("span", "cc-actbtn", glyph); b.title = tip;
+  // one action-icon button (name shows as tooltip on mouseover). Font-Awesome
+  // glyphs, NOT emoji: emoji ignore CSS color, FA inherits it — so the icon is
+  // automatically black or white against its background, like the badge text.
+  function actBtn(icon, tip, fn) {
+    var b = el("span", "cc-actbtn"); b.title = tip; b.appendChild(el("i", "fa " + icon));
     b.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); fn(); });
     return b;
   }
-  // greyed placeholder: an action without a target still occupies its grid slot,
-  // so every row shows the same stable 2×3 icon block
-  function actBtnOff(glyph, tip) { var b = el("span", "cc-actbtn cc-actoff", glyph); b.title = tip; return b; }
+  // greyed placeholder: an action without a target still occupies its slot,
+  // so every row shows the same stable icon block
+  function actBtnOff(icon, tip) { var b = el("span", "cc-actbtn cc-actoff", ""); b.title = tip; b.appendChild(el("i", "fa " + icon)); return b; }
   // rainbow: every action icon takes a rotating palette colour (falls back to grey);
   // disabled placeholders stay grey
   function tintAct(bar) {
@@ -646,33 +648,56 @@
       var running = c && c.state === "running", paused = c && c.state === "paused";
       // row 1: WebUI · Konsole · Bearbeiten (user-specified order)
       var r1 = el("div", "cc-actrow");
-      r1.appendChild(cx.webui ? actBtn("🌐", "WebUI", function () { window.open(cx.webui, "_blank"); }) : actBtnOff("🌐", LANG === "de" ? "kein WebUI" : "no WebUI"));
-      r1.appendChild(typeof window.openTerminal === "function" ? actBtn(">_", LANG === "de" ? "Konsole" : "Console", function () { if (cx.shell) window.openTerminal("docker", name, cx.shell); else window.openTerminal("docker", name); }) : actBtnOff(">_", LANG === "de" ? "keine Konsole" : "no console"));
-      r1.appendChild(cx.xml ? actBtn("🔧", LANG === "de" ? "Bearbeiten" : "Edit", function () {
+      r1.appendChild(cx.webui ? actBtn("fa-globe", "WebUI", function () { window.open(cx.webui, "_blank"); }) : actBtnOff("fa-globe", LANG === "de" ? "kein WebUI" : "no WebUI"));
+      r1.appendChild(typeof window.openTerminal === "function" ? actBtn("fa-terminal", LANG === "de" ? "Konsole" : "Console", function () { if (cx.shell) window.openTerminal("docker", name, cx.shell); else window.openTerminal("docker", name); }) : actBtnOff("fa-terminal", LANG === "de" ? "keine Konsole" : "no console"));
+      r1.appendChild(cx.xml ? actBtn("fa-wrench", LANG === "de" ? "Bearbeiten" : "Edit", function () {
         // exactly what Unraid's own editContainer() does — the template path is
         // appended RAW (encodeURIComponent broke the edit page)
         var p2 = location.pathname, x2 = p2.indexOf("?"); if (x2 !== -1) p2 = p2.substring(0, x2);
         location.href = p2 + "/UpdateContainer?xmlTemplate=edit:" + cx.xml;
-      }) : actBtnOff("🔧", LANG === "de" ? "kein Template" : "no template"));
+      }) : actBtnOff("fa-wrench", LANG === "de" ? "kein Template" : "no template"));
       // row 2: Neustart · Pause · Stopp · "…" (user-specified order)
       var r2 = el("div", "cc-actrow");
-      r2.appendChild(actBtn("⟳", t("restart"), function () { doAction(name, "restart"); }));
-      r2.appendChild(paused ? actBtn("▶", t("resume"), function () { doAction(name, "unpause"); })
-        : (running ? actBtn("⏸", t("pause"), function () { doAction(name, "pause"); }) : actBtnOff("⏸", t("pause"))));
-      r2.appendChild(actBtn(running || paused ? "⏹" : "▶", running || paused ? t("stop") : t("start"), function () { var cc2 = containerByName(name); doAction(name, cc2 && (cc2.state === "running" || cc2.state === "paused") ? "stop" : "start"); }));
+      r2.appendChild(actBtn("fa-refresh", t("restart"), function () { doAction(name, "restart"); }));
+      r2.appendChild(paused ? actBtn("fa-play", t("resume"), function () { doAction(name, "unpause"); })
+        : (running ? actBtn("fa-pause", t("pause"), function () { doAction(name, "pause"); }) : actBtnOff("fa-pause", t("pause"))));
+      r2.appendChild(actBtn(running || paused ? "fa-stop" : "fa-play", running || paused ? t("stop") : t("start"), function () { var cc2 = containerByName(name); doAction(name, cc2 && (cc2.state === "running" || cc2.state === "paused") ? "stop" : "start"); }));
       // "…" expands the remaining harvested links in the same icon style
       var more = el("div", "cc-actrow cc-actmore");
-      if (cx.tswebui) more.appendChild(actBtn("🌐", "Tailscale WebUI", function () { window.open(cx.tswebui, "_blank"); }));
+      if (cx.tswebui) more.appendChild(actBtn("fa-globe", "Tailscale WebUI", function () { window.open(cx.tswebui, "_blank"); }));
       cx.links.forEach(function (l2) { more.appendChild(actBtn(l2.glyph, l2.tip, function () { window.open(l2.url, "_blank"); })); });
-      r2.appendChild(more.children.length ? actBtn("⋯", LANG === "de" ? "Mehr" : "More", function () { more.classList.toggle("cc-open"); tintAct(more); })
-        : actBtnOff("⋯", LANG === "de" ? "keine weiteren Links" : "no more links"));
+      r2.appendChild(more.children.length ? actBtn("fa-ellipsis-h", LANG === "de" ? "Mehr" : "More", function () { more.classList.toggle("cc-open"); tintAct(more); })
+        : actBtnOff("fa-ellipsis-h", LANG === "de" ? "keine weiteren Links" : "no more links"));
       bar.appendChild(r1); bar.appendChild(r2);
       tda.appendChild(bar); tda.appendChild(more);
       tintAct(bar);
       tr.insertBefore(tda, tr.children[1] || null); // BETWEEN the name and the version column
     } catch (e) {}
   }
-  function injectAllRowBadges() { findRows().forEach(injectRowBadges); }
+  // Move everything that lives in Unraid's ToggleViewMode row (our gear, ShipLog's
+  // update-all pill, the native Basic/Advanced switch) into an overlay pinned to the
+  // RIGHT END of the dark column-header strip, then collapse the old row — the empty
+  // band between the main menu and the table header disappears. Runs on every badge
+  // pass so late injections (ShipLog appears after us) get rescued from the hidden row.
+  function relocateTopBar() {
+    try {
+      if (mode !== "list") return;
+      var tv = document.querySelector("div.ToggleViewMode");
+      var tc = document.querySelector("div.TableContainer");
+      if (!tv || !tc) return;
+      var hc = document.querySelector(".cc-headctl");
+      if (!hc) {
+        hc = el("div", "cc-headctl"); hc.setAttribute(MARK, "1");
+        try { if (getComputedStyle(tc).position === "static") tc.style.position = "relative"; } catch (e2) {}
+        tc.appendChild(hc);
+      }
+      while (tv.firstChild) hc.appendChild(tv.firstChild);
+      tv.style.setProperty("display", "none", "important");
+      var hr3 = headerRow();
+      if (hr3 && hr3.offsetHeight) hc.style.height = hr3.offsetHeight + "px";
+    } catch (e) {}
+  }
+  function injectAllRowBadges() { relocateTopBar(); findRows().forEach(injectRowBadges); }
   function clearRowBadges() {
     var root = document.getElementById("docker_list") || nativeTable() || document; // scope to the list, not the whole page
     Array.prototype.slice.call(root.querySelectorAll("[" + MARK + "]")).forEach(function (n) { n.remove(); });

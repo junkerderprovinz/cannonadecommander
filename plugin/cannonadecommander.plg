@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.40.0">
+  <!ENTITY version   "0.41.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
@@ -30,6 +30,16 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.41.0
+- Action icons are Font-Awesome glyphs now, not emoji: emoji ignore CSS colour,
+  FA inherits it - every icon renders black or white automatically depending on
+  its background, exactly like the badge text (rainbow mode included).
+- The actions column is narrow (122px) - just its two icon rows.
+- The update-all pill and the Basic/Advanced view switch (plus our gear) moved
+  into the right end of the dark column-header strip; the old row above the
+  table is collapsed, so the empty band between the main menu and the table
+  header is gone.
 
 ### 0.40.0
 - Action icons finally carry the RIGHT targets: the per-container data is now
@@ -707,7 +717,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>114c804d702ce6e0ad1b79c629438590a7393fd1aa7ff806441bdbf6ae76417d</SHA256>
+  <SHA256>8722135c82ed3fa72ffe0ed5cb9725e932171f0c7a624a04709b718800d31748</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

@@ -571,7 +571,64 @@
           c9.appendChild(ph);
         }
       }
+      injectActionCell(tr, name, c);
     } catch (e) { /* one bad row must never break Unraid's page */ }
+  }
+  // Per-container WebUI + template path, harvested from the page's OWN inline
+  // addDockerContainerContext(...) registrations — no guessing, feature-detected.
+  var ctxMap = null;
+  function ctxFor(name) {
+    if (ctxMap === null) {
+      ctxMap = {};
+      try {
+        Array.prototype.slice.call(document.querySelectorAll("script")).forEach(function (sc) {
+          var txt = sc.textContent || "";
+          var re = /addDockerContainerContext\s*\(([^;]*?)\)\s*;/g, m3;
+          while ((m3 = re.exec(txt))) {
+            var toks = m3[1].match(/'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"/g) || [];
+            var vals = toks.map(function (q) { return q.slice(1, -1); });
+            if (!vals.length) continue;
+            var entry = { webui: "", xml: "" };
+            vals.forEach(function (v) {
+              if (!entry.webui && v.indexOf("://") > 0) entry.webui = v;
+              if (!entry.xml && /\.xml$/i.test(v)) entry.xml = v;
+            });
+            ctxMap[vals[0]] = entry;
+          }
+        });
+      } catch (e) { ctxMap = {}; }
+    }
+    return ctxMap[name] || {};
+  }
+  // one action-icon button (name shows as tooltip on mouseover)
+  function actBtn(glyph, tip, fn) {
+    var b = el("span", "cc-actbtn", glyph); b.title = tip;
+    b.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); fn(); });
+    return b;
+  }
+  // The ACTIONS column: appended at the END of each row (existing nth-child rules
+  // stay valid). Core one-click actions + "…" for the full native menu (Entfernen
+  // etc. stay deliberately behind a second click).
+  function injectActionCell(tr, name, c) {
+    try {
+      var hr2 = headerRow();
+      if (hr2 && !hr2.querySelector(".cc-act-th")) hr2.appendChild(el("th", "cc-act-th", LANG === "de" ? "Aktionen" : "Actions"));
+      if (tr.querySelector(".cc-actcell")) return;
+      var tda = el("td", "cc-actcell"); tda.setAttribute(MARK, "1");
+      var bar = el("div", "cc-actbar");
+      var running = c && c.state === "running";
+      var cx = ctxFor(name);
+      if (cx.webui) bar.appendChild(actBtn("🌐", "WebUI", function () { window.open(cx.webui, "_blank"); }));
+      if (typeof window.openTerminal === "function") bar.appendChild(actBtn(">_", LANG === "de" ? "Konsole" : "Console", function () { window.openTerminal("docker", name); }));
+      bar.appendChild(actBtn(running ? "⏹" : "▶", running ? t("stop") : t("start"), function () { var cc2 = containerByName(name); doAction(name, cc2 && cc2.state === "running" ? "stop" : "start"); }));
+      bar.appendChild(actBtn("⟳", t("restart"), function () { doAction(name, "restart"); }));
+      if (cx.xml) bar.appendChild(actBtn("🔧", LANG === "de" ? "Bearbeiten" : "Edit", function () { location.href = "/Docker/UpdateContainer?xmlTemplate=edit:" + encodeURIComponent(cx.xml); }));
+      bar.appendChild(actBtn("⋯", LANG === "de" ? "Menü" : "Menu", function () {
+        var a2 = tr.querySelector("td.ct-name span.hand .img") || tr.querySelector("td.ct-name span.hand");
+        if (a2) a2.click(); // the native anchor opens Unraid's full context menu
+      }));
+      tda.appendChild(bar); tr.appendChild(tda);
+    } catch (e) {}
   }
   function injectAllRowBadges() { findRows().forEach(injectRowBadges); }
   function clearRowBadges() {

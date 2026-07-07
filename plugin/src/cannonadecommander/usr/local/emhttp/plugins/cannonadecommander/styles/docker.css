@@ -67,8 +67,19 @@
 .cc-enh.cc-c-net thead tr:last-child th:nth-child(5), .cc-enh.cc-c-net #docker_list tr.sortable > td:nth-child(5),
 .cc-enh.cc-c-net thead tr:last-child th:nth-child(6), .cc-enh.cc-c-net #docker_list tr.sortable > td:nth-child(6) { display: none !important; }
 
-/* volumes (col 7): with the taller row, let the readmore show more before it clips */
-.cc-enh #docker_list tr.sortable > td:nth-child(7) span.docker_readmore { max-height: 6.4em; }
+/* volumes (col 7): NARROW column; long paths scroll as a marquee on mouseover */
+.cc-enh thead tr:last-child th:nth-child(7) { width: 160px; }
+.cc-enh #docker_list tr.sortable > td:nth-child(7) { max-width: 160px; }
+.cc-enh #docker_list tr.sortable > td:nth-child(7) span.docker_readmore { display: block; max-width: 160px; max-height: 6.4em; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.cc-enh #docker_list tr.sortable > td:nth-child(7):hover span.docker_readmore { text-overflow: clip; animation: cc-marquee 9s linear infinite; }
+@keyframes cc-marquee { 0%, 8% { text-indent: 0; } 92%, 100% { text-indent: -105%; } }
+
+/* ACTIONS column: icon buttons, name as tooltip; "…" opens the native menu */
+.cc-actcell { white-space: nowrap; }
+.cc-act-th { font-size: 11px; }
+.cc-actbar { display: flex; gap: 4px; align-items: center; }
+.cc-actbtn { width: 27px; height: 26px; border-radius: 6px; background: #2e2e2e; color: #c9c9c9; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 13px; user-select: none; transition: background .12s, color .12s; }
+.cc-actbtn:hover { background: var(--cc-btn-accent, var(--cc-accent, #2f6feb)); color: var(--cc-accent-text, #fff); }
 
 /* Betriebszeit (col 10): advanced-view only */
 .cc-enh:not(.cc-adv) thead tr:last-child th:nth-child(10),

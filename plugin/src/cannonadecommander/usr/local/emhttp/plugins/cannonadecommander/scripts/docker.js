@@ -773,6 +773,7 @@
     try {
       Array.prototype.slice.call(root.querySelectorAll(".cc-pop-row")).forEach(function (r) {
         if (r.classList.contains("cc-pop-act")) {
+          r.style.setProperty("border-top", "none", "important"); // ONE style everywhere: no separator lines in any popup
           // the action row is NOT flattened: 14px side insets = exactly the card width
           // above, and a ROOMIER 18px gap to the bottom edge of the popup (user call).
           r.style.setProperty("padding", "10px 14px 18px", "important");
@@ -799,6 +800,9 @@
           ch.style.setProperty("min-width", "0", "important");
         });
       });
+      // uniform popup style everywhere, applied automatically: no head/foot separator lines
+      var hh = root.querySelector(".cc-pop-head"); if (hh) hh.style.setProperty("border-bottom", "none", "important");
+      var ff = root.querySelector(".cc-pop-foot"); if (ff) { ff.style.setProperty("border-top", "none", "important"); ff.style.setProperty("border-bottom", "none", "important"); }
       Array.prototype.slice.call(root.querySelectorAll(".cc-in")).forEach(function (i) {
         // narrow fields (delay, max/h, port, unit, schedule) keep their SHORT width —
         // enforced inline, since the stylesheet width loses to Unraid's input rules
@@ -1021,7 +1025,7 @@
     if (togglePop(anchor)) return;
     closePop();
     var pop = el("div", "cc-pop"); if (localStorage.getItem("cc.rainbow") === "1") pop.classList.add("cc-rainbow");
-    var head = el("div", "cc-pop-head"); head.appendChild(el("b", null, name + " — " + t("bandwidth")));
+    var head = el("div", "cc-pop-head"); head.appendChild(el("b", null, t("bandwidth"))); // container name removed — one style everywhere
     var x = el("span", "cc-pop-x", "✕"); x.addEventListener("click", closePop); head.appendChild(x); pop.appendChild(head);
     var body = el("div", "cc-pop-body");
     var cur = bandwidthFor(name);
@@ -1094,7 +1098,7 @@
     var showRam = which !== "cpu", showCpu = which !== "ram";
     var title = which === "cpu" ? t("cpuLimit") : which === "ram" ? t("ramLimit") : "CPU / RAM";
     var pop = el("div", "cc-pop"); if (localStorage.getItem("cc.rainbow") === "1") pop.classList.add("cc-rainbow");
-    var head = el("div", "cc-pop-head"); head.appendChild(el("b", null, name + " — " + title));
+    var head = el("div", "cc-pop-head"); head.appendChild(el("b", null, title)); // container name removed — one style everywhere
     var x = el("span", "cc-pop-x", "✕"); x.addEventListener("click", closePop); head.appendChild(x); pop.appendChild(head);
     var body = el("div", "cc-pop-body"), memNum = null, memUnit = null, cpu = null;
     var readCpuset = function () { return ""; }, fillCpuset = function () {};

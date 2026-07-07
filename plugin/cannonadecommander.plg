@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.42.0">
+  <!ENTITY version   "0.43.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
@@ -30,6 +30,17 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.43.0
+- Action icons are coloured in NORMAL mode too: they use the same per-kind base
+  palette as the badges; rainbow simply overrides it.
+- The gear is visible again: it sits INSIDE the header row's last cell now -
+  the absolute overlay on the table container was clipped by its overflow,
+  which is why the gear menu seemed to be nowhere.
+- Card view: container logos are back (the icon cache stored misses forever
+  when the grid rendered before Unraid's table rows arrived) and every card
+  carries the same action-icon block as the list rows.
+- The empty toggle row above the table is collapsed in card view as well.
 
 ### 0.42.0
 - Action icons really take their colour now: Unraid's theme CSS styles .fa
@@ -728,7 +739,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>3da7e3aed77069a903ceb668f1cc0484678eed3aabb591b68b5edf4d6d19b1b3</SHA256>
+  <SHA256>41e539b31b888a75664c83f9645aa92fe79cc6294429d4b2fd918743b3787822</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

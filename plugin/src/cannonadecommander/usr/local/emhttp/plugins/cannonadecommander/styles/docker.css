@@ -87,8 +87,10 @@
 .cc-enh thead tr:last-child th:nth-child(2) { width: 122px; }
 .cc-enh #docker_list tr.sortable > td:nth-child(2) { max-width: 122px; }
 .cc-actbtn i.fa { font-size: 13px; line-height: 1; color: inherit !important; } /* theme CSS colours .fa directly */
-/* overlay carrying the gear + ShipLog pill + view switch inside the header strip */
-.cc-headctl { position: absolute; top: 0; right: 10px; height: 34px; display: flex; align-items: center; gap: 8px; z-index: 40; }
+/* gear inside the header strip (last th) — absolute overlays got clipped */
+.cc-hgear-th2 { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); }
+/* card view: the same action block the list rows carry */
+.cc-card-actbar { padding: 6px 12px 0 12px; }
 /* ShipLog's update-all pill is redundant here — Unraid's own Update-All button
    sits below the table. Hidden only while CannonadeCommander is installed. */
 a.sl-updall { display: none !important; }

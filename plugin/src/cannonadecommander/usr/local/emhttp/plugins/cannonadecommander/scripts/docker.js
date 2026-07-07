@@ -192,7 +192,10 @@
     if (iconCache[name] !== undefined) return iconCache[name];
     var src = "", row = document.getElementById("ct-" + name), img = row && row.querySelector("img");
     if (!img) { var all = document.querySelectorAll("#docker_containers img, #docker_list img"); for (var i = 0; i < all.length; i++) { var tr = all[i].closest("tr"); if (tr && norm(rowName(tr)) === norm(name)) { img = all[i]; break; } } }
-    if (img) src = img.getAttribute("src") || ""; iconCache[name] = src; return src;
+    if (img) src = img.getAttribute("src") || "";
+    if (src) iconCache[name] = src; // never cache a miss: the grid can render before
+    // the native table's AJAX rows exist — a cached "" kept every card logo empty
+    return src;
   }
 
   // ───────────────────────── badge builders (uniform)
@@ -627,54 +630,58 @@
   function actBtnOff(icon, tip) { var b = el("span", "cc-actbtn cc-actoff", ""); b.title = tip; b.appendChild(el("i", "fa " + icon)); return b; }
   // rainbow: every action icon takes a rotating palette colour (falls back to grey);
   // disabled placeholders stay grey
+  // per-kind base colours = the badges' non-rainbow palette, so the icons are
+  // coloured in NORMAL mode too; the --cc-rb-* vars override them in rainbow mode
+  var ACT_BASE = { net: ["#1f9d55", "#fff"], ip: ["#2f6feb", "#fff"], lan: ["#e0912a", "#161616"], port: ["#8b5cf6", "#fff"], id: ["#0ea5a4", "#fff"], von: ["#e05299", "#fff"], cpu: ["#d9433f", "#fff"], ram: ["#2f9d8b", "#fff"], bw: ["#e0912a", "#161616"], version: ["#6b7280", "#fff"], vol: ["#0891b2", "#fff"], plan: ["#2f6feb", "#fff"] };
   function tintAct(bar) {
     Array.prototype.slice.call(bar.querySelectorAll(".cc-actbtn:not(.cc-actoff)")).forEach(function (b2, i2) {
-      var k2 = RB_KINDS[i2 % RB_KINDS.length];
-      b2.style.setProperty("background", "var(--cc-rb-" + k2 + ", #2e2e2e)", "important");
-      b2.style.setProperty("color", "var(--cc-rb-" + k2 + "-t, #c9c9c9)", "important");
-      // Unraid's theme styles .fa glyphs directly (e.g. orange in the yellow theme),
-      // which beats inheritance — force the glyph to follow the button colour
+      var k2 = RB_KINDS[i2 % RB_KINDS.length], b0 = ACT_BASE[k2] || ["#2e2e2e", "#c9c9c9"];
+      b2.style.setProperty("background", "var(--cc-rb-" + k2 + ", " + b0[0] + ")", "important");
+      b2.style.setProperty("color", "var(--cc-rb-" + k2 + "-t, " + b0[1] + ")", "important");
+      // Unraid's theme styles .fa glyphs directly, which beats inheritance —
+      // force the glyph to follow the button colour
       var ic2 = b2.querySelector("i"); if (ic2) ic2.style.setProperty("color", "inherit", "important");
     });
     Array.prototype.slice.call(bar.querySelectorAll(".cc-actbtn.cc-actoff i")).forEach(function (ic3) { ic3.style.setProperty("color", "inherit", "important"); });
+  }
+  // Both views share the same action block: row 1 = WebUI/Konsole/Bearbeiten,
+  // row 2 = Neustart/Pause/Stopp/"…" (expands the harvested extra links).
+  function actionBars(name, c) {
+    var cx = ctxFor(name);
+    var bar = el("div", "cc-actbar");
+    var running = c && c.state === "running", paused = c && c.state === "paused";
+    var r1 = el("div", "cc-actrow");
+    r1.appendChild(cx.webui ? actBtn("fa-globe", "WebUI", function () { window.open(cx.webui, "_blank"); }) : actBtnOff("fa-globe", LANG === "de" ? "kein WebUI" : "no WebUI"));
+    r1.appendChild(typeof window.openTerminal === "function" ? actBtn("fa-terminal", LANG === "de" ? "Konsole" : "Console", function () { if (cx.shell) window.openTerminal("docker", name, cx.shell); else window.openTerminal("docker", name); }) : actBtnOff("fa-terminal", LANG === "de" ? "keine Konsole" : "no console"));
+    r1.appendChild(cx.xml ? actBtn("fa-wrench", LANG === "de" ? "Bearbeiten" : "Edit", function () {
+      // exactly what Unraid's own editContainer() does — the template path stays RAW
+      var p2 = location.pathname, x2 = p2.indexOf("?"); if (x2 !== -1) p2 = p2.substring(0, x2);
+      location.href = p2 + "/UpdateContainer?xmlTemplate=edit:" + cx.xml;
+    }) : actBtnOff("fa-wrench", LANG === "de" ? "kein Template" : "no template"));
+    var r2 = el("div", "cc-actrow");
+    r2.appendChild(actBtn("fa-refresh", t("restart"), function () { doAction(name, "restart"); }));
+    r2.appendChild(paused ? actBtn("fa-play", t("resume"), function () { doAction(name, "unpause"); })
+      : (running ? actBtn("fa-pause", t("pause"), function () { doAction(name, "pause"); }) : actBtnOff("fa-pause", t("pause"))));
+    r2.appendChild(actBtn(running || paused ? "fa-stop" : "fa-play", running || paused ? t("stop") : t("start"), function () { var cc2 = containerByName(name); doAction(name, cc2 && (cc2.state === "running" || cc2.state === "paused") ? "stop" : "start"); }));
+    var more = el("div", "cc-actrow cc-actmore");
+    if (cx.tswebui) more.appendChild(actBtn("fa-globe", "Tailscale WebUI", function () { window.open(cx.tswebui, "_blank"); }));
+    cx.links.forEach(function (l2) { more.appendChild(actBtn(l2.glyph, l2.tip, function () { window.open(l2.url, "_blank"); })); });
+    r2.appendChild(more.children.length ? actBtn("fa-ellipsis-h", LANG === "de" ? "Mehr" : "More", function () { more.classList.toggle("cc-open"); tintAct(more); })
+      : actBtnOff("fa-ellipsis-h", LANG === "de" ? "keine weiteren Links" : "no more links"));
+    bar.appendChild(r1); bar.appendChild(r2);
+    tintAct(bar);
+    return { bar: bar, more: more, sig: cx.webui + "|" + cx.xml + "|" + cx.tswebui + "|" + cx.links.length };
   }
   function injectActionCell(tr, name, c) {
     try {
       var hr2 = headerRow();
       if (hr2 && !hr2.querySelector(".cc-act-th")) { var th2 = el("th", "cc-act-th", LANG === "de" ? "Aktionen" : "Actions"); hr2.insertBefore(th2, hr2.children[1] || null); }
-      var cx = ctxFor(name);
-      var sig = cx.webui + "|" + cx.xml + "|" + cx.tswebui + "|" + cx.links.length;
+      var ab = actionBars(name, c);
       var old2 = tr.querySelector(".cc-actcell");
-      if (old2) { if (old2.dataset.ccSig === sig) return; old2.remove(); } // rebuild when the data changed
-      var tda = el("td", "cc-actcell"); tda.setAttribute(MARK, "1"); tda.dataset.ccSig = sig;
+      if (old2) { if (old2.dataset.ccSig === ab.sig) return; old2.remove(); } // rebuild when the data changed
+      var tda = el("td", "cc-actcell"); tda.setAttribute(MARK, "1"); tda.dataset.ccSig = ab.sig;
       tda.style.setProperty("vertical-align", "middle", "important");
-      var bar = el("div", "cc-actbar");
-      var running = c && c.state === "running", paused = c && c.state === "paused";
-      // row 1: WebUI · Konsole · Bearbeiten (user-specified order)
-      var r1 = el("div", "cc-actrow");
-      r1.appendChild(cx.webui ? actBtn("fa-globe", "WebUI", function () { window.open(cx.webui, "_blank"); }) : actBtnOff("fa-globe", LANG === "de" ? "kein WebUI" : "no WebUI"));
-      r1.appendChild(typeof window.openTerminal === "function" ? actBtn("fa-terminal", LANG === "de" ? "Konsole" : "Console", function () { if (cx.shell) window.openTerminal("docker", name, cx.shell); else window.openTerminal("docker", name); }) : actBtnOff("fa-terminal", LANG === "de" ? "keine Konsole" : "no console"));
-      r1.appendChild(cx.xml ? actBtn("fa-wrench", LANG === "de" ? "Bearbeiten" : "Edit", function () {
-        // exactly what Unraid's own editContainer() does — the template path is
-        // appended RAW (encodeURIComponent broke the edit page)
-        var p2 = location.pathname, x2 = p2.indexOf("?"); if (x2 !== -1) p2 = p2.substring(0, x2);
-        location.href = p2 + "/UpdateContainer?xmlTemplate=edit:" + cx.xml;
-      }) : actBtnOff("fa-wrench", LANG === "de" ? "kein Template" : "no template"));
-      // row 2: Neustart · Pause · Stopp · "…" (user-specified order)
-      var r2 = el("div", "cc-actrow");
-      r2.appendChild(actBtn("fa-refresh", t("restart"), function () { doAction(name, "restart"); }));
-      r2.appendChild(paused ? actBtn("fa-play", t("resume"), function () { doAction(name, "unpause"); })
-        : (running ? actBtn("fa-pause", t("pause"), function () { doAction(name, "pause"); }) : actBtnOff("fa-pause", t("pause"))));
-      r2.appendChild(actBtn(running || paused ? "fa-stop" : "fa-play", running || paused ? t("stop") : t("start"), function () { var cc2 = containerByName(name); doAction(name, cc2 && (cc2.state === "running" || cc2.state === "paused") ? "stop" : "start"); }));
-      // "…" expands the remaining harvested links in the same icon style
-      var more = el("div", "cc-actrow cc-actmore");
-      if (cx.tswebui) more.appendChild(actBtn("fa-globe", "Tailscale WebUI", function () { window.open(cx.tswebui, "_blank"); }));
-      cx.links.forEach(function (l2) { more.appendChild(actBtn(l2.glyph, l2.tip, function () { window.open(l2.url, "_blank"); })); });
-      r2.appendChild(more.children.length ? actBtn("fa-ellipsis-h", LANG === "de" ? "Mehr" : "More", function () { more.classList.toggle("cc-open"); tintAct(more); })
-        : actBtnOff("fa-ellipsis-h", LANG === "de" ? "keine weiteren Links" : "no more links"));
-      bar.appendChild(r1); bar.appendChild(r2);
-      tda.appendChild(bar); tda.appendChild(more);
-      tintAct(bar);
+      tda.appendChild(ab.bar); tda.appendChild(ab.more);
       tr.insertBefore(tda, tr.children[1] || null); // BETWEEN the name and the version column
     } catch (e) {}
   }
@@ -685,21 +692,20 @@
   // pass so late injections land in the hidden row and the gear gets rescued.
   function relocateTopBar() {
     try {
-      if (mode !== "list") return;
+      // both views: the switch lives in the gear menu, ShipLog's pill is covered
+      // by the native Update-All button — the whole row stays collapsed
       var tv = document.querySelector("div.ToggleViewMode");
-      var tc = document.querySelector("div.TableContainer");
-      if (!tv || !tc) return;
-      var hc = document.querySelector(".cc-headctl");
-      if (!hc) {
-        hc = el("div", "cc-headctl"); hc.setAttribute(MARK, "1");
-        try { if (getComputedStyle(tc).position === "static") tc.style.position = "relative"; } catch (e2) {}
-        tc.appendChild(hc);
-      }
-      var g3 = tv.querySelector(".cc-hgear-bar");
-      if (g3) hc.appendChild(g3);
-      tv.style.setProperty("display", "none", "important");
-      var hr3 = headerRow();
-      if (hr3 && hr3.offsetHeight) hc.style.height = hr3.offsetHeight + "px";
+      if (tv) tv.style.setProperty("display", "none", "important");
+      if (mode !== "list") return;
+      // the gear sits INSIDE the header row's last th: the absolute overlay on the
+      // TableContainer got clipped by its overflow and was invisible
+      var hr3 = headerRow(); if (!hr3) return;
+      if (hr3.querySelector(".cc-hgear-th2")) return;
+      var th3 = hr3.lastElementChild; if (!th3) return;
+      try { if (getComputedStyle(th3).position === "static") th3.style.position = "relative"; } catch (e2) {}
+      var g3 = tv ? tv.querySelector(".cc-hgear-bar") : null; if (g3) g3.remove();
+      var hc = document.querySelector(".cc-headctl"); if (hc) hc.remove(); // old overlay
+      th3.appendChild(makeGear("cc-hgear-th2"));
     } catch (e) {}
   }
   function injectAllRowBadges() { relocateTopBar(); findRows().forEach(injectRowBadges); }
@@ -760,6 +766,9 @@
     if (ico) { var im = el("img", "cc-card-ico"); im.src = ico; im.onerror = function () { this.style.visibility = "hidden"; }; head.appendChild(im); } else head.appendChild(el("div", "cc-card-ico cc-card-ico-ph"));
     var nb = el("div", "cc-card-name"); nb.appendChild(el("div", "cc-card-title", c.name)); nb.appendChild(el("div", "cc-card-img", c.image || "")); head.appendChild(nb);
     head.appendChild(stateBadge(c)); wrap.appendChild(head);
+    var ab2 = actionBars(c.name, c);
+    var abrow = el("div", "cc-card-actbar"); abrow.appendChild(ab2.bar); abrow.appendChild(ab2.more);
+    wrap.appendChild(abrow);
     var s = stats[c.name], sb = el("div", "cc-card-stats");
     if (s && c.state === "running") {
       sb.appendChild(gauge("CPU", s.cpu_percent, (s.cpu_percent || 0) + "%"));
@@ -805,6 +814,7 @@
   function removeGridHolder() { try { if (gridHolder && gridHolder.parentNode) gridHolder.parentNode.removeChild(gridHolder); } catch (e) {} gridHolder = null; }
   function renderGrid() {
     ensureGridHolder(); gridHolder.innerHTML = "";
+    relocateTopBar(); // collapse the ToggleViewMode row in card view too
     gridHolder.classList.toggle("cc-rainbow", localStorage.getItem("cc.rainbow") === "1");
     gridHolder.classList.toggle("cc-tint-icons", !!localStorage.getItem("cc.iconcolor"));
     // The grid needs its OWN gear: the list-toolbar gear lives in/near the native table

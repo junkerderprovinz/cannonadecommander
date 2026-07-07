@@ -57,6 +57,7 @@ type fakeShaper struct {
 	err     error          // when set, Apply records the call then returns this (partial-failure sim)
 }
 
+func (f *fakeShaper) DetectIface(pid int) string { return "" }
 func (f *fakeShaper) Apply(iface string, pid, egressKbit, ingressKbit int) error {
 	if f.applied == nil {
 		f.applied = map[int]int{}

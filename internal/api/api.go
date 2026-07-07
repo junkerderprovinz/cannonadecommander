@@ -6,14 +6,17 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/junkerderprovinz/cannonadecommander/internal/hostcpu"
 	"github.com/junkerderprovinz/cannonadecommander/internal/model"
+	"github.com/junkerderprovinz/cannonadecommander/internal/netshape"
 	"github.com/junkerderprovinz/cannonadecommander/internal/orchestrator"
 	"github.com/junkerderprovinz/cannonadecommander/internal/unraidtmpl"
 )
@@ -63,6 +66,7 @@ type Server struct {
 	Docker       Docker
 	Store        Store
 	Runner       Runner
+	Pidder       Pidder // resolves a container's main PID for the bandwidth diagnostics
 	TemplatesDir string // Unraid dockerMan templates dir; "" disables the apply-fest template write
 	Version      string // the running daemon's build version, surfaced in /api/state so the UI can show which backend is live
 
@@ -87,6 +91,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/stats", s.handleStats)
 	mux.HandleFunc("GET /api/limits", s.handleGetLimits)
 	mux.HandleFunc("GET /api/limitlog", s.handleLimitLog)
+	mux.HandleFunc("GET /api/bwstatus", s.handleBwStatus)
 	mux.HandleFunc("POST /api/limits", s.handleSetLimits)
 	mux.HandleFunc("GET /api/config", s.handleGetConfig)
 	mux.HandleFunc("PUT /api/config", s.handlePutConfig)
@@ -476,6 +481,40 @@ func (s *Server) handleLimitLog(w http.ResponseWriter, _ *http.Request) {
 		out[i], out[j] = out[j], out[i]
 	}
 	writeJSON(w, http.StatusOK, out)
+}
+
+// Pidder resolves a container's main process PID (the docker client implements it).
+type Pidder interface {
+	PID(ctx context.Context, ref string) (int, error)
+}
+
+// handleBwStatus answers "does the bandwidth limit ACTUALLY exist right now?" — it
+// reads the live tc qdisc + CC_DL netfilter chain inside the container's netns, so
+// the UI can show proof (or the exact failure) instead of a silent no-op.
+func (s *Server) handleBwStatus(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("name")
+	if ok, err := s.known(r.Context(), name); err != nil || !ok {
+		writeErr(w, http.StatusBadRequest, fmt.Errorf("unknown container %q", name))
+		return
+	}
+	if s.Pidder == nil {
+		writeErr(w, http.StatusInternalServerError, fmt.Errorf("no pid resolver"))
+		return
+	}
+	pid, err := s.Pidder.PID(r.Context(), name)
+	if err != nil || pid <= 0 {
+		writeJSON(w, http.StatusOK, map[string]any{"error": "container not running (no pid)"})
+		return
+	}
+	iface := ""
+	if cfg, cerr := s.Store.LoadConfig(); cerr == nil {
+		iface = strings.TrimSpace(cfg.ShapeIface)
+	}
+	if iface == "" {
+		iface = netshape.DetectIface(pid)
+	}
+	qdisc, filter := netshape.Show(iface, pid)
+	writeJSON(w, http.StatusOK, map[string]any{"iface": iface, "pid": pid, "qdisc": qdisc, "filter": filter})
 }
 
 // handleGetConfig returns the automation config (schedules / watchdogs / notify).

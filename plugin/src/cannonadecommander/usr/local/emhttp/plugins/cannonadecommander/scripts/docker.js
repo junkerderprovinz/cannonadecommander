@@ -629,18 +629,27 @@
   function actBtnOff(icon, tip) { var b = el("span", "cc-actbtn cc-actoff", ""); b.title = tip; b.appendChild(el("i", "fa " + icon)); return b; }
   // rainbow: every action icon takes a rotating palette colour (falls back to grey);
   // disabled placeholders stay grey
-  // colours are a RAINBOW-ONLY feature: without the --cc-rb-* vars every button
-  // stays neutral grey with a white glyph (user call — no colours in normal mode)
+  // Colours are a RAINBOW-ONLY feature: rainbow off = neutral grey + white glyph.
+  // The colour is computed DIRECTLY from the palette (no CSS-var indirection — var
+  // scoping/timing made the result unreliable) and the glyph gets auto black/white
+  // per luminance, exactly like the badge text.
   function tintAct(bar) {
-    Array.prototype.slice.call(bar.querySelectorAll(".cc-actbtn:not(.cc-actoff)")).forEach(function (b2, i2) {
-      var k2 = RB_KINDS[i2 % RB_KINDS.length];
-      b2.style.setProperty("background", "var(--cc-rb-" + k2 + ", #2e2e2e)", "important");
-      b2.style.setProperty("color", "var(--cc-rb-" + k2 + "-t, #e9e9e9)", "important");
-      // Unraid's theme styles .fa glyphs directly, which beats inheritance —
-      // force the glyph to follow the button colour
+    var on = localStorage.getItem("cc.rainbow") === "1";
+    var pal = RB_PAL;
+    try { var jp = JSON.parse(localStorage.getItem("cc.rbpal") || "null"); if (jp && jp.length) pal = jp; } catch (e2) {}
+    var off = localStorage.getItem("cc.rainbowrot") === "0" ? 0 : RB_OFFSET;
+    Array.prototype.slice.call(bar.querySelectorAll(".cc-actbtn")).forEach(function (b2, i2) {
+      var bg = "#2e2e2e", tx = b2.classList.contains("cc-actoff") ? "#7a7a7a" : "#e9e9e9";
+      if (on && !b2.classList.contains("cc-actoff")) {
+        bg = pal[(i2 + off) % pal.length];
+        var n2 = parseInt(String(bg).slice(1), 16), L2 = 0.299 * (n2 >> 16 & 255) + 0.587 * (n2 >> 8 & 255) + 0.114 * (n2 & 255);
+        tx = L2 > 150 ? "#161616" : "#fff";
+      }
+      b2.style.setProperty("background", bg, "important");
+      b2.style.setProperty("color", tx, "important");
+      // Unraid's theme styles .fa glyphs directly, which beats inheritance
       var ic2 = b2.querySelector("i"); if (ic2) ic2.style.setProperty("color", "inherit", "important");
     });
-    Array.prototype.slice.call(bar.querySelectorAll(".cc-actbtn.cc-actoff i")).forEach(function (ic3) { ic3.style.setProperty("color", "inherit", "important"); });
   }
   // Both views share the same action block: row 1 = WebUI/Konsole/Bearbeiten,
   // row 2 = Neustart/Pause/Stopp/"…" (expands the harvested extra links).
@@ -650,7 +659,7 @@
     var running = c && c.state === "running", paused = c && c.state === "paused";
     var r1 = el("div", "cc-actrow");
     r1.appendChild(cx.webui ? actBtn("fa-globe", "WebUI", function () { window.open(cx.webui, "_blank"); }) : actBtnOff("fa-globe", LANG === "de" ? "kein WebUI" : "no WebUI"));
-    r1.appendChild(typeof window.openTerminal === "function" ? actBtn("fa-terminal", LANG === "de" ? "Konsole" : "Console", function () { if (cx.shell) window.openTerminal("docker", name, cx.shell); else window.openTerminal("docker", name); }) : actBtnOff("fa-terminal", LANG === "de" ? "keine Konsole" : "no console"));
+    r1.appendChild(typeof window.openTerminal === "function" ? actBtn("fa-navicon", "Log", function () { window.openTerminal("docker", name, ".log"); }) : actBtnOff("fa-navicon", "Log"));
     r1.appendChild(cx.xml ? actBtn("fa-wrench", LANG === "de" ? "Bearbeiten" : "Edit", function () {
       // exactly what Unraid's own editContainer() does — the template path stays RAW
       var p2 = location.pathname, x2 = p2.indexOf("?"); if (x2 !== -1) p2 = p2.substring(0, x2);
@@ -662,6 +671,7 @@
       : (running ? actBtn("fa-pause", t("pause"), function () { doAction(name, "pause"); }) : actBtnOff("fa-pause", t("pause"))));
     r2.appendChild(actBtn(running || paused ? "fa-stop" : "fa-play", running || paused ? t("stop") : t("start"), function () { var cc2 = containerByName(name); doAction(name, cc2 && (cc2.state === "running" || cc2.state === "paused") ? "stop" : "start"); }));
     var more = el("div", "cc-actrow cc-actmore");
+    if (typeof window.openTerminal === "function") more.appendChild(actBtn("fa-terminal", LANG === "de" ? "Konsole" : "Console", function () { if (cx.shell) window.openTerminal("docker", name, cx.shell); else window.openTerminal("docker", name); }));
     if (cx.tswebui) more.appendChild(actBtn("fa-globe", "Tailscale WebUI", function () { window.open(cx.tswebui, "_blank"); }));
     cx.links.forEach(function (l2) { more.appendChild(actBtn(l2.glyph, l2.tip, function () { window.open(l2.url, "_blank"); })); });
     r2.appendChild(more.children.length ? actBtn("fa-ellipsis-h", LANG === "de" ? "Mehr" : "More", function () { more.classList.toggle("cc-open"); tintAct(more); })
@@ -706,7 +716,31 @@
       th3.appendChild(makeGear("cc-hgear-th2"));
     } catch (e) {}
   }
-  function injectAllRowBadges() { relocateTopBar(); findRows().forEach(injectRowBadges); }
+  function injectAllRowBadges() {
+    relocateTopBar(); findRows().forEach(injectRowBadges);
+    requestAnimationFrame(centerNameCells);
+    setTimeout(centerNameCells, 800); // late-loading icon images change the row height
+  }
+  // EVIDENCE-BASED centring: measure where .outer actually sits inside td.ct-name and
+  // compensate with translateY. CSS-only attempts kept failing because Unraid's own
+  // rules differ per build/theme — measuring closes the loop for all of them, and the
+  // transform-based correction converges (each pass re-measures the corrected state).
+  function centerNameCells() {
+    try {
+      if (mode !== "list") return;
+      findRows().forEach(function (tr) {
+        var td = tr.querySelector("td.ct-name"), outer = td && td.querySelector(".outer");
+        if (!td || !outer) return;
+        var tdR = td.getBoundingClientRect(), oR = outer.getBoundingClientRect();
+        if (!tdR.height || !oR.height) return;
+        var prev = parseFloat(outer.dataset.ccDy || "0");
+        var dy = Math.round(prev + ((tdR.bottom - oR.bottom) - (oR.top - tdR.top)) / 2);
+        if (Math.abs(dy - prev) < 2) return;
+        outer.dataset.ccDy = String(dy);
+        outer.style.setProperty("transform", "translateY(" + dy + "px)", "important");
+      });
+    } catch (e) {}
+  }
   function clearRowBadges() {
     var root = document.getElementById("docker_list") || nativeTable() || document; // scope to the list, not the whole page
     Array.prototype.slice.call(root.querySelectorAll("[" + MARK + "]")).forEach(function (n) { n.remove(); });
@@ -1263,6 +1297,20 @@
     var r = anchor.getBoundingClientRect(), w = pop.offsetWidth || 300;
     pop.style.left = Math.max(window.scrollX + 8, Math.min(window.scrollX + r.left, window.scrollX + document.documentElement.clientWidth - w - 12)) + "px";
     pop.style.top = (window.scrollY + r.bottom + 6) + "px"; openPop = pop; openPopAnchor = anchor;
+    // LIVE diagnosis: does the limit ACTUALLY exist inside the container right now?
+    api("GET", "bwstatus", null, "name=" + encodeURIComponent(name)).then(function (st) {
+      if (openPop !== pop) return;
+      if (!st || st.error) { popError(new Error((st && st.error) || "bwstatus unreadable")); return; }
+      var hasUp = (st.qdisc || "").indexOf("tbf") >= 0, hasDn = (st.filter || "").indexOf("hashlimit") >= 0;
+      var cur2 = bandwidthFor(name);
+      var wantUp = !!(cur2 && cur2.egress_kbit > 0), wantDn = !!(cur2 && cur2.ingress_kbit > 0);
+      var line = "iface " + (st.iface || "eth0") + " · ↑ tbf " + (hasUp ? (LANG === "de" ? "AKTIV" : "ACTIVE") : (LANG === "de" ? "FEHLT" : "MISSING")) + " · ↓ policing " + (hasDn ? (LANG === "de" ? "AKTIV" : "ACTIVE") : (LANG === "de" ? "FEHLT" : "MISSING"));
+      if ((wantUp && !hasUp) || (wantDn && !hasDn)) {
+        popError(new Error((LANG === "de" ? "Limit greift NICHT · " : "limit NOT active · ") + line + " · " + (st.qdisc || "") + " " + (st.filter || "")));
+      } else if (wantUp || wantDn) {
+        popOk("✓ " + line);
+      }
+    }).catch(function () {});
   }
   // Show the EXACT backend/Docker rejection INSIDE the open popup and keep it there (a
   // 2.6s toast is unreadable) so the user can read back why `docker update` refused — the
@@ -1548,6 +1596,7 @@
           // poll, so the re-injected badge showed the OLD state ("only switches after the
           // page refreshes"). Pull fresh state now, throttled so our own idempotent
           // re-injects can't turn this into a request loop.
+          try { refresh(); } catch (e) {} // instant: inject with the data already in memory
           try { if (Date.now() - lastObsLoad > 2000) { lastObsLoad = Date.now(); load(); } } catch (e) {}
           // release the guard AFTER our own DOM writes flush (defence vs a re-inject loop)
           Promise.resolve().then(function () { moPending = false; });
@@ -1601,6 +1650,7 @@
     if (dead) return Promise.resolve();
     return Promise.all([api("GET", "state"), loadShiplog(), loadConfig()]).then(function (res) {
       daemonUp = true; indexState(res[0]); ensureNames(); refresh(); syncStateBadges(); updateGearHealth();
+      try { localStorage.setItem("cc.stateCache", JSON.stringify(res[0])); } catch (e9) {} // seeds the instant paint on the next reload
       if (res[0] && res[0].docker_error) flash("docker: " + res[0].docker_error, true);
     }).catch(function (e) {
       // 404/410 = proxy file gone (uninstalled) → self-remove now; the re-probe
@@ -1620,6 +1670,9 @@
   function boot() {
     try {
       applySettings();
+      // INSTANT first paint: the last known engine state seeds the badges right away;
+      // the live fetch corrects them moments later.
+      try { var cs9 = JSON.parse(localStorage.getItem("cc.stateCache") || "null"); if (cs9) { indexState(cs9); ensureNames(); refresh(); } } catch (e9) {}
       // fill the "limit set?" dots AFTER the first paint (so containers are indexed),
       // off the 9s render path — a bulk inspect must not gate or race the paint.
       load().then(refreshLimits);

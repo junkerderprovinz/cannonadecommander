@@ -34,9 +34,11 @@ type Pidder interface {
 
 // Shaper applies egress (upload) + ingress (download) rate limits (kbit) on `iface` to the
 // container whose process is pid (iface is the Settings-configured interface; blank means
-// the netshape default). A direction with kbit<=0 is cleared; (0,0) clears both.
+// auto-detect, then the netshape default). A direction with kbit<=0 is cleared; (0,0)
+// clears both. DetectIface returns the container's default-route device ("" = unknown).
 type Shaper interface {
 	Apply(iface string, pid, egressKbit, ingressKbit int) error
+	DetectIface(pid int) string
 }
 
 // Notifier delivers an alert (Unraid notification and/or webhook per cfg).
@@ -146,8 +148,11 @@ func (m *Monitor) tickBandwidths(ctx context.Context, cfg model.Config) {
 	// interface (the admin changed shape_iface). Crucially, clear on the iface it was
 	// ACTUALLY shaped on (the stored one), not the current setting — otherwise changing
 	// the interface would leave a stale tbf qdisc throttling the old NIC until a restart.
+	// blank iface = AUTO: each container's device is detected from its default route,
+	// so a stored (auto-resolved) iface counts as "same" while the setting stays blank.
+	autoIface := strings.TrimSpace(iface) == ""
 	for name, oldIface := range prev {
-		if _, want := desired[name]; want && oldIface == iface {
+		if _, want := desired[name]; want && (oldIface == iface || autoIface) {
 			continue // still desired on the same iface — the apply loop re-asserts it
 		}
 		// Only FORGET the container once we've actually cleared it (or its netns is gone).
@@ -187,12 +192,16 @@ func (m *Monitor) tickBandwidths(ctx context.Context, cfg model.Config) {
 		if perr != nil || pid <= 0 {
 			continue
 		}
-		err := m.Shaper.Apply(iface, pid, bw.EgressKbit, bw.IngressKbit)
+		ifc := iface
+		if autoIface {
+			ifc = m.Shaper.DetectIface(pid) // "" falls through to the netshape default (eth0)
+		}
+		err := m.Shaper.Apply(ifc, pid, bw.EgressKbit, bw.IngressKbit)
 		// Track this container on `iface` even if Apply ERRORED: Apply does egress and
 		// ingress independently and may have applied one before the other failed, so it must
 		// stay in `shaped` or that applied direction would leak (never cleared on removal).
 		m.mu.Lock()
-		m.shaped[name] = iface
+		m.shaped[name] = ifc
 		m.mu.Unlock()
 		if err != nil {
 			if m.throttle(name+"|bwfail", now) && m.Notifier != nil {

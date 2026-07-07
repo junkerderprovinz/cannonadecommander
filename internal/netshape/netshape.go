@@ -184,12 +184,53 @@ func ignoreMissing(err error) error {
 	return err
 }
 
+// Show returns the LIVE shaping state inside the netns — the tc qdisc line(s) on the
+// interface and our CC_DL netfilter chain — for the on-demand diagnostics endpoint.
+// Best-effort: an error becomes readable text instead of an empty answer.
+func Show(iface string, pid int) (qdisc, filter string) {
+	dev := ifaceOr(iface)
+	q, qe := output([]string{"-t", strconv.Itoa(pid), "-n", "tc", "qdisc", "show", "dev", dev})
+	if qe != nil {
+		q = qe.Error()
+	}
+	f, fe := output(iptArgs(pid, "-S", dlChain))
+	if fe != nil {
+		f = fe.Error()
+	}
+	return strings.TrimSpace(q), strings.TrimSpace(f)
+}
+
+// DetectIface returns the container's default-route device (e.g. eth0), or "" when
+// undetectable. Used when no interface is configured, so bridge/ipvlan/macvlan
+// containers with unusual NIC names still get shaped on the right device.
+func DetectIface(pid int) string {
+	if pid <= 0 {
+		return ""
+	}
+	out, err := output([]string{"-t", strconv.Itoa(pid), "-n", "ip", "-o", "-4", "route", "show", "default"})
+	if err != nil {
+		return ""
+	}
+	fs := strings.Fields(out)
+	for i, f := range fs {
+		if f == "dev" && i+1 < len(fs) {
+			return fs[i+1]
+		}
+	}
+	return ""
+}
+
 func run(args []string) error {
+	_, err := output(args)
+	return err
+}
+
+func output(args []string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	out, err := exec.CommandContext(ctx, "nsenter", args...).CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("nsenter: %w: %s", err, strings.TrimSpace(string(out)))
+		return "", fmt.Errorf("nsenter: %w: %s", err, strings.TrimSpace(string(out)))
 	}
-	return nil
+	return string(out), nil
 }

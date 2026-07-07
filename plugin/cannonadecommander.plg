@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.45.1">
+  <!ENTITY version   "0.46.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
@@ -30,6 +30,23 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.46.0
+- Action-icon colours are computed straight from the palette now (no CSS-var
+  indirection): rainbow off = neutral grey with white glyphs, rainbow on =
+  palette colours with auto black/white glyphs.
+- Badges appear INSTANTLY after a reload: the last known engine state seeds the
+  first paint from a local cache and rows are decorated the moment they land;
+  the live fetch corrects moments later.
+- Container logos are finally vertically centred: the offset is MEASURED per
+  row and compensated with a transform, instead of another blind CSS attempt.
+- Bandwidth diagnostics: the editor now reads the LIVE tc + netfilter state
+  from inside the container and shows proof ("tbf AKTIV") or the exact failure
+  ("Limit greift NICHT ..."), so a silent no-op is impossible. The shaping
+  interface is auto-detected from the container's default route when the
+  Settings field is blank.
+- Icon layout: row 1 = WebUI, Log, Bearbeiten (Log opens the native container
+  log); the console moved into the dots menu.
 
 ### 0.45.1
 - Fixes the download-limit rule on nf_tables-based iptables: hashlimit in byte
@@ -767,7 +784,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>d77208fcb67eff224a44f32bea0f431567bd0b60d514328390e31d87d111d22c</SHA256>
+  <SHA256>de5fff65f3c2b5710ffc5673fcc35b3ff7807b5a8debfffd4b4618d8897bb030</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

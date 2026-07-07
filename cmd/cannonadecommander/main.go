@@ -80,6 +80,8 @@ func (shaperAdapter) Apply(iface string, pid, egressKbit, ingressKbit int) error
 	return netshape.Apply(iface, pid, egressKbit, ingressKbit)
 }
 
+func (shaperAdapter) DetectIface(pid int) string { return netshape.DetectIface(pid) }
+
 // inspectorAdapter bridges the docker client to the readiness prober's minimal
 // Inspector interface, keeping the readiness package free of docker types.
 type inspectorAdapter struct{ c *dockercli.Client }
@@ -103,7 +105,7 @@ func serve() {
 	st := store.New(filepath.Join(dataDir, "plan.json"))
 	prober := readiness.Prober{Inspector: inspectorAdapter{docker}, ExecCheck: docker.Exec, GetLogs: docker.Logs}
 	orch := &orchestrator.Orchestrator{Starter: docker, Ready: prober}
-	srv := &api.Server{Docker: docker, Store: st, Runner: orch, TemplatesDir: env("CC_TEMPLATES_DIR", unraidtmpl.DefaultDir), Version: version}
+	srv := &api.Server{Docker: docker, Store: st, Runner: orch, Pidder: docker, TemplatesDir: env("CC_TEMPLATES_DIR", unraidtmpl.DefaultDir), Version: version}
 
 	if err := os.MkdirAll(dataDir, 0o755); err != nil {
 		log.Fatalf("cannonadecommander: mkdir %s: %v", dataDir, err)

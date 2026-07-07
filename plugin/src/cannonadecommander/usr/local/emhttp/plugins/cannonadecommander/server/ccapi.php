@@ -9,7 +9,8 @@ $sock  = getenv('CC_SOCK') ?: '/var/run/cannonadecommander.sock';
 // state/stats: read-only; action: start|stop|restart|pause|unpause (the engine
 // validates the container name against the live list and never exposes
 // create/exec/build); plan/apply: the start-order plan. Nothing else is forwarded.
-$allow = ['state' => ['GET'], 'stats' => ['GET'], 'action' => ['POST'], 'limits' => ['GET', 'POST'], 'limitlog' => ['GET'], 'plan' => ['GET', 'PUT'], 'apply' => ['POST'], 'config' => ['GET', 'PUT']];
+$allow = ['state' => ['GET'], 'stats' => ['GET'], 'action' => ['POST'], 'limits' => ['GET', 'POST'], 'limitlog' => ['GET'],
+    'bwstatus' => ['GET'], 'plan' => ['GET', 'PUT'], 'apply' => ['POST'], 'config' => ['GET', 'PUT']];
 
 $path   = isset($_GET['path']) ? preg_replace('/[^a-z]/', '', $_GET['path']) : '';
 $method = $_SERVER['REQUEST_METHOD'];
@@ -24,7 +25,7 @@ if (!isset($allow[$path]) || !in_array($method, $allow[$path], true)) {
 
 // Forward only the query params each path explicitly needs (allowlist, like
 // $allow) so no attacker-supplied param ever reaches the engine unfiltered.
-$qallow = ['limits' => ['name']];
+$qallow = ['limits' => ['name'], 'bwstatus' => ['name']];
 $extra = [];
 if (isset($qallow[$path])) {
     foreach ($qallow[$path] as $k) {

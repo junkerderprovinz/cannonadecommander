@@ -66,9 +66,10 @@ type Server struct {
 	Docker       Docker
 	Store        Store
 	Runner       Runner
-	Pidder       Pidder // resolves a container's main PID for the bandwidth diagnostics
-	TemplatesDir string // Unraid dockerMan templates dir; "" disables the apply-fest template write
-	Version      string // the running daemon's build version, surfaced in /api/state so the UI can show which backend is live
+	Pidder       Pidder   // resolves a container's main PID for the bandwidth diagnostics
+	BwLast       BwLaster // optional: the monitor's last shaping attempt per container
+	TemplatesDir string   // Unraid dockerMan templates dir; "" disables the apply-fest template write
+	Version      string   // the running daemon's build version, surfaced in /api/state so the UI can show which backend is live
 
 	mu      sync.Mutex
 	lastRun model.RunResult
@@ -488,6 +489,11 @@ type Pidder interface {
 	PID(ctx context.Context, ref string) (int, error)
 }
 
+// BwLaster reports the monitor's most recent shaping attempt for a container.
+type BwLaster interface {
+	LastBwApply(name string) string
+}
+
 // handleBwStatus answers "does the bandwidth limit ACTUALLY exist right now?" — it
 // reads the live tc qdisc + CC_DL netfilter chain inside the container's netns, so
 // the UI can show proof (or the exact failure) instead of a silent no-op.
@@ -514,7 +520,11 @@ func (s *Server) handleBwStatus(w http.ResponseWriter, r *http.Request) {
 		iface = netshape.DetectIface(pid)
 	}
 	qdisc, filter := netshape.Show(iface, pid)
-	writeJSON(w, http.StatusOK, map[string]any{"iface": iface, "pid": pid, "qdisc": qdisc, "filter": filter})
+	last := ""
+	if s.BwLast != nil {
+		last = s.BwLast.LastBwApply(name)
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"iface": iface, "pid": pid, "qdisc": qdisc, "filter": filter, "last_apply": last})
 }
 
 // handleGetConfig returns the automation config (schedules / watchdogs / notify).
@@ -535,6 +545,16 @@ func (s *Server) handlePutConfig(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
 		writeErr(w, http.StatusBadRequest, err)
 		return
+	}
+	if len(cfg.UISettings) > 64 {
+		writeErr(w, http.StatusBadRequest, fmt.Errorf("too many ui settings"))
+		return
+	}
+	for k, v := range cfg.UISettings {
+		if len(k) > 64 || len(v) > 4096 {
+			writeErr(w, http.StatusBadRequest, fmt.Errorf("ui setting too large: %s", k))
+			return
+		}
 	}
 	for _, sc := range cfg.Schedules {
 		if sc.Action != "start" && sc.Action != "stop" && sc.Action != "restart" {

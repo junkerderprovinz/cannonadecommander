@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.46.0">
+  <!ENTITY version   "0.47.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
@@ -30,6 +30,21 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.47.0
+- THE download-limit blocker, found via the new diagnosis line: applying the
+  directions was NOT independent - when no upload cap was set, clearing the
+  (non-existent) upload qdisc errored on the noqueue root and ABORTED before
+  the download policing ever ran. Both directions are applied independently
+  now, and the harmless "handle of zero" clear error is ignored.
+- The bandwidth editor also shows the monitor's LAST APPLY attempt (time,
+  interface, exact error), so the reason is readable instead of guessable.
+- UI settings follow you across origins: every cc.* setting (rainbow, colours,
+  badges, view...) is mirrored into the engine config and adopted on every
+  origin - toggles set via the IP now also apply when browsing via the domain
+  (this was the "my icons are still not tinted / is this cached?" mystery).
+- Settings: the shaping-interface field is optional now - BLANK = automatic
+  (the container's default route), which is the recommended setting.
 
 ### 0.46.0
 - Action-icon colours are computed straight from the palette now (no CSS-var
@@ -784,7 +799,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>de5fff65f3c2b5710ffc5673fcc35b3ff7807b5a8debfffd4b4618d8897bb030</SHA256>
+  <SHA256>14f8888897b2dabdd8bfa2103148648f43473e40a29fabedb3bbeece9a487d1b</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

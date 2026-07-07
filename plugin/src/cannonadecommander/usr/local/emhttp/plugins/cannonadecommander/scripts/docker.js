@@ -153,9 +153,41 @@
       if (Array.isArray(data)) data.forEach(function (st) { var n = st.container && st.container.name; if (n) shiplog[norm(n)] = st; });
     }).catch(function () { shiplog = {}; });
   }
+  // ── cross-origin settings sync ──
+  // localStorage is PER-ORIGIN: toggles set while browsing via the IP never reached
+  // the domain origin (and vice versa) — that is the "my settings do nothing / is
+  // this cached?" mystery. Every cc.* write is mirrored into the engine config
+  // (ui_settings) and adopted back on every origin.
+  var uiSyncT = null;
+  (function () {
+    try {
+      var orig = localStorage.setItem.bind(localStorage);
+      window.__ccLS = orig;
+      localStorage.setItem = function (k, v) {
+        orig(k, v);
+        try { if (String(k).indexOf("cc.") === 0 && k !== "cc.stateCache") { clearTimeout(uiSyncT); uiSyncT = setTimeout(pushUISettings, 800); } } catch (e) {}
+      };
+    } catch (e) {}
+  })();
+  function collectUISettings() { var o = {}; for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf("cc.") === 0 && k !== "cc.stateCache") o[k] = localStorage.getItem(k); } return o; }
+  function pushUISettings() {
+    api("GET", "config").then(function (c) {
+      if (!c || typeof c !== "object") return;
+      return api("PUT", "config", { schedules: c.schedules || [], watchdogs: c.watchdogs || [], bandwidths: c.bandwidths || [], notify: c.notify || { unraid: false, webhook: "" }, shape_iface: c.shape_iface || "", ui_settings: collectUISettings() });
+    }).catch(function () {});
+  }
+  function adoptUISettings(u) {
+    var changed = false;
+    try { Object.keys(u || {}).forEach(function (k) { if (k.indexOf("cc.") === 0 && localStorage.getItem(k) !== u[k]) { (window.__ccLS || localStorage.setItem.bind(localStorage))(k, u[k]); changed = true; } }); } catch (e) {}
+    return changed;
+  }
   function loadConfig() {
     return api("GET", "config").then(function (c) {
-      if (c && typeof c === "object") config = { schedules: c.schedules || [], watchdogs: c.watchdogs || [], bandwidths: c.bandwidths || [], notify: c.notify || { unraid: false, webhook: "" }, shape_iface: c.shape_iface || "" };
+      if (c && typeof c === "object") {
+        config = { schedules: c.schedules || [], watchdogs: c.watchdogs || [], bandwidths: c.bandwidths || [], notify: c.notify || { unraid: false, webhook: "" }, shape_iface: c.shape_iface || "", ui_settings: c.ui_settings || undefined };
+        // cross-origin settings: adopt the server-side cc.* mirror, then re-render
+        if (adoptUISettings(c.ui_settings)) { applySettings(); if (mode === "list") { applyEnhanceClasses(); reinjectRowBadges(); } else renderGrid(); }
+      }
     }).catch(function () { /* older engine or transient: keep the current config */ });
   }
   // bulk-load every container's CONFIGURED caps in one call (the engine inspects
@@ -1305,6 +1337,8 @@
       var cur2 = bandwidthFor(name);
       var wantUp = !!(cur2 && cur2.egress_kbit > 0), wantDn = !!(cur2 && cur2.ingress_kbit > 0);
       var line = "iface " + (st.iface || "eth0") + " · ↑ tbf " + (hasUp ? (LANG === "de" ? "AKTIV" : "ACTIVE") : (LANG === "de" ? "FEHLT" : "MISSING")) + " · ↓ policing " + (hasDn ? (LANG === "de" ? "AKTIV" : "ACTIVE") : (LANG === "de" ? "FEHLT" : "MISSING"));
+      if (st.last_apply) line += " · Apply " + st.last_apply;
+      else line += LANG === "de" ? " · Apply: noch nie versucht (Monitor-Tick alle 30s)" : " · apply: never attempted (monitor ticks every 30s)";
       if ((wantUp && !hasUp) || (wantDn && !hasDn)) {
         popError(new Error((LANG === "de" ? "Limit greift NICHT · " : "limit NOT active · ") + line + " · " + (st.qdisc || "") + " " + (st.filter || "")));
       } else if (wantUp || wantDn) {
@@ -1338,7 +1372,7 @@
     api("GET", "config")
       .then(function (fresh) {
         if (!fresh || typeof fresh !== "object") throw new Error("config unreadable");
-        config = { schedules: fresh.schedules || [], watchdogs: fresh.watchdogs || [], bandwidths: fresh.bandwidths || [], notify: fresh.notify || { unraid: false, webhook: "" }, shape_iface: fresh.shape_iface || "" };
+        config = { schedules: fresh.schedules || [], watchdogs: fresh.watchdogs || [], bandwidths: fresh.bandwidths || [], notify: fresh.notify || { unraid: false, webhook: "" }, shape_iface: fresh.shape_iface || "", ui_settings: fresh.ui_settings || undefined };
         setBandwidth(name, egressKbit, ingressKbit);
         return api("PUT", "config", config);
       })
@@ -1556,7 +1590,7 @@
         // engine always returns a config object on success, so this only guards the
         // unexpected (a null/garbage body), never a legitimate first save.
         if (!fresh || typeof fresh !== "object") throw new Error("config unreadable");
-        config = { schedules: fresh.schedules || [], watchdogs: fresh.watchdogs || [], bandwidths: fresh.bandwidths || [], notify: fresh.notify || { unraid: false, webhook: "" }, shape_iface: fresh.shape_iface || "" };
+        config = { schedules: fresh.schedules || [], watchdogs: fresh.watchdogs || [], bandwidths: fresh.bandwidths || [], notify: fresh.notify || { unraid: false, webhook: "" }, shape_iface: fresh.shape_iface || "", ui_settings: fresh.ui_settings || undefined };
         setWatchdog(name, wd); setSchedules(name, scheds);
         return api("PUT", "config", config);
       })

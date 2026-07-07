@@ -131,7 +131,9 @@ func serve() {
 	}()
 
 	// The always-on automation loop: scheduled actions, the watchdog, notifications.
-	go (&monitor.Monitor{Docker: docker, Config: st, Notifier: monitor.SysNotifier{}, Pidder: docker, Shaper: shaperAdapter{}}).Run(ctx)
+	mon := &monitor.Monitor{Docker: docker, Config: st, Notifier: monitor.SysNotifier{}, Pidder: docker, Shaper: shaperAdapter{}}
+	srv.BwLast = mon // the bandwidth editor shows the monitor's last apply attempt
+	go mon.Run(ctx)
 
 	log.Print("\n" + bannerArt)
 	log.Printf("CANNONADECOMMANDER %s IS READY — api %s · data %s · docker %s", version, apiSock, dataDir, dockerSock)

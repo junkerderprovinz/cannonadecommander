@@ -61,6 +61,7 @@ type Monitor struct {
 	restarts   map[string][]time.Time // watchdog restart timestamps per container (per-hour cap)
 	notifiedAt map[string]time.Time   // notify-throttle key → last time it was sent
 	shaped     map[string]string      // container name → the iface we shaped it on (clear on removal / iface change)
+	bwLast     map[string]string      // last shaping attempt per container (formatted), surfaced by /api/bwstatus
 }
 
 // notifyThrottle is how long the monitor waits before re-sending the same kind of
@@ -202,6 +203,18 @@ func (m *Monitor) tickBandwidths(ctx context.Context, cfg model.Config) {
 		// stay in `shaped` or that applied direction would leak (never cleared on removal).
 		m.mu.Lock()
 		m.shaped[name] = ifc
+		if m.bwLast == nil {
+			m.bwLast = map[string]string{}
+		}
+		lbl := ifc
+		if lbl == "" {
+			lbl = "auto(eth0)"
+		}
+		if err != nil {
+			m.bwLast[name] = now.Format("15:04:05") + " iface=" + lbl + " FEHLER: " + err.Error()
+		} else {
+			m.bwLast[name] = now.Format("15:04:05") + " iface=" + lbl + " ok"
+		}
 		m.mu.Unlock()
 		if err != nil {
 			if m.throttle(name+"|bwfail", now) && m.Notifier != nil {
@@ -214,6 +227,14 @@ func (m *Monitor) tickBandwidths(ctx context.Context, cfg model.Config) {
 
 // sharedNetns reports whether a container shares another network namespace (the host's
 // or another container's), where entering it to run tc would shape the wrong interface.
+// LastBwApply returns the monitor's most recent shaping attempt for the container
+// ("" = not attempted since daemon start) — shown in the bandwidth editor.
+func (m *Monitor) LastBwApply(name string) string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.bwLast[name]
+}
+
 func sharedNetns(c model.Container) bool {
 	n := c.Network
 	return n == "host" || strings.HasPrefix(n, "container:")

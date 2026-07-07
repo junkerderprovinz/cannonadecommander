@@ -21,6 +21,7 @@ package netshape
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os/exec"
 	"strconv"
@@ -138,21 +139,25 @@ func Apply(iface string, pid, egressKbit, ingressKbit int) error {
 	if pid <= 0 {
 		return fmt.Errorf("netshape: invalid pid %d", pid)
 	}
+	// The directions are INDEPENDENT — an egress(-clear) failure must never abort
+	// the ingress policing (an early return here silently blocked every download
+	// limit whenever no upload cap was set: the noqueue root-delete errored first).
+	var errs []error
 	if egressKbit > 0 {
 		if err := run(egressArgs(iface, pid, egressKbit)); err != nil {
-			return fmt.Errorf("netshape: egress: %w", err)
+			errs = append(errs, fmt.Errorf("netshape: egress: %w", err))
 		}
 	} else if err := clearEgress(iface, pid); err != nil {
-		return fmt.Errorf("netshape: egress clear: %w", err)
+		errs = append(errs, fmt.Errorf("netshape: egress clear: %w", err))
 	}
 	if ingressKbit > 0 {
 		if err := applyIngressPolicing(iface, pid, ingressKbit); err != nil {
-			return fmt.Errorf("netshape: ingress policing: %w", err)
+			errs = append(errs, fmt.Errorf("netshape: ingress policing: %w", err))
 		}
 	} else if err := clearIngressPolicing(iface, pid); err != nil {
-		return fmt.Errorf("netshape: ingress clear: %w", err)
+		errs = append(errs, fmt.Errorf("netshape: ingress clear: %w", err))
 	}
-	return nil
+	return errors.Join(errs...)
 }
 
 // Clear removes the shaping (both directions) from the container. Best-effort.
@@ -177,7 +182,10 @@ func ignoreMissing(err error) error {
 		m := err.Error()
 		if strings.Contains(m, "No such file or directory") || strings.Contains(m, "RTNETLINK answers: No such file") ||
 			strings.Contains(m, "Cannot find") || strings.Contains(m, "No chain/target/match by that name") ||
-			strings.Contains(m, "does not exist") {
+			strings.Contains(m, "does not exist") ||
+			// deleting the root qdisc of a device that only has the default noqueue —
+			// nothing was shaped, so nothing to delete
+			strings.Contains(m, "handle of zero") {
 			return nil
 		}
 	}

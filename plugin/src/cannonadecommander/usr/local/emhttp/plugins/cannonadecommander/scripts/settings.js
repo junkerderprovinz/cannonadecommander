@@ -52,6 +52,32 @@
   var notifyDirty = false;   // true once the user has touched the Notifications card
   var shapeDirty = false;    // true once the user has touched the shaping-interface field
   var configLoaded = false;  // true only after a SUCCESSFUL initial GET /config
+  // mirror every cc.* write into the engine config — localStorage is per-origin,
+  // so without this the toggles only ever applied to the origin they were set on
+  var uiSyncT = null;
+  (function () {
+    try {
+      var orig = localStorage.setItem.bind(localStorage);
+      window.__ccLS = orig;
+      localStorage.setItem = function (k, v) {
+        orig(k, v);
+        try { if (String(k).indexOf("cc.") === 0 && k !== "cc.stateCache") { clearTimeout(uiSyncT); uiSyncT = setTimeout(pushUISettings, 800); } } catch (e) {}
+      };
+    } catch (e) {}
+  })();
+  function collectUISettings() { var o = {}; for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf("cc.") === 0 && k !== "cc.stateCache") o[k] = localStorage.getItem(k); } return o; }
+  function pushUISettings() {
+    api("GET", "config").then(function (c) {
+      if (!c || typeof c !== "object") return;
+      c.ui_settings = collectUISettings();
+      return api("PUT", "config", c);
+    }).catch(function () {});
+  }
+  function adoptUISettings(u) {
+    var changed = false;
+    try { Object.keys(u || {}).forEach(function (k) { if (k.indexOf("cc.") === 0 && localStorage.getItem(k) !== u[k]) { (window.__ccLS || localStorage.setItem.bind(localStorage))(k, u[k]); changed = true; } }); } catch (e) {}
+    return changed;
+  }
   function api(method, path, body) {
     var opts = { method: method, headers: { Accept: "application/json" } };
     var u = PROXY + "?path=" + encodeURIComponent(path);
@@ -298,9 +324,9 @@
       });
     }).catch(function (e) { diag.textContent = T("Diagnose nicht verfügbar: ", "Diagnostics unavailable: ") + e.message; });
 
-    var c6 = card(T("Bandbreite", "Bandwidth"), T("Schnittstelle, auf der das Egress-Limit IM Container gesetzt wird (fast immer eth0). Pro-Container-Limits stellst du im Docker-Tab ein.", "Interface the egress limit is applied to INSIDE the container (almost always eth0). Set per-container limits in the Docker tab."));
+    var c6 = card(T("Bandbreite", "Bandwidth"), T("Schnittstelle IM Container, auf der die Limits gesetzt werden. LEER = automatisch (Default-Route des Containers) — empfohlen. Pro-Container-Limits stellst du im Docker-Tab ein.", "Interface INSIDE the container the limits are applied to. BLANK = automatic (the container's default route) — recommended. Set per-container limits in the Docker tab."));
     var ifrow = el("div", "cc-set-row"); ifrow.appendChild(el("span", "cc-set-rl", T("Schnittstelle", "Interface")));
-    var ifin = el("input", "cc-set-txt"); ifin.type = "text"; ifin.placeholder = "eth0"; ifin.value = shapeIface; ifin.maxLength = 15; ifin.spellcheck = false; ifin.setAttribute("list", "cc-iface-list");
+    var ifin = el("input", "cc-set-txt"); ifin.type = "text"; ifin.placeholder = T("automatisch", "automatic"); ifin.value = shapeIface; ifin.maxLength = 15; ifin.spellcheck = false; ifin.setAttribute("list", "cc-iface-list");
     var dl = el("datalist"); dl.id = "cc-iface-list"; ["eth0", "eth1", "eth2"].forEach(function (n) { var o = el("option"); o.value = n; dl.appendChild(o); });
     ifin.addEventListener("input", function () { shapeIface = ifin.value.trim(); shapeDirty = true; });
     ifrow.appendChild(ifin); ifrow.appendChild(dl); c6.appendChild(ifrow);
@@ -367,8 +393,9 @@
   // edits (don't overwrite notify or re-render on top of them).
   api("GET", "config").then(function (c) {
     if (!c || typeof c !== "object") return; // leave Save disabled if unreadable
-    fullConfig = { schedules: c.schedules || [], watchdogs: c.watchdogs || [], bandwidths: c.bandwidths || [], notify: c.notify || { unraid: false, webhook: "" }, shape_iface: c.shape_iface || "" };
+    fullConfig = { schedules: c.schedules || [], watchdogs: c.watchdogs || [], bandwidths: c.bandwidths || [], notify: c.notify || { unraid: false, webhook: "" }, shape_iface: c.shape_iface || "", ui_settings: c.ui_settings || undefined };
     configLoaded = true;
+    adoptUISettings(c.ui_settings); // render() below shows the adopted values
     // keep the user's in-flight edits if they already started typing; otherwise
     // adopt the loaded values. Either way re-render to enable Save.
     if (!notifyDirty) notify = { unraid: !!fullConfig.notify.unraid, webhook: fullConfig.notify.webhook || "" };

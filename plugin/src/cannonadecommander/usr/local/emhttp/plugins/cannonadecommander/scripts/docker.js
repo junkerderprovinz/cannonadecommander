@@ -360,8 +360,11 @@
     if (localStorage.getItem("cc.rainbow") !== "1") { RB_KINDS.forEach(function (k) { rt.style.removeProperty("--cc-rb-" + k); rt.style.removeProperty("--cc-rb-" + k + "-t"); }); return; }
     // rotation is TOGGLEABLE (cc.rainbowrot, default on): off = stable colours (offset 0)
     var off = localStorage.getItem("cc.rainbowrot") === "0" ? 0 : RB_OFFSET;
+    // user-customised palette (Settings: click a swatch to adjust) overrides the default
+    var pal = RB_PAL;
+    try { var jp = JSON.parse(localStorage.getItem("cc.rbpal") || "null"); if (jp && jp.length) pal = jp; } catch (e2) {}
     RB_KINDS.forEach(function (k, i) {
-      var c = RB_PAL[(i + off) % RB_PAL.length];
+      var c = pal[(i + off) % pal.length];
       var n = parseInt(c.slice(1), 16), L = 0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255);
       rt.style.setProperty("--cc-rb-" + k, c);
       rt.style.setProperty("--cc-rb-" + k + "-t", L > 150 ? "#161616" : "#fff"); // auto text contrast

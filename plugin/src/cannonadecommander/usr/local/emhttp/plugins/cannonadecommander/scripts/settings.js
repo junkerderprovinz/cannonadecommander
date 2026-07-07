@@ -190,6 +190,26 @@
     rrot.appendChild(el("span", null, T("Farben bei jedem Neuladen rotieren", "Rotate colours on every reload")));
     rrot.appendChild(toggle(get("cc.rainbowrot", "1") !== "0", function (v) { set("cc.rainbowrot", v ? "1" : "0"); }));
     c1.appendChild(rrot);
+    // EVERY rainbow palette colour is editable: click a swatch, adjust it in the
+    // embedded picker below; stored as cc.rbpal (JSON), read live by the Docker tab.
+    var RBDEF = ["#1f9d55", "#2f6feb", "#8b5cf6", "#e0912a", "#d9433f", "#0ea5a4", "#e05299", "#6366f1", "#84cc16", "#06b6d4", "#f97316", "#a855f7", "#10b981", "#eab308"];
+    var rbpal = null; try { rbpal = JSON.parse(get("cc.rbpal", "null")); } catch (e) { rbpal = null; }
+    if (!rbpal || rbpal.length !== RBDEF.length) rbpal = RBDEF.slice();
+    c1.appendChild(el("div", "cc-set-lbl", T("Rainbow-Farben (Feld anklicken zum Anpassen)", "Rainbow colours (click a field to adjust)")));
+    var rbrow = el("div", "cc-set-swatches");
+    var rbPick = null, rbIdx = -1, rbPickWrap = el("div", "cc-set-pickrow"); rbPickWrap.style.display = "none";
+    rbpal.forEach(function (cx, ix) {
+      var sw = el("span", "cc-set-sw"); sw.style.background = cx; sw.title = cx;
+      sw.addEventListener("click", function () {
+        rbIdx = ix; rbPickWrap.style.display = "";
+        if (!rbPick) {
+          rbPick = inlinePicker(rbpal[ix], function (v) { if (rbIdx >= 0) { rbpal[rbIdx] = v; rbrow.children[rbIdx].style.background = v; rbrow.children[rbIdx].title = v; set("cc.rbpal", JSON.stringify(rbpal)); } });
+          rbPickWrap.appendChild(rbPick);
+        } else rbPick._set(rbpal[ix]);
+      });
+      rbrow.appendChild(sw);
+    });
+    c1.appendChild(rbrow); c1.appendChild(rbPickWrap);
     var prev = el("div", "cc-set-prev");
     ["net", "ip", "lan", "port"].forEach(function (k) { var b = el("span", "cc-b cc-b-" + k); b.appendChild(elk({ net: "Netzwerk", ip: "IP", lan: "LAN", port: "Port" }[k])); b.appendChild(elv("br0.20")); prev.appendChild(b); });
     prev.id = "cc-set-prev"; c1.appendChild(prev);

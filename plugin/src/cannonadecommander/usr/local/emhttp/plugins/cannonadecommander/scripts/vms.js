@@ -12,7 +12,7 @@
  */
 (function () {
   "use strict";
-  var PROXY = "/plugins/cannonadecommander/server/api.php";
+  var PROXY = "/plugins/cannonadecommander/server/ccapi.php";
   var dead = false, mo = null, liveTimer = null, moPending = false;
 
   function ls(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }

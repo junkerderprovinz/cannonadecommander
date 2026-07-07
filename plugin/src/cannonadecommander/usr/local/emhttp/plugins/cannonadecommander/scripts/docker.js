@@ -24,7 +24,7 @@
 (function () {
   "use strict";
 
-  var PROXY = "/plugins/cannonadecommander/server/api.php";
+  var PROXY = "/plugins/cannonadecommander/server/ccapi.php";
   var SHIPLOG = "/plugins/shiplog/server/status.php";
   var VIEW_KEY = "cc.view", COLS_KEY = "cc.colview"; // cols2: reset stale v0.3 prefs
   var MARK = "data-cc", ROWMARK = "data-cc-row";

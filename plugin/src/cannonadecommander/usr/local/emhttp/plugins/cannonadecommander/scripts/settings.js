@@ -45,7 +45,7 @@
   // Notifications are engine-side config (not localStorage): loaded/saved through
   // the same-origin proxy. We keep the WHOLE config so a notify save never drops
   // the per-container schedules/watchdogs set in the Docker tab.
-  var PROXY = "/plugins/cannonadecommander/server/api.php";
+  var PROXY = "/plugins/cannonadecommander/server/ccapi.php";
   var fullConfig = { schedules: [], watchdogs: [], notify: { unraid: false, webhook: "" } };
   var notify = { unraid: false, webhook: "" };
   var shapeIface = "";       // engine config: interface the egress shaping runs on (blank = eth0)

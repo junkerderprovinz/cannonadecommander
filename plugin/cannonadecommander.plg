@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.35.0">
+  <!ENTITY version   "0.36.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
@@ -30,6 +30,17 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.36.0
+- csrf_token is now fetched from THREE sources (JS global, form field, cookie) - v0.35
+  appended the global only, which does not exist on every box, so writes were still
+  dropped. The empty-reply error now states whether a token WAS sent, so the next failed
+  save (if any) names the exact missing piece.
+- Icon tint at full strength no longer paints a light halo on the icon edges (pure colour
+  matrix instead of merging with the bright original).
+- The network badge lost its trailing dot.
+- Editing any field in the plan editor auto-enables "Im Startplan verwalten" - edits made
+  while the toggle was off were silently discarded (a picked dependency vanished on reopen).
 
 ### 0.35.0
 - THE actual root cause of "limits never stick", proven on the box: Unraid's emhttp
@@ -634,7 +645,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>7523b8b3f67177af9718e1acb765383aecdb6ae25d5d85721bfcde959bc94079</SHA256>
+  <SHA256>6b24d8ac22dd1000d80775faf1abbfd8a3df41cad9cb5a263acf415d96c28e79</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

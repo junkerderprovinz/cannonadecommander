@@ -353,7 +353,7 @@
   // ROTATING rainbow: 14 colours, and the kind→colour mapping shifts by a RANDOM offset
   // chosen once per page load — every tab reload deals fresh colours across all badges.
   var RB_KINDS = ["net", "ip", "lan", "port", "id", "von", "cpu", "ram", "bw", "version", "vol", "plan"];
-  var RB_PAL = ["#1f9d55", "#2f6feb", "#8b5cf6", "#e0912a", "#d9433f", "#0ea5a4", "#e05299", "#6366f1", "#84cc16", "#06b6d4", "#f97316", "#a855f7", "#10b981", "#eab308"];
+  var RB_PAL = ["#d9433f", "#f97316", "#eab308", "#1f9d55", "#0ea5a4", "#2f6feb", "#8b5cf6", "#e05299"]; // REAL rainbow order (red→pink), 8 colours
   var RB_OFFSET = Math.floor(Math.random() * RB_PAL.length);
   function applyRainbowPalette() {
     var rt = document.documentElement;
@@ -429,6 +429,9 @@
       Array.prototype.slice.call(tr.children).forEach(function (td2) { td2.style.setProperty("vertical-align", "middle", "important"); });
       // the icon/name wrapper itself: Unraid can give .outer full height + top alignment,
       // which pins the logo to the top of the row even with the td centred — force it.
+      // stray direct children of td.ct-name BELOW .outer (br / spinner / state text on
+      // some builds) add invisible height and pin the visible block to the top — hide them.
+      if (nameCell) Array.prototype.slice.call(nameCell.children).forEach(function (chn) { if (!chn.classList || !chn.classList.contains("outer")) chn.style.setProperty("display", "none", "important"); });
       var outerBox = nameCell && nameCell.querySelector(".outer");
       if (outerBox) { outerBox.style.setProperty("display", "flex", "important"); outerBox.style.setProperty("align-items", "center", "important"); outerBox.style.setProperty("height", "auto", "important"); }
       var adv = isAdvancedView(), c = containerByName(name);
@@ -813,6 +816,7 @@
         b.style.setProperty("background", prim ? "var(--cc-accent, #2f6feb)" : "#3a3a3a", "important");
         b.style.setProperty("color", prim ? "var(--cc-accent-text, #fff)" : "#e6e6e6", "important");
         b.style.setProperty("border", "none", "important");
+        if (!b._ccHov) { b._ccHov = 1; b.addEventListener("mouseenter", function () { b.style.setProperty("filter", "brightness(1.18)", "important"); }); b.addEventListener("mouseleave", function () { b.style.removeProperty("filter"); }); }
       });
       // uniform popup style everywhere, applied automatically: no head/foot separator lines
       var hh = root.querySelector(".cc-pop-head"); if (hh) hh.style.setProperty("border-bottom", "none", "important");

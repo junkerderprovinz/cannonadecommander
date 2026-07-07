@@ -192,7 +192,7 @@
     c1.appendChild(rrot);
     // EVERY rainbow palette colour is editable: click a swatch, adjust it in the
     // embedded picker below; stored as cc.rbpal (JSON), read live by the Docker tab.
-    var RBDEF = ["#1f9d55", "#2f6feb", "#8b5cf6", "#e0912a", "#d9433f", "#0ea5a4", "#e05299", "#6366f1", "#84cc16", "#06b6d4", "#f97316", "#a855f7", "#10b981", "#eab308"];
+    var RBDEF = ["#d9433f", "#f97316", "#eab308", "#1f9d55", "#0ea5a4", "#2f6feb", "#8b5cf6", "#e05299"]; // real rainbow order
     var rbpal = null; try { rbpal = JSON.parse(get("cc.rbpal", "null")); } catch (e) { rbpal = null; }
     if (!rbpal || rbpal.length !== RBDEF.length) rbpal = RBDEF.slice();
     c1.appendChild(el("div", "cc-set-lbl", T("Rainbow-Farben (Feld anklicken zum Anpassen)", "Rainbow colours (click a field to adjust)")));
@@ -209,7 +209,9 @@
       });
       rbrow.appendChild(sw);
     });
-    c1.appendChild(rbrow); c1.appendChild(rbPickWrap);
+    var rbReset = el("span", "cc-btn cc-btn-sm", T("Farben zurücksetzen", "Reset colours"));
+    rbReset.addEventListener("click", function () { del("cc.rbpal"); render(); });
+    c1.appendChild(rbrow); c1.appendChild(rbPickWrap); c1.appendChild(rbReset);
     var prev = el("div", "cc-set-prev");
     ["net", "ip", "lan", "port"].forEach(function (k) { var b = el("span", "cc-b cc-b-" + k); b.appendChild(elk({ net: "Netzwerk", ip: "IP", lan: "LAN", port: "Port" }[k])); b.appendChild(elv("br0.20")); prev.appendChild(b); });
     prev.id = "cc-set-prev"; c1.appendChild(prev);

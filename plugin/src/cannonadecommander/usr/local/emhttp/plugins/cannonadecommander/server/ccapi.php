@@ -45,7 +45,20 @@ curl_setopt_array($ch, [
     CURLOPT_HTTPHEADER     => ['Content-Type: application/json', 'Accept: application/json'],
 ]);
 if ($method === 'PUT' || $method === 'POST') {
-    curl_setopt($ch, CURLOPT_POSTFIELDS, file_get_contents('php://input'));
+    // Writes arrive FORM-ENCODED (csrf_token=...&data=<json>) — Unraid's emhttp only
+    // accepts POSTs whose csrf_token sits in the form body (the query-string variant is
+    // dropped with an empty 200, which ate every save). Unwrap the JSON from `data`;
+    // fall back to the raw body for old callers that still send plain JSON.
+    $body = file_get_contents('php://input');
+    if (isset($_POST['data'])) {
+        $body = $_POST['data'];
+    } else {
+        parse_str($body, $form); // PUTs don't populate $_POST
+        if (isset($form['data'])) {
+            $body = $form['data'];
+        }
+    }
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
 }
 
 $resp = curl_exec($ch);

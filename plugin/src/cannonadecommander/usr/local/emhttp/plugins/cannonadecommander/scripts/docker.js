@@ -83,12 +83,16 @@
   }
   function api(method, path, body, query) {
     var opts = { method: method, headers: { Accept: "application/json" } };
-    if (body != null) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
     var url = PROXY + "?path=" + encodeURIComponent(path); if (query) url += "&" + query;
-    // Unraid's emhttp DROPS any POST/PUT without a csrf_token (empty 200 reply!). The
-    // token global is not always present — fall back to form fields and the cookie.
+    // Unraid's emhttp accepts a POST's csrf_token ONLY as a FORM-BODY field (the
+    // query-string variant is dropped with an empty 200 — "GESENDET, trotzdem
+    // verworfen"). So every write goes form-encoded: csrf_token=...&data=<json>;
+    // the proxy unwraps `data` back into the JSON body for the daemon.
     var tk2 = method !== "GET" ? csrfToken() : "";
-    if (tk2) url += "&csrf_token=" + encodeURIComponent(tk2);
+    if (method !== "GET") {
+      opts.headers["Content-Type"] = "application/x-www-form-urlencoded";
+      opts.body = (tk2 ? "csrf_token=" + encodeURIComponent(tk2) + "&" : "") + "data=" + encodeURIComponent(JSON.stringify(body != null ? body : {}));
+    }
     return fetch(url, opts).then(function (r) {
       return r.text().then(function (t2) {
         var data = null; try { data = t2 ? JSON.parse(t2) : null; } catch (e) { data = null; }
@@ -372,12 +376,14 @@
   var RB_OFFSET = Math.floor(Math.random() * RB_PAL.length);
   function applyRainbowPalette() {
     var rt = document.documentElement;
-    if (localStorage.getItem("cc.rainbow") !== "1") { RB_KINDS.forEach(function (k) { rt.style.removeProperty("--cc-rb-" + k); rt.style.removeProperty("--cc-rb-" + k + "-t"); }); return; }
+    if (localStorage.getItem("cc.rainbow") !== "1") { rt.style.removeProperty("--cc-btn-accent"); RB_KINDS.forEach(function (k) { rt.style.removeProperty("--cc-rb-" + k); rt.style.removeProperty("--cc-rb-" + k + "-t"); }); return; }
     // rotation is TOGGLEABLE (cc.rainbowrot, default on): off = stable colours (offset 0)
     var off = localStorage.getItem("cc.rainbowrot") === "0" ? 0 : RB_OFFSET;
     // user-customised palette (Settings: click a swatch to adjust) overrides the default
     var pal = RB_PAL;
     try { var jp = JSON.parse(localStorage.getItem("cc.rbpal") || "null"); if (jp && jp.length) pal = jp; } catch (e2) {}
+    // toggles + primary buttons take ONE palette colour in rainbow mode
+    rt.style.setProperty("--cc-btn-accent", pal[(5 + off) % pal.length]);
     RB_KINDS.forEach(function (k, i) {
       var c = pal[(i + off) % pal.length];
       var n = parseInt(c.slice(1), 16), L = 0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255);
@@ -515,6 +521,16 @@
         // the one carrying the force-update a.exec link, or the "Update erzwingen" badge
         // could never show no matter what the column matrix says.
         Array.prototype.forEach.call(advs, function (d) { if (!d.querySelector("a.exec")) d.classList.add("cc-hidden"); });
+        // the APPLY-UPDATE action link (top-level a.exec, NOT inside an advanced div)
+        // gets its amber pill inline — some builds have no nested orange-text span,
+        // so the :has() CSS never fired and only bare text showed.
+        Array.prototype.slice.call(upCell.querySelectorAll("a.exec")).forEach(function (ax) {
+          if (ax.closest("div.advanced")) return;
+          ax.style.setProperty("background", "#e0912a", "important");
+          ax.style.setProperty("color", "#1a1a1a", "important");
+          ax.style.setProperty("display", "inline-flex", "important");
+          ax.style.setProperty("align-items", "center", "important");
+        });
         if (colOn("version") && tagTxt) vh.appendChild(badgeInfo("Tag", tagTxt, "version"));
         var p = lastRunPill(name); if (p) vh.appendChild(p);
         if (vh.children.length) upCell.appendChild(vh);
@@ -828,7 +844,7 @@
       // secondary = solid grey fill — no more outline style.
       Array.prototype.slice.call(root.querySelectorAll(".cc-btn")).forEach(function (b) {
         var prim = b.classList.contains("cc-btn-primary");
-        b.style.setProperty("background", prim ? "var(--cc-accent, #2f6feb)" : "#3a3a3a", "important");
+        b.style.setProperty("background", prim ? "var(--cc-btn-accent, var(--cc-accent, #2f6feb))" : "#3a3a3a", "important");
         b.style.setProperty("color", prim ? "var(--cc-accent-text, #fff)" : "#e6e6e6", "important");
         b.style.setProperty("border", "none", "important");
         if (!b._ccHov) { b._ccHov = 1; b.addEventListener("mouseenter", function () { b.style.setProperty("filter", "brightness(1.18)", "important"); }); b.addEventListener("mouseleave", function () { b.style.removeProperty("filter"); }); }

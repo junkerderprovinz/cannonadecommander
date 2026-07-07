@@ -366,7 +366,7 @@ select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repea
 /* popover checkboxes follow the accent; the manage toggle + day toggles go rainbow too */
 .cc-pop input[type="checkbox"] { accent-color: var(--cc-accent, #2f6feb); }
 /* a toggle is ALWAYS one solid colour, even in rainbow mode (never a gradient) */
-.cc-pop.cc-rainbow .cc-set-toggle-on { background: var(--cc-accent, #2f6feb); }
+.cc-pop.cc-rainbow .cc-set-toggle-on { background: var(--cc-btn-accent, var(--cc-accent, #2f6feb)); }
 .cc-pop.cc-rainbow .cc-day-on { background: #8b5cf6; border-color: #8b5cf6; color: #fff; }
 .cc-sched-x { cursor: pointer; color: #8a8a8a; padding: 0 4px; }
 .cc-sched-x:hover { color: #d9433f; }
@@ -447,7 +447,7 @@ select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repea
    pill (green in rainbow mode) with auto-contrast text, sitting left of the view toggle.
    Colours come from --cc-updall-bg/-text (set on :root by docker.js, so they reach this
    element outside our table). Only applies while CannonadeCommander is installed. */
-.sl-updall {
+.sl-updall { align-items: center !important; line-height: 1.2 !important; padding-top: 4px !important; padding-bottom: 4px !important;
   display: inline-flex; align-items: center; height: 24px; padding: 0 13px;
   border-radius: 999px !important; background: var(--cc-updall-bg, #2f6feb) !important;
   color: var(--cc-updall-text, #fff) !important; font-weight: 600; font-size: 12px;
@@ -521,9 +521,9 @@ select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repea
 #cc-settings .cc-set-pickrow .cc-set-hexin { width: 110px; align-self: flex-start; }
 .cc-ip { width: 100%; min-width: 0; }
 .cc-set-toggle { width: 44px; height: 24px; border-radius: 999px; border: none !important; padding: 0 !important; background: #3a3a3a; position: relative; cursor: pointer; transition: background .15s; flex: none; box-sizing: border-box; }
-.cc-set-toggle-on { background: var(--cc-accent, #2f6feb); }
+.cc-set-toggle-on { background: var(--cc-btn-accent, var(--cc-accent, #2f6feb)); }
 /* in rainbow mode the ON toggles wear the rainbow, matching the badge scheme */
-#cc-settings.cc-rainbow .cc-set-toggle-on { background: var(--cc-accent, #2f6feb); }
+#cc-settings.cc-rainbow .cc-set-toggle-on { background: var(--cc-btn-accent, var(--cc-accent, #2f6feb)); }
 .cc-set-knob { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: left .15s; }
 .cc-set-toggle-on .cc-set-knob { left: 21px; }
 .cc-set-tbl { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }

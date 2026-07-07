@@ -54,11 +54,13 @@
   var configLoaded = false;  // true only after a SUCCESSFUL initial GET /config
   function api(method, path, body) {
     var opts = { method: method, headers: { Accept: "application/json" } };
-    if (body != null) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
     var u = PROXY + "?path=" + encodeURIComponent(path);
     var tk = "";
     try { tk = (typeof window.csrf_token !== "undefined" && window.csrf_token) || (document.querySelector('input[name="csrf_token"]') || {}).value || ((document.cookie || "").match(/csrf_token=([0-9A-Za-z]+)/) || [])[1] || ""; } catch (e) {}
-    if (method !== "GET" && tk) u += "&csrf_token=" + encodeURIComponent(tk); // emhttp drops tokenless POSTs
+    if (method !== "GET") { // emhttp accepts the csrf_token ONLY in a form body
+      opts.headers["Content-Type"] = "application/x-www-form-urlencoded";
+      opts.body = (tk ? "csrf_token=" + encodeURIComponent(tk) + "&" : "") + "data=" + encodeURIComponent(JSON.stringify(body != null ? body : {}));
+    }
     return fetch(u, opts).then(function (r) {
       return r.text().then(function (tx) { var d = null; try { d = tx ? JSON.parse(tx) : null; } catch (e) {} if (!r.ok) throw new Error((d && d.error) || ("HTTP " + r.status)); return d; });
     });

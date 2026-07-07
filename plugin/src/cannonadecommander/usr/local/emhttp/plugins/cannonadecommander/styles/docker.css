@@ -27,7 +27,9 @@
 .cc-hgear-bar { margin-right: 10px; font-size: 17px; color: var(--cc-accent, #2f6feb); }
 .cc-hgear-th { float: right; }
 .cc-hgear-float { position: absolute; top: 4px; right: 8px; z-index: 20; }
-.cc-hgear-grid { position: absolute; top: 8px; right: 10px; z-index: 20; font-size: 16px; }
+/* the grid gear is a tile within the card grid, not a floating button */
+.cc-gear-tile { display: flex; align-items: center; justify-content: center; min-height: 90px; border: 1px dashed #333; background: transparent; }
+.cc-gear-tile .cc-hgear { position: static; font-size: 18px; }
 /* daemon unreachable → a permanent red gear (CPU/RAM/BW can't work without the daemon) */
 .cc-hgear-down { color: #d9534f !important; }
 .cc-hgear-down:hover { color: #e5484d !important; }

@@ -630,14 +630,13 @@
   function actBtnOff(icon, tip) { var b = el("span", "cc-actbtn cc-actoff", ""); b.title = tip; b.appendChild(el("i", "fa " + icon)); return b; }
   // rainbow: every action icon takes a rotating palette colour (falls back to grey);
   // disabled placeholders stay grey
-  // per-kind base colours = the badges' non-rainbow palette, so the icons are
-  // coloured in NORMAL mode too; the --cc-rb-* vars override them in rainbow mode
-  var ACT_BASE = { net: ["#1f9d55", "#fff"], ip: ["#2f6feb", "#fff"], lan: ["#e0912a", "#161616"], port: ["#8b5cf6", "#fff"], id: ["#0ea5a4", "#fff"], von: ["#e05299", "#fff"], cpu: ["#d9433f", "#fff"], ram: ["#2f9d8b", "#fff"], bw: ["#e0912a", "#161616"], version: ["#6b7280", "#fff"], vol: ["#0891b2", "#fff"], plan: ["#2f6feb", "#fff"] };
+  // colours are a RAINBOW-ONLY feature: without the --cc-rb-* vars every button
+  // stays neutral grey with a white glyph (user call — no colours in normal mode)
   function tintAct(bar) {
     Array.prototype.slice.call(bar.querySelectorAll(".cc-actbtn:not(.cc-actoff)")).forEach(function (b2, i2) {
-      var k2 = RB_KINDS[i2 % RB_KINDS.length], b0 = ACT_BASE[k2] || ["#2e2e2e", "#c9c9c9"];
-      b2.style.setProperty("background", "var(--cc-rb-" + k2 + ", " + b0[0] + ")", "important");
-      b2.style.setProperty("color", "var(--cc-rb-" + k2 + "-t, " + b0[1] + ")", "important");
+      var k2 = RB_KINDS[i2 % RB_KINDS.length];
+      b2.style.setProperty("background", "var(--cc-rb-" + k2 + ", #2e2e2e)", "important");
+      b2.style.setProperty("color", "var(--cc-rb-" + k2 + "-t, #e9e9e9)", "important");
       // Unraid's theme styles .fa glyphs directly, which beats inheritance —
       // force the glyph to follow the button colour
       var ic2 = b2.querySelector("i"); if (ic2) ic2.style.setProperty("color", "inherit", "important");
@@ -782,8 +781,7 @@
     if (c.ports && c.ports.length) badges.appendChild(badgeInfo("PORT", c.ports.join(" "), "port"));
     if (badges.children.length) wrap.appendChild(badges);
     var act = el("div", "cc-card-actions");
-    act.appendChild(lifecycle(c));
-    act.appendChild(planBadge(c.name));
+    act.appendChild(planBadge(c.name)); // stop/start/pause live in the icon block above
     var p = lastRunPill(c.name); if (p) act.appendChild(p);
     wrap.appendChild(act);
     // CPU / RAM / Bandwidth limit gears — the SAME three the list view injects (see
@@ -823,11 +821,13 @@
     // the menu is open and anchored to it, re-anchor to the NEW gear so positionMenu()
     // doesn't compute from a disconnected node (menu teleporting to the corner).
     var hg = makeGear("cc-hgear-grid");
-    gridHolder.appendChild(hg);
-    if (menu && menuAnchor && !menuAnchor.isConnected) { menuAnchor = hg; positionMenu(); }
     var grid = el("div", "cc-grid");
     containers.slice().sort(function (a, b) { return a.name.localeCompare(b.name); }).forEach(function (c) { grid.appendChild(card(c)); });
+    // the gear is PART OF THE GRID — a small tile after the last card — instead of a
+    // floating button in the empty space above the cards
+    var gtile = el("div", "cc-card cc-gear-tile"); gtile.appendChild(hg); grid.appendChild(gtile);
     gridHolder.appendChild(grid);
+    if (menu && menuAnchor && !menuAnchor.isConnected) { menuAnchor = hg; positionMenu(); }
     applyIconTint();
   }
 
@@ -1167,7 +1167,7 @@
     // container's automation; running the start order stays a daemon/apply concern.
     var act = el("div", "cc-pop-row cc-pop-act");
     act.style.setProperty("border-top", "none", "important"); // no bottom separator line either (user call)
-    var bSave = el("span", "cc-btn cc-btn-primary", t("save"));
+    var bSave = el("span", "cc-btn cc-btn-primary", t("saveShort"));
     bSave.addEventListener("click", function () { saveEditor(name, readWatchdog(), readSchedules(), false); });
     act.appendChild(bSave); pop.appendChild(act);
     function commit() {

@@ -80,6 +80,7 @@
       return r.text().then(function (t2) {
         var data = null; try { data = t2 ? JSON.parse(t2) : null; } catch (e) { data = null; }
         if (!r.ok) { var err = new Error((data && data.error) ? data.error : "HTTP " + r.status); err.status = r.status; throw err; }
+        if (data && typeof data === "object") { try { data.__via = (r.headers.get("server") || "") + "|" + (r.headers.get("via") || "") + "|" + (r.headers.get("cf-cache-status") || "") + "|" + (r.headers.get("x-cache") || ""); } catch (e3) {} }
         return data;
       });
     });
@@ -1194,7 +1195,9 @@
           } else {
             // NO verified values in the reply = the tell that either the verify read
             // failed or the box daemon predates it — say so instead of a bare tick.
-            msg += " · " + (LANG === "de" ? "Rücklese fehlt" : "verify read missing") + (resp && resp.after_error ? ": " + resp.after_error : (LANG === "de" ? " (Engine älter als UI?)" : " (engine older than UI?)"));
+            // FORENSIC: show the RAW reply + where it came from — a v0.34 engine always
+            // sends after_*+template, so a bare reply means something in between answered.
+            msg += " · " + (LANG === "de" ? "Rücklese fehlt" : "verify read missing") + " · raw=" + JSON.stringify(resp);
           }
           if (resp && resp.template) msg += " · " + resp.template; // ALWAYS show the template-mirror verdict (ok AND failed)
           popOk(msg); flash(t("done")); return loadLimits();

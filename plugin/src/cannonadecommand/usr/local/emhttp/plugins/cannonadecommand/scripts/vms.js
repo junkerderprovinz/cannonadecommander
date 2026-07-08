@@ -25,7 +25,7 @@
   // an easy-to-miss toggle that made VMs look like they "never tinted".
   function vmTintOff() { return ls("cc.vmicons") === "0"; }
   function ensureTintFilter() {
-    var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(ls("cc.iconcolor") || "");
+    var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec((ls("cc.stylevms") !== "0" ? ls("cc.iconcolor") : ls("ccv.iconcolor")) || "");
     var host = document.getElementById("cc-vm-tint-svg");
     if (dead || vmTintOff() || !m) { if (host) host.remove(); return false; }
     var tr = parseInt(m[1], 16) / 255, tg = parseInt(m[2], 16) / 255, tb = parseInt(m[3], 16) / 255;
@@ -52,7 +52,7 @@
   // comes from CSS `color:`, NOT from an image filter — so a glyph never tinted
   // before. Real `.png` icons render as `<img class="img">` and DO take the filter.
   function tintColor() {
-    var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(ls("cc.iconcolor") || "");
+    var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec((ls("cc.stylevms") !== "0" ? ls("cc.iconcolor") : ls("ccv.iconcolor")) || "");
     if (dead || vmTintOff() || !m) return "";
     return "#" + m[1] + m[2] + m[3];
   }
@@ -66,7 +66,8 @@
     return [];
   }
   function apply() {
-    if (ls("cc.stylevms") === "0") return; // style takeover turned off in the settings
+    // adopt-toggle ON (default) -> Docker's cc.* settings; OFF -> own ccv.* keys
+    if (ls("cc.stylevms") === "0" && !ls("ccv.iconcolor")) return;
     try {
       var f = filterVal(), c = tintColor(), imgs = vmImgs();
       for (var i = 0; i < imgs.length; i++) {

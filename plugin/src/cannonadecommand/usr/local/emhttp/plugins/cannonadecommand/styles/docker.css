@@ -519,6 +519,8 @@ div.title span.left, div.title span.right { text-transform: uppercase; letter-sp
 .cc-plugsup:hover { filter: brightness(1.18); transform: translateY(-1px); }
 /* the other tabs' tables (install errors etc.): same clean look */
 .cc-plug-lite thead th { text-transform: uppercase; letter-spacing: 1.5px; font-size: 12px; }
+.cc-desc { display: block; max-height: 3.9em; overflow: hidden; }
+.cc-descin { display: block; }
 .cc-plug-lite tbody td { padding-top: 6px !important; padding-bottom: 6px !important; }
 .cc-plugico { display: flex; align-items: center; justify-content: center; min-width: 64px; }
 .cc-plugtxt { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
@@ -547,9 +549,9 @@ div.title span.left, div.title span.right { text-transform: uppercase; letter-sp
 .cc-set-logo { width: 64px; height: 64px; border-radius: 14px; display: block; }
 .cc-set-claim { color: var(--dim); font-size: 13px; font-style: italic; margin-top: 2px; }
 .cc-set-version { margin-left: auto; text-align: right; align-self: center; }
-.cc-set-tabs { display: flex; gap: 4px; margin: 0 0 18px; border-bottom: 1px solid var(--line); }
-.cc-set-tab { background: transparent; border: none !important; box-shadow: none !important; color: var(--dim); cursor: pointer; padding: 8px 14px; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; border-bottom: 2px solid transparent !important; }
-.cc-set-tab-on { color: var(--txt); border-bottom: 2px solid var(--cc-accent, #2f6feb) !important; }
+.cc-set-tabs { display: flex; gap: 8px; margin: 0 0 18px; }
+.cc-set-tab { background: #2a2a2a !important; border: none !important; box-shadow: none !important; color: var(--dim); cursor: pointer; padding: 5px 16px; font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; border-radius: 999px; }
+.cc-set-tab-on { background: var(--cc-accent, #2f6feb) !important; color: var(--cc-accent-text, #fff); }
 .cc-set-brand { font-size: 24px; letter-spacing: .2px; } .cc-set-brand b { font-weight: 700; } .cc-set-brand span { font-weight: 400; color: var(--dim); }
 .cc-set-sub { color: var(--dim2); font-size: 12.5px; }
 .cc-set-wrap { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }

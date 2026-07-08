@@ -385,9 +385,34 @@
     var cP = card(T("Stil", "Style"), T("Unraids Plugins-Tab im Docker-Tab-Stil darstellen: Badges für Autor/Version/Status, Akzent- bzw. Rainbow-Farben, Pill-Buttons.", "Render Unraid's Plugins tab in the Docker-tab style: badges for author/version/status, accent or rainbow colours, pill buttons."));
     cP.appendChild(styleToggle("cc.styleplugin", null));
     wrapPlugin.appendChild(cP);
-    var cPT = card(T("Logos", "Logos"), T("Plugin-Logos mit der Icon-Farbe des Docker-Tabs einfärben (Farbe und Stärke stellst du im Docker-Tab-Abschnitt ein).", "Tint the plugin logos with the Docker tab's icon colour (set colour and strength in the Docker-tab section)."));
+    // per-tab style controls — the SAME set as the Docker tab, active while the
+    // adopt-toggle above is OFF (own key prefix per tab)
+    function ownStyleCard(pref, extraKey, extraLbl) {
+      var c9 = card(T("Eigener Stil", "Own style"), T("Gilt, wenn „Docker-Tab-Stil übernehmen“ AUS ist.", "Applies while “Adopt the Docker-tab style” is OFF."));
+      function hexRow(lbl, key) {
+        var row = el("div", "cc-set-row"); row.appendChild(el("span", "cc-set-lbl", lbl));
+        var inp = el("input", "cc-set-txt"); inp.type = "text"; inp.placeholder = "#2f6feb"; inp.maxLength = 7; inp.value = localStorage.getItem(key) || "";
+        inp.addEventListener("change", function () { var v = normHex(inp.value); if (v || !inp.value.trim()) { if (v) localStorage.setItem(key, v); else localStorage.removeItem(key); inp.value = v; } });
+        row.appendChild(inp); return row;
+      }
+      function numRow(lbl, key, ph) {
+        var row = el("div", "cc-set-row"); row.appendChild(el("span", "cc-set-lbl", lbl));
+        var inp = el("input", "cc-set-txt"); inp.type = "number"; inp.min = "10"; inp.max = "100"; inp.placeholder = ph; inp.value = localStorage.getItem(key) || "";
+        inp.addEventListener("change", function () { if (inp.value) localStorage.setItem(key, inp.value); else localStorage.removeItem(key); });
+        row.appendChild(inp); return row;
+      }
+      c9.appendChild(hexRow(T("Akzentfarbe", "Accent colour"), pref + ".accent"));
+      c9.appendChild(styleToggle(pref + ".rainbow", null, "Rainbow"));
+      if (extraKey) c9.appendChild(styleToggle(extraKey, null, extraLbl));
+      c9.appendChild(hexRow(T("Icon-Farbe", "Icon colour"), pref + ".iconcolor"));
+      c9.appendChild(numRow(T("Icon-Stärke %", "Icon strength %"), pref + ".iconstrength", "100"));
+      return c9;
+    }
+    var cPT = card(T("Logos", "Logos"), T("Plugin-Logos einfärben (Farbe/Stärke: bei Übernahme aus dem Docker-Tab, sonst aus „Eigener Stil“).", "Tint the plugin logos (colour/strength: adopted from the Docker tab, otherwise from “Own style”)."));
     cPT.appendChild(styleToggle("cc.plugtint", null, T("Logos einfärben", "Tint the logos")));
     wrapPlugin.appendChild(cPT);
+    wrapPlugin.appendChild(ownStyleCard("ccp"));
+    wrapVms.appendChild(ownStyleCard("ccv"));
     var cV = card(T("Stil", "Style"), T("Akzentfarbe und Icon-Färbung des Docker-Tabs auch auf den VM-Tab anwenden.", "Apply the Docker tab's accent and icon tint to the VMs tab too."));
     cV.appendChild(styleToggle("cc.stylevms", null));
     wrapVms.appendChild(cV);

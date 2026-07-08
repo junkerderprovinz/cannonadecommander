@@ -12,27 +12,30 @@
   var MARK = "data-ccp";
 
   function ls(k) { return localStorage.getItem(k); }
+  // effective setting: adopt the Docker tab's cc.* while the takeover toggle is
+  // on (default), otherwise this tab's own ccp.* keys
+  function eff(name) { return ls("cc.styleplugin") !== "0" ? ls("cc." + name) : ls("ccp." + name); }
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; }
 
   var RB_PAL = ["#d9433f", "#f97316", "#eab308", "#1f9d55", "#0ea5a4", "#2f6feb", "#8b5cf6", "#e05299"];
-  function pal() { try { var jp = JSON.parse(ls("cc.rbpal") || "null"); if (jp && jp.length) return jp; } catch (e) {} return RB_PAL; }
+  function pal() { try { var jp = JSON.parse(eff("rbpal") || "null"); if (jp && jp.length) return jp; } catch (e) {} return RB_PAL; }
   function idealText(bg) { var n = parseInt(String(bg).replace("#", ""), 16), L = 0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255); return L > 150 ? "#161616" : "#fff"; }
-  function accent() { return ls("cc.accent") || "#2f6feb"; }
-  function colorFor(i) { return ls("cc.rainbow") === "1" ? pal()[i % pal().length] : accent(); }
+  function accent() { return eff("accent") || "#2f6feb"; }
+  function colorFor(i) { return eff("rainbow") === "1" ? pal()[i % pal().length] : accent(); }
 
   // the Docker-tab icon tint, standalone: luminance x target colour via an SVG
   // feColorMatrix, blended by cc.iconstrength; imgs get filter: url(#cc-plug-tint)
   function ensureTint() {
-    var hex = /^#?([0-9a-f]{6})$/i.exec(ls("cc.iconcolor") || "");
+    var hex = /^#?([0-9a-f]{6})$/i.exec(eff("iconcolor") || "");
     if (!hex) return "";
     var n = parseInt(hex[1], 16), r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
-    var st = Math.max(10, parseInt(ls("cc.iconstrength") || "100", 10)) / 100;
+    var st = Math.max(10, parseInt(eff("iconstrength") || "100", 10)) / 100;
     var lr = 0.2126, lg = 0.7152, lb = 0.0722, i2 = 1 - st;
     function row(c, idx) { var v = [lr * c * st, lg * c * st, lb * c * st, 0, 0]; v[idx] += i2; return v.join(" "); }
     var vals = row(r, 0) + " " + row(g, 1) + " " + row(b, 2) + " 0 0 0 1 0";
     var host = document.getElementById("cc-plug-tint-svg");
     if (!host) { host = document.createElement("div"); host.id = "cc-plug-tint-svg"; host.style.cssText = "position:absolute;width:0;height:0;overflow:hidden"; document.body.appendChild(host); }
-    host.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg"><filter id="cc-plug-tint" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="' + vals + '"/></filter></svg>';
+    host.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg"><filter id="cc-plug-tint" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%"><feColorMatrix type="matrix" values="' + vals + '"/></filter></svg>';
     return "url(#cc-plug-tint)";
   }
   function pill(node, bg, tx) {
@@ -92,7 +95,7 @@
     var ico = tds[0].querySelector(".cc-plugico");
     if (ico) { ico.style.setProperty("width", "64px", "important"); ico.style.setProperty("height", "64px", "important"); }
     var img = tds[0].querySelector("img, i.fa");
-    var tintOn = ls("cc.plugtint") !== "0";
+    var tintOn = eff("plugtint") !== "0";
     if (img && img.tagName === "IMG") {
       img.style.setProperty("max-width", "62px", "important");
       img.style.setProperty("max-height", "62px", "important");
@@ -156,16 +159,37 @@
       rm.style.setProperty("font-weight", "600", "important");
       if (rm.tagName === "INPUT" && !rm.value.trim()) rm.value = LANG === "de" ? "Entfernen" : "Remove";
     }
-    // col 2: description in its own column, dimmed but readable
-    var desc = tds[1].querySelector(".desc_readmore");
+    // col 2: description in its own column — NOT click-expandable any more; a
+    // fixed window whose content scrolls UP while hovered (Docker-volumes style)
+    var desc = tds[1].querySelector(".desc_readmore, .cc-desc");
+    if (desc && !desc.getAttribute(MARK)) {
+      desc.setAttribute(MARK, "1");
+      desc.classList.remove("desc_readmore"); // detach dynamix' click-to-expand
+      desc.classList.add("cc-desc");
+      var inn = el("div", "cc-descin");
+      while (desc.firstChild) inn.appendChild(desc.firstChild);
+      desc.appendChild(inn);
+      var sib = desc.nextElementSibling; // the chevron the readmore lib left behind
+      if (sib && /readmore|toggle/i.test(sib.className || "")) sib.style.setProperty("display", "none", "important");
+      desc.addEventListener("mouseenter", function () {
+        var dist = inn.scrollHeight - desc.clientHeight;
+        if (dist > 4) {
+          inn.style.transition = "transform " + Math.max(1.5, dist / 28) + "s linear";
+          inn.style.transform = "translateY(-" + dist + "px)";
+        }
+      });
+      desc.addEventListener("mouseleave", function () { inn.style.transition = "transform .3s ease"; inn.style.transform = "translateY(0)"; });
+    }
     if (desc) { desc.style.setProperty("color", "#9a9a9a", "important"); desc.style.setProperty("font-size", "12px", "important"); }
   }
 
   function paint() {
     try {
       if (ls("cc.styleplugin") === "0") return; // takeover disabled in the settings
-      var tb = document.getElementById("plugin_table"); if (!tb) return;
-      tb.classList.add("cc-plug");
+      var tbs = document.querySelectorAll("#plugin_table, table.tablesorter");
+      if (!tbs.length) return;
+      Array.prototype.slice.call(tbs).forEach(function (t5) { t5.classList.add(t5.querySelector("#plugin_list") ? "cc-plug" : "cc-plug-lite"); });
+      var tb = document.querySelector("table.cc-plug") || tbs[0];
       var ths = tb.querySelectorAll("thead th");
       if (ths.length >= 2 && !ths[0].getAttribute(MARK)) {
         ths[0].setAttribute(MARK, "1");
@@ -177,11 +201,11 @@
       // the page TABS become filled pills — no frames, minimal. Unraid builds
       // differ, so every plausible strip is covered (.tabs-container is the one
       // the Plugins page itself appends its buttons to).
-      var tabEls = document.querySelectorAll(".tabs label, #tabs label, div.tabs > div, .tabs-container > a, .tabs-container > div:not(.status), .tabs-container .tab, [id^='tab'] > label");
+      var tabEls = document.querySelectorAll("div.tab > label, .tabbed label, .tabs label, #tabs label, .tabs-container > a, .tabs-container .tab, [role=tab]");
       Array.prototype.slice.call(tabEls).forEach(function (lb2) {
         if (lb2.querySelector("input[type=button], input[type=submit]")) return; // not the action buttons
         var txt2 = (lb2.textContent || "").trim(); if (!txt2 || txt2.length > 40) return;
-        var inp = document.getElementById(lb2.htmlFor || "") || lb2.querySelector("input[type=radio]");
+        var inp = document.getElementById(lb2.htmlFor || "") || lb2.querySelector("input[type=radio]") || (lb2.previousElementSibling && lb2.previousElementSibling.type === "radio" ? lb2.previousElementSibling : null);
         var act = !!(inp && inp.checked) || /(^|\s)(active|current|selected)(\s|$)/.test(lb2.className) || lb2.getAttribute("aria-selected") === "true";
         lb2.style.setProperty("background", act ? accent() : "transparent", "important");
         lb2.style.setProperty("color", act ? idealText(accent()) : "#9a9a9a", "important");
@@ -211,6 +235,13 @@
       });
       // every OTHER table on the composite page (install errors / stale tab)
       Array.prototype.slice.call(document.querySelectorAll("table.tablesorter")).forEach(function (t4) { if (t4.id !== "plugin_table") t4.classList.add("cc-plug-lite"); });
+      // lite tables (install errors / stale): ERROR pill + red action link
+      Array.prototype.slice.call(document.querySelectorAll("table.cc-plug-lite tbody tr")).forEach(function (tr5) {
+        var st5 = tr5.querySelector("span.orange-text, span.red-text");
+        if (st5 && !st5.getAttribute(MARK)) { st5.setAttribute(MARK, "1"); pill(st5, "#e0912a", "#161616"); }
+        var ac5 = tr5.querySelector("a, input[type=button]");
+        if (ac5 && !ac5.getAttribute(MARK)) { ac5.setAttribute(MARK, "1"); pill(ac5, "#d9433f", "#fff"); ac5.style.setProperty("cursor", "pointer", "important"); }
+      });
       // the Check/Update/Remove buttons in the tab bar become accent pills
       Array.prototype.slice.call(document.querySelectorAll("#checkall input, #updateall input, #removeall input")).forEach(function (b2, i2) {
         if (!b2.getAttribute(MARK)) { pill(b2, colorFor(i2 + 6)); b2.style.setProperty("cursor", "pointer", "important"); b2.setAttribute(MARK, "1"); }

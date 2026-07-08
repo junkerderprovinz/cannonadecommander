@@ -369,7 +369,7 @@
     wrap.appendChild(c6);
 
     // ── Plugin-Tab / VM-Tab sections: adopt the Docker-tab style there too? ──
-    function styleToggle(key, onChange) {
+    function styleToggle(key, onChange, lbl) {
       var on = localStorage.getItem(key) !== "0";
       var tg = el("span", "cc-set-toggle" + (on ? " cc-set-toggle-on" : ""), on ? T("An", "On") : T("Aus", "Off"));
       tg.addEventListener("click", function () {
@@ -379,12 +379,15 @@
         tg.textContent = v !== "0" ? T("An", "On") : T("Aus", "Off");
         if (onChange) onChange();
       });
-      var row = el("div", "cc-set-row"); row.appendChild(el("span", "cc-set-lbl", T("Docker-Tab-Stil übernehmen", "Adopt the Docker-tab style"))); row.appendChild(tg);
+      var row = el("div", "cc-set-row"); row.appendChild(el("span", "cc-set-lbl", lbl || T("Docker-Tab-Stil übernehmen", "Adopt the Docker-tab style"))); row.appendChild(tg);
       return row;
     }
     var cP = card(T("Stil", "Style"), T("Unraids Plugins-Tab im Docker-Tab-Stil darstellen: Badges für Autor/Version/Status, Akzent- bzw. Rainbow-Farben, Pill-Buttons.", "Render Unraid's Plugins tab in the Docker-tab style: badges for author/version/status, accent or rainbow colours, pill buttons."));
     cP.appendChild(styleToggle("cc.styleplugin", null));
     wrapPlugin.appendChild(cP);
+    var cPT = card(T("Logos", "Logos"), T("Plugin-Logos mit der Icon-Farbe des Docker-Tabs einfärben (Farbe und Stärke stellst du im Docker-Tab-Abschnitt ein).", "Tint the plugin logos with the Docker tab's icon colour (set colour and strength in the Docker-tab section)."));
+    cPT.appendChild(styleToggle("cc.plugtint", null, T("Logos einfärben", "Tint the logos")));
+    wrapPlugin.appendChild(cPT);
     var cV = card(T("Stil", "Style"), T("Akzentfarbe und Icon-Färbung des Docker-Tabs auch auf den VM-Tab anwenden.", "Apply the Docker tab's accent and icon tint to the VMs tab too."));
     cV.appendChild(styleToggle("cc.stylevms", null));
     wrapVms.appendChild(cV);

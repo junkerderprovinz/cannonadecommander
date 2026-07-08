@@ -511,7 +511,15 @@ div.title span.left, div.title span.right { text-transform: uppercase; letter-sp
 
 /* ════════════════ PLUGINS TAB (Docker-tab style takeover) ════════════════ */
 .cc-plug #plugin_list > tr > td { padding-top: 6px !important; padding-bottom: 6px !important; }
+.cc-plug thead th:first-child { width: 360px; } /* wider name column, stable layout */
+.cc-plug #plugin_list > tr > td:first-child { text-align: left !important; }
 .cc-plugname { display: flex; align-items: center; gap: 14px; }
+.cc-plugico { display: flex !important; align-items: center; justify-content: center; flex: none; }
+.cc-plugsup { transition: filter .12s, transform .12s; }
+.cc-plugsup:hover { filter: brightness(1.18); transform: translateY(-1px); }
+/* the other tabs' tables (install errors etc.): same clean look */
+.cc-plug-lite thead th { text-transform: uppercase; letter-spacing: 1.5px; font-size: 12px; }
+.cc-plug-lite tbody td { padding-top: 6px !important; padding-bottom: 6px !important; }
 .cc-plugico { display: flex; align-items: center; justify-content: center; min-width: 64px; }
 .cc-plugtxt { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
 .cc-plugtitle { font-size: 16px; font-weight: 600; } /* the Docker-tab container-name look */

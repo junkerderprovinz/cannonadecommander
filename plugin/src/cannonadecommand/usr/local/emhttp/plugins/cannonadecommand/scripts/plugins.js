@@ -43,12 +43,13 @@
     host.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg"><filter id="cc-plug-tint" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%"><feColorMatrix type="matrix" values="' + vals + '"/></filter></svg>';
     return "url(#cc-plug-tint)";
   }
+  function shapeRadius() { return ({ pill: "999px", rounded: "6px", square: "0px" })[ls("cc.badgeshape") || "pill"] || "999px"; }
   function pill(node, bg, tx) {
     node.style.setProperty("font-size", "12px", "important"); // same height as the badges
     node.style.setProperty("vertical-align", "middle", "important");
     node.style.setProperty("background", bg, "important");
     node.style.setProperty("color", tx || idealText(bg), "important");
-    node.style.setProperty("border-radius", "999px", "important");
+    node.style.setProperty("border-radius", shapeRadius(), "important");
     node.style.setProperty("padding", "3px 12px", "important");
     node.style.setProperty("border", "none", "important");
     node.style.setProperty("box-shadow", "none", "important");

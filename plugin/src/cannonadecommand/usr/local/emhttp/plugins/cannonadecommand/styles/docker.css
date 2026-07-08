@@ -567,6 +567,9 @@ div.title span.left, div.title span.right { text-transform: uppercase; letter-sp
 .cc-plug .cc-b { display: inline-flex; gap: 5px; align-items: center; border-radius: 999px; padding: 3px 12px; font-size: 12px; }
 .cc-plug .cc-b .cc-b-k { opacity: .72; font-weight: 500; }
 
+/* badge SHAPE follows the Ansicht setting: pills / rounded rectangles / squares */
+.cc-b, .cc-plug .cc-b { border-radius: var(--cc-b-radius, 999px) !important; }
+
 /* ════════════════ SETTINGS PAGE (Settings > Utilities) ════════════════ */
 #cc-settings { --bg: #161616; --bg2: #1c1c1c; --line: #2a2a2a; --line2: #333; --txt: #e6e6e6; --dim: #9a9a9a; --dim2: #6f6f6f; color: var(--txt); font: 14px/1.5 "Segoe UI", system-ui, sans-serif; padding-bottom: 40px; }
 /* Unraid's global button CSS paints an orange border on every <button>; neutralise

@@ -1,12 +1,14 @@
 /* CannonadeCommand — enhances Unraid's PLUGINS tab in place, Docker-tab style:
- * badges for author/version/status, tinted icons and pill buttons, accent or
- * rainbow colours, all idempotent on top of the native #plugin_table. The
- * native markup keeps working — we only decorate it (ground truth:
- * dynamix.plugin.manager/Plugins.page + include/ShowPlugins.php). */
+ * plugin cell with container-sized logo + name + support badge, description in
+ * its own column, version + changelog badges stacked, status and remove as
+ * pills, accent or rainbow colours — all idempotent on top of the native
+ * #plugin_table (ground truth: dynamix.plugin.manager/Plugins.page +
+ * include/ShowPlugins.php; the name lives as <strong> in the README markdown). */
 (function () {
   "use strict";
   if (window.__ccPlug) return; window.__ccPlug = 1;
   var PROXY = "/plugins/cannonadecommand/server/ccapi.php";
+  var LANG = ((document.documentElement.lang || navigator.language || "en").toLowerCase().indexOf("de") === 0) ? "de" : "en";
   var MARK = "data-ccp";
 
   function ls(k) { return localStorage.getItem(k); }
@@ -43,38 +45,84 @@
     var tds = tr.children;
     if (!tds || tds.length < 6) return;
     for (var i = 0; i < tds.length; i++) tds[i].style.setProperty("vertical-align", "middle", "important");
-    // col 1: the plugin icon — sized + centred like the Docker-tab logos
+    // ── col 1 becomes the PLUGIN cell, Docker-ct-name style: logo at container
+    // size + the name in the container font, support-thread badge underneath.
+    // The name lives as <strong> inside the README markdown of col 2 — pull it
+    // out; the description keeps its own column.
+    if (!tds[0].getAttribute(MARK)) {
+      tds[0].setAttribute(MARK, "1");
+      var nameEl = tds[1].querySelector("strong, b");
+      var nm = nameEl ? nameEl.textContent.trim() : ((tds[3].id || "").replace(/^vid-/, ""));
+      if (nameEl) nameEl.remove();
+      var sup = null;
+      Array.prototype.slice.call(tds[1].querySelectorAll("a")).forEach(function (a2) { if (/support/i.test(a2.textContent)) sup = a2; });
+      var box = el("div", "cc-plugname");
+      var icoWrap = el("div", "cc-plugico");
+      while (tds[0].firstChild) icoWrap.appendChild(tds[0].firstChild);
+      var txt = el("div", "cc-plugtxt");
+      txt.appendChild(el("div", "cc-plugtitle", nm));
+      if (sup) {
+        var sb = el("a", "cc-b cc-plugsup", LANG === "de" ? "Support-Thread" : "Support thread");
+        sb.href = sup.href; sb.target = "_blank"; sb.setAttribute(MARK, "1");
+        sb.style.setProperty("background", "#3a3a3a", "important");
+        sb.style.setProperty("color", "#ddd", "important");
+        sb.style.setProperty("text-decoration", "none", "important");
+        sup.remove();
+        txt.appendChild(sb);
+      }
+      box.appendChild(icoWrap); box.appendChild(txt);
+      tds[0].appendChild(box);
+    }
     var img = tds[0].querySelector("img, i.fa");
-    if (img && img.tagName === "IMG") { img.style.setProperty("width", "44px", "important"); img.style.setProperty("height", "44px", "important"); img.style.setProperty("vertical-align", "middle", "important"); }
+    if (img && img.tagName === "IMG") { img.style.setProperty("width", "62px", "important"); img.style.setProperty("height", "62px", "important"); img.style.setProperty("vertical-align", "middle", "important"); }
+    else if (img) { img.style.setProperty("font-size", "48px", "important"); }
     // col 3: author as a badge
     var au = tds[2];
     if (!au.querySelector(".cc-b")) {
       var name = au.textContent.trim();
       if (name) { au.textContent = ""; au.appendChild(badge("Von", name, idx)); }
     }
-    // col 4 (vid): version as a badge; the native info-circle stays clickable behind it
+    // ── col 4 (vid): version badge with the CHANGELOG badge stacked underneath
+    // (Docker-tab style); the native info-circle keeps its delegated handler —
+    // it is hidden and our badge clicks it.
     var vid = tds[3];
     if (!vid.querySelector(".cc-b")) {
-      var icon = vid.querySelector("span.fa");
+      var icon = vid.querySelector("span.fa, i.fa");
       var vtxt = "";
-      Array.prototype.slice.call(vid.childNodes).forEach(function (n2) { if (n2.nodeType === 3) vtxt += n2.textContent; });
+      Array.prototype.slice.call(vid.childNodes).forEach(function (n2) { if (n2.nodeType === 3) { vtxt += n2.textContent; n2.textContent = ""; } });
       vtxt = vtxt.replace(/ /g, " ").trim();
-      if (vtxt) {
-        Array.prototype.slice.call(vid.childNodes).forEach(function (n2) { if (n2.nodeType === 3) n2.textContent = ""; });
-        vid.insertBefore(badge("Version", vtxt, idx + 3), icon || null);
-        if (icon) icon.style.setProperty("margin-left", "6px", "important");
+      var col = el("div", "cc-plugver");
+      if (vtxt) col.appendChild(badge("Version", vtxt, idx + 3));
+      if (icon) {
+        icon.style.setProperty("display", "none", "important");
+        var ib = el("span", "cc-b"); ib.setAttribute(MARK, "1");
+        ib.appendChild(el("span", "cc-b-v", "Changelog"));
+        var bg2 = colorFor(idx + 6);
+        ib.style.setProperty("background", bg2, "important");
+        ib.style.setProperty("color", idealText(bg2), "important");
+        ib.style.setProperty("cursor", "pointer", "important");
+        ib.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); icon.click(); });
+        col.appendChild(ib);
       }
+      if (col.children.length) vid.appendChild(col);
     }
-    // col 5 (sid): status pill — green when current, amber when an update waits.
+    // ── col 5 (sid): status badge — green "auf dem neuesten Stand", amber update.
     // The cell is REWRITTEN by the update-check ajax, so this re-runs per mutation.
     var sid = tds[4], stEl = sid.querySelector("span, a");
     if (stEl && !stEl.getAttribute(MARK)) {
       var t2 = sid.textContent.toLowerCase();
-      if (/up.to.date|aktuell|current/.test(t2)) { pill(stEl, "#1f9d55", "#fff"); stEl.setAttribute(MARK, "1"); }
+      if (/up.to.date|aktuell|neuesten stand|current/.test(t2)) { pill(stEl, "#1f9d55", "#fff"); stEl.setAttribute(MARK, "1"); }
       else if (/update|aktualis|install/.test(t2) && !/checking|prüf/.test(t2)) { pill(stEl, "#e0912a", "#161616"); stEl.setAttribute(MARK, "1"); }
     }
     var lnk = sid.querySelector("a"); if (lnk) lnk.style.setProperty("color", "inherit", "important");
-    // col 2: dim the long description, keep the title line readable
+    // ── col 6: the remove action as a red badge
+    var rm = tds[5].querySelector("a");
+    if (rm && !rm.getAttribute(MARK)) {
+      rm.setAttribute(MARK, "1");
+      pill(rm, "#d9433f", "#fff");
+      var rt = rm.textContent.trim(); if (!rt) rm.textContent = LANG === "de" ? "Entfernen" : "Remove";
+    }
+    // col 2: description in its own column, dimmed but readable
     var desc = tds[1].querySelector(".desc_readmore");
     if (desc) { desc.style.setProperty("color", "#9a9a9a", "important"); desc.style.setProperty("font-size", "12px", "important"); }
   }
@@ -84,6 +132,12 @@
       if (ls("cc.styleplugin") === "0") return; // takeover disabled in the settings
       var tb = document.getElementById("plugin_table"); if (!tb) return;
       tb.classList.add("cc-plug");
+      var ths = tb.querySelectorAll("thead th");
+      if (ths.length >= 2 && !ths[0].getAttribute(MARK)) {
+        ths[0].setAttribute(MARK, "1");
+        ths[0].textContent = "Plugin";
+        ths[1].textContent = LANG === "de" ? "Beschreibung" : "Description";
+      }
       var rows = document.querySelectorAll("#plugin_list > tr");
       Array.prototype.slice.call(rows).forEach(function (tr, i) { try { paintRow(tr, i); } catch (e) {} });
       // the Check/Update/Remove buttons in the tab bar become accent pills

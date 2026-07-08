@@ -116,7 +116,7 @@ jobs:
           echo "✅ download policing THROUGHPUT measured: ${RATE} B/s at a 250000 B/s cap"
 
       - name: Upload package artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cannonadecommand-txz
           path: plugin/out/*.txz

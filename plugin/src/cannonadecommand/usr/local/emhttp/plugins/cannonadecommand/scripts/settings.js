@@ -387,32 +387,64 @@
     wrapPlugin.appendChild(cP);
     // per-tab style controls — the SAME set as the Docker tab, active while the
     // adopt-toggle above is OFF (own key prefix per tab)
-    function ownStyleCard(pref, extraKey, extraLbl) {
-      var c9 = card(T("Eigener Stil", "Own style"), T("Gilt, wenn „Docker-Tab-Stil übernehmen“ AUS ist.", "Applies while “Adopt the Docker-tab style” is OFF."));
-      function hexRow(lbl, key) {
-        var row = el("div", "cc-set-row"); row.appendChild(el("span", "cc-set-lbl", lbl));
-        var inp = el("input", "cc-set-txt"); inp.type = "text"; inp.placeholder = "#2f6feb"; inp.maxLength = 7; inp.value = localStorage.getItem(key) || "";
-        inp.addEventListener("change", function () { var v = normHex(inp.value); if (v || !inp.value.trim()) { if (v) localStorage.setItem(key, v); else localStorage.removeItem(key); inp.value = v; } });
-        row.appendChild(inp); return row;
-      }
-      function numRow(lbl, key, ph) {
-        var row = el("div", "cc-set-row"); row.appendChild(el("span", "cc-set-lbl", lbl));
-        var inp = el("input", "cc-set-txt"); inp.type = "number"; inp.min = "10"; inp.max = "100"; inp.placeholder = ph; inp.value = localStorage.getItem(key) || "";
-        inp.addEventListener("change", function () { if (inp.value) localStorage.setItem(key, inp.value); else localStorage.removeItem(key); });
-        row.appendChild(inp); return row;
-      }
-      c9.appendChild(hexRow(T("Akzentfarbe", "Accent colour"), pref + ".accent"));
-      c9.appendChild(styleToggle(pref + ".rainbow", null, "Rainbow"));
-      if (extraKey) c9.appendChild(styleToggle(extraKey, null, extraLbl));
-      c9.appendChild(hexRow(T("Icon-Farbe", "Icon colour"), pref + ".iconcolor"));
-      c9.appendChild(numRow(T("Icon-Stärke %", "Icon strength %"), pref + ".iconstrength", "100"));
-      return c9;
+    // The Plugin/VM sections carry EXACTLY the Docker tab's style cards (same
+    // picker, swatches, rainbow palette, tint toggle + strength) on their own
+    // key prefix; they apply while "Adopt the Docker-tab style" is OFF.
+    function buildStyleCards(P, into) {
+      var acc = get(P + "accent", "#2f6feb"), icol = get(P + "iconcolor", ""), istr = parseInt(get(P + "iconstrength", "100"), 10) || 100;
+      var cA = card(T("Badges", "Badges"), T("Akzentfarbe und Farbmodus der Badges.", "Accent colour and colour mode of the badges."));
+      var pr = el("div", "cc-set-pickrow");
+      var hx = el("input", "cc-set-hexin"); hx.type = "text"; hx.value = acc; hx.placeholder = "#2f6feb"; hx.maxLength = 7; hx.spellcheck = false;
+      var pk = inlinePicker(/^#[0-9a-f]{6}$/i.test(acc) ? acc : "#2f6feb", function (v) { acc = v; hx.value = v; set(P + "accent", v); });
+      hx.addEventListener("input", function () { var v = normHex(hx.value); if (v) { acc = v; pk._set(v); set(P + "accent", v); } });
+      pr.appendChild(pk); pr.appendChild(hx); cA.appendChild(pr);
+      var sr = el("div", "cc-set-swatches");
+      PRESETS.forEach(function (c) {
+        var sw = el("span", "cc-set-sw" + (c === acc ? " cc-set-sw-on" : "")); sw.title = c; sw.style.background = c;
+        sw.addEventListener("click", function () { acc = c; pk._set(c); hx.value = c; set(P + "accent", c); });
+        sr.appendChild(sw);
+      });
+      cA.appendChild(sr);
+      var rr2 = el("div", "cc-set-row cc-set-inline");
+      rr2.appendChild(el("span", null, T("Regenbogen-Modus", "Rainbow mode")));
+      rr2.appendChild(toggle(get(P + "rainbow", "0") === "1", function (v) { set(P + "rainbow", v ? "1" : "0"); }));
+      cA.appendChild(rr2);
+      var RB2 = ["#d9433f", "#f97316", "#eab308", "#1f9d55", "#0ea5a4", "#2f6feb", "#8b5cf6", "#e05299"];
+      var pal2 = null; try { pal2 = JSON.parse(get(P + "rbpal", "null")); } catch (e2) { pal2 = null; }
+      if (!pal2 || pal2.length !== RB2.length) pal2 = RB2.slice();
+      cA.appendChild(el("div", "cc-set-lbl", T("Rainbow-Farben (Feld anklicken zum Anpassen)", "Rainbow colours (click a field to adjust)")));
+      var rw = el("div", "cc-set-swatches"), rp = null, ri = -1, rpw = el("div", "cc-set-pickrow"); rpw.style.display = "none";
+      pal2.forEach(function (cx2, ix2) {
+        var sw2 = el("span", "cc-set-sw"); sw2.style.background = cx2; sw2.title = cx2;
+        sw2.addEventListener("click", function () {
+          ri = ix2; rpw.style.display = "";
+          if (!rp) { rp = inlinePicker(pal2[ix2], function (v) { if (ri >= 0) { pal2[ri] = v; rw.children[ri].style.background = v; rw.children[ri].title = v; set(P + "rbpal", JSON.stringify(pal2)); } }); rpw.appendChild(rp); }
+          else rp._set(pal2[ix2]);
+        });
+        rw.appendChild(sw2);
+      });
+      var rs = el("span", "cc-btn cc-btn-sm", T("Farben zurücksetzen", "Reset colours"));
+      rs.addEventListener("click", function () { del(P + "rbpal"); render(); });
+      cA.appendChild(rw); cA.appendChild(rpw); cA.appendChild(rs);
+      into.appendChild(cA);
+      var cB = card(T("Logos einfärben", "Colourise logos"), T("Der Schalter aktiviert die Färbung.", "The switch turns the tint on."));
+      var ihx = el("input", "cc-set-hexin"); ihx.type = "text"; ihx.value = icol || ""; ihx.placeholder = "#1f9d55"; ihx.maxLength = 7; ihx.spellcheck = false;
+      var ipk = inlinePicker(/^#[0-9a-f]{6}$/i.test(icol) ? icol : "#1f9d55", function (v) { icol = v; ihx.value = v; set(P + "iconcolor", v); sy(); });
+      function on2() { return !!icol; }
+      var tg2 = el("span", "cc-set-toggle" + (on2() ? " cc-set-toggle-on" : "")); tg2.setAttribute("role", "switch"); tg2.setAttribute("tabindex", "0"); tg2.appendChild(el("span", "cc-set-knob"));
+      function sy() { tg2.classList.toggle("cc-set-toggle-on", on2()); tg2.setAttribute("aria-checked", on2() ? "true" : "false"); }
+      tg2.addEventListener("click", function () { if (on2()) { icol = ""; del(P + "iconcolor"); ihx.value = ""; } else { icol = ipk._get(); ihx.value = icol; set(P + "iconcolor", icol); } sy(); });
+      ihx.addEventListener("input", function () { var v = normHex(ihx.value); if (v) { icol = v; ipk._set(v); set(P + "iconcolor", v); sy(); } });
+      var ir2 = el("div", "cc-set-pickrow"); ir2.appendChild(ipk); ir2.appendChild(ihx); cB.appendChild(ir2);
+      var tr2 = el("div", "cc-set-row cc-set-inline"); tr2.appendChild(el("span", null, T("Einfärben", "Colourise"))); tr2.appendChild(tg2); cB.appendChild(tr2);
+      var st2 = el("div", "cc-set-row"); st2.appendChild(el("span", "cc-set-rl", T("Intensität", "Strength")));
+      var sl2 = el("input"); sl2.type = "range"; sl2.min = "10"; sl2.max = "100"; sl2.value = String(istr); sl2.style.flex = "1";
+      sl2.addEventListener("input", function () { set(P + "iconstrength", sl2.value); });
+      st2.appendChild(sl2); cB.appendChild(st2);
+      into.appendChild(cB);
     }
-    var cPT = card(T("Logos", "Logos"), T("Plugin-Logos einfärben (Farbe/Stärke: bei Übernahme aus dem Docker-Tab, sonst aus „Eigener Stil“).", "Tint the plugin logos (colour/strength: adopted from the Docker tab, otherwise from “Own style”)."));
-    cPT.appendChild(styleToggle("cc.plugtint", null, T("Logos einfärben", "Tint the logos")));
-    wrapPlugin.appendChild(cPT);
-    wrapPlugin.appendChild(ownStyleCard("ccp"));
-    wrapVms.appendChild(ownStyleCard("ccv"));
+    buildStyleCards("ccp.", wrapPlugin);
+    buildStyleCards("ccv.", wrapVms);
     var cV = card(T("Stil", "Style"), T("Akzentfarbe und Icon-Färbung des Docker-Tabs auch auf den VM-Tab anwenden.", "Apply the Docker tab's accent and icon tint to the VMs tab too."));
     cV.appendChild(styleToggle("cc.stylevms", null));
     wrapVms.appendChild(cV);

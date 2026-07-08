@@ -29,7 +29,7 @@
     var host = document.getElementById("cc-vm-tint-svg");
     if (dead || vmTintOff() || !m) { if (host) host.remove(); return false; }
     var tr = parseInt(m[1], 16) / 255, tg = parseInt(m[2], 16) / 255, tb = parseInt(m[3], 16) / 255;
-    var s = (Math.max(10, parseInt(ls("cc.iconstrength") || "100", 10)) / 100).toFixed(3);
+    var s = (Math.max(10, parseInt((ls("cc.stylevms") !== "0" ? ls("cc.iconstrength") : ls("ccv.iconstrength")) || "100", 10)) / 100).toFixed(3);
     // shading-preserving: channel = luminance × target colour (matches docker.js)
     var lum = function (c) { return (0.2126 * c).toFixed(4) + " " + (0.7152 * c).toFixed(4) + " " + (0.0722 * c).toFixed(4); };
     if (!host) { host = document.createElement("div"); host.id = "cc-vm-tint-svg"; host.setAttribute("aria-hidden", "true"); host.style.cssText = "position:absolute;width:0;height:0;overflow:hidden"; document.body.appendChild(host); }

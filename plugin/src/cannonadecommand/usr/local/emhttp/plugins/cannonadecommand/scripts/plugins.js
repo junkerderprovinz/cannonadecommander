@@ -95,15 +95,14 @@
     var ico = tds[0].querySelector(".cc-plugico");
     if (ico) { ico.style.setProperty("width", "64px", "important"); ico.style.setProperty("height", "64px", "important"); }
     var img = tds[0].querySelector("img, i.fa");
-    var tintOn = eff("plugtint") !== "0";
     if (img && img.tagName === "IMG") {
       img.style.setProperty("max-width", "62px", "important");
       img.style.setProperty("max-height", "62px", "important");
       img.style.setProperty("width", "auto", "important");
       img.style.setProperty("height", "auto", "important");
       img.style.setProperty("vertical-align", "middle", "important");
-      var f2 = tintOn ? ensureTint() : ""; img.style.setProperty("filter", f2 || "none", "important");
-    } else if (img) { img.style.setProperty("font-size", "46px", "important"); var f3 = tintOn ? ensureTint() : ""; img.style.setProperty("filter", f3 || "none", "important"); }
+      var f2 = ensureTint(); img.style.setProperty("filter", f2 || "none", "important");
+    } else if (img) { img.style.setProperty("font-size", "46px", "important"); var f3 = ensureTint(); img.style.setProperty("filter", f3 || "none", "important"); }
     // col 3: author as a badge
     var au = tds[2];
     if (!au.querySelector(".cc-b")) {
@@ -205,10 +204,11 @@
       Array.prototype.slice.call(tabEls).forEach(function (lb2) {
         if (lb2.querySelector("input[type=button], input[type=submit]")) return; // not the action buttons
         var txt2 = (lb2.textContent || "").trim(); if (!txt2 || txt2.length > 40) return;
-        var inp = document.getElementById(lb2.htmlFor || "") || lb2.querySelector("input[type=radio]") || (lb2.previousElementSibling && lb2.previousElementSibling.type === "radio" ? lb2.previousElementSibling : null);
+        var inp = lb2.control || document.getElementById(lb2.htmlFor || "") || lb2.querySelector("input[type=radio]") || (lb2.previousElementSibling && lb2.previousElementSibling.type === "radio" ? lb2.previousElementSibling : null);
         var act = !!(inp && inp.checked) || /(^|\s)(active|current|selected)(\s|$)/.test(lb2.className) || lb2.getAttribute("aria-selected") === "true";
-        lb2.style.setProperty("background", act ? accent() : "transparent", "important");
-        lb2.style.setProperty("color", act ? idealText(accent()) : "#9a9a9a", "important");
+        // inactive tabs get a GREY fill so they still read as tabs
+        lb2.style.setProperty("background", act ? accent() : "#2a2a2a", "important");
+        lb2.style.setProperty("color", act ? idealText(accent()) : "#b5b5b5", "important");
         lb2.style.setProperty("border", "none", "important");
         lb2.style.setProperty("box-shadow", "none", "important");
         lb2.style.setProperty("border-radius", "999px", "important");

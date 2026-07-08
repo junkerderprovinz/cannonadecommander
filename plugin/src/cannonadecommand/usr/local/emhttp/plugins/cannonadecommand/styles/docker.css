@@ -510,8 +510,8 @@ div.title span.left, div.title span.right { text-transform: uppercase; letter-sp
 .tabs .tab, #tabs .tab { background: transparent !important; border: 0 !important; text-transform: uppercase; letter-spacing: 1.5px; }
 
 /* ════════════════ PLUGINS TAB (Docker-tab style takeover) ════════════════ */
-.cc-plug #plugin_list > tr > td { padding-top: 6px !important; padding-bottom: 6px !important; }
-.cc-plug thead th:first-child { width: 360px; } /* wider name column, stable layout */
+.cc-plug #plugin_list > tr > td { padding-top: 10px !important; padding-bottom: 10px !important; }
+.cc-plug thead th:first-child { width: 300px; } /* name column: wide enough, not wasteful */
 .cc-plug #plugin_list > tr > td:first-child { text-align: left !important; }
 .cc-plugname { display: flex; align-items: center; gap: 14px; }
 .cc-plugico { display: flex !important; align-items: center; justify-content: center; flex: none; }
@@ -550,12 +550,12 @@ div.title span.left, div.title span.right { text-transform: uppercase; letter-sp
 .cc-set-claim { color: var(--dim); font-size: 13px; font-style: italic; margin-top: 2px; }
 .cc-set-version { margin-left: auto; text-align: right; align-self: center; }
 .cc-set-tabs { display: flex; gap: 8px; margin: 0 0 18px; }
-.cc-set-tab { background: #2a2a2a !important; border: none !important; box-shadow: none !important; color: var(--dim); cursor: pointer; padding: 5px 16px; font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; border-radius: 999px; }
-.cc-set-tab-on { background: var(--cc-accent, #2f6feb) !important; color: var(--cc-accent-text, #fff); }
+.cc-set-tab { background: #2a2a2a !important; border: none !important; box-shadow: none !important; color: #b5b5b5 !important; cursor: pointer; padding: 5px 16px; font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; border-radius: 999px; } /* colour forced: Unraid's button CSS painted it orange */
+.cc-set-tab-on { background: var(--cc-accent, #2f6feb) !important; color: var(--cc-accent-text, #fff) !important; }
 .cc-set-brand { font-size: 24px; letter-spacing: .2px; } .cc-set-brand b { font-weight: 700; } .cc-set-brand span { font-weight: 400; color: var(--dim); }
 .cc-set-sub { color: var(--dim2); font-size: 12.5px; }
 .cc-set-wrap { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
-.cc-set-card { background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+.cc-set-card { background: var(--bg2); border: none; border-radius: 12px; padding: 16px 18px; } /* borderless, clean */
 .cc-set-h { font-size: 15px; font-weight: 600; margin-bottom: 3px; }
 .cc-set-card .cc-set-sub { margin-bottom: 12px; }
 .cc-set-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; flex-wrap: wrap; }

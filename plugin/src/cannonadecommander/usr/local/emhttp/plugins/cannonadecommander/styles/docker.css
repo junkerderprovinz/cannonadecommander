@@ -22,7 +22,7 @@
 .cc-grid-holder { position: relative; margin: 6px 0 14px; }
 
 /* gear — small icon that lives in Unraid's Advanced/Basic toggle bar (moved there) */
-.cc-hgear { background: transparent; border: none; color: var(--cc-dim, #8a8a8a); cursor: pointer; font-size: 15px; line-height: 1; padding: 0 4px; vertical-align: middle; transition: color .12s; -webkit-appearance: none; appearance: none; }
+.cc-hgear { background: transparent !important; border: none !important; box-shadow: none !important; outline: none !important; color: var(--cc-dim, #8a8a8a); cursor: pointer; font-size: 15px; line-height: 1; padding: 0 4px; vertical-align: middle; transition: color .12s; -webkit-appearance: none; appearance: none; }
 .cc-hgear:hover { color: var(--cc-accent, #2f6feb); }
 .cc-hgear-bar { margin-right: 10px; font-size: 17px; color: var(--cc-accent, #2f6feb); }
 .cc-hgear-th { float: right; }
@@ -474,7 +474,9 @@ select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repea
    align-items:center (full-width, right-aligned). Restate it so it stays right-aligned
    even after other CSS touches it — the whole group (incl. ShipLog's "update all" button,
    which injects as the row's first flex child and relies on flex-end) sits at the RIGHT. */
-.ToggleViewMode { display: flex !important; justify-content: flex-end !important; align-items: center !important; }
+/* the whole native toggle row stays hidden from the FIRST paint — the JS collapse
+   came seconds later, so an Unraid-styled orange-bordered gear flashed top-right */
+.ToggleViewMode { display: none !important; }
 /* Vertically centre the toggle's LABEL ("Einfache/Erweiterte Ansicht") against the enlarged
    24px pill: in the real Unraid DOM the label + switch are FLOAT:left inside `.ToggleViewMode
    > span`, so we make THAT the flex line (floats are ignored in a flex box → items centre).
@@ -499,6 +501,14 @@ select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repea
    (Startverzögerung), so hide it here — label text + input share one span#<id>-wait. */
 .cc-enh #docker_list span[id$="-wait"] { display: none !important; }
 
+/* ── minimal, clean page chrome on OUR pages (this stylesheet only loads there):
+   Unraid's title bars / tab strips go flat — no background block, a thin base
+   line, spaced uppercase labels. ── */
+div.title { background: transparent !important; border-bottom: 1px solid #2f2f2f !important; box-shadow: none !important; }
+div.title span.left, div.title span.right { text-transform: uppercase; letter-spacing: 2px; font-size: 12px; }
+.tabs, #tabs { background: transparent !important; border: 0 !important; }
+.tabs .tab, #tabs .tab { background: transparent !important; border: 0 !important; text-transform: uppercase; letter-spacing: 1.5px; }
+
 /* ════════════════ SETTINGS PAGE (Settings > Utilities) ════════════════ */
 #cc-settings { --bg: #161616; --bg2: #1c1c1c; --line: #2a2a2a; --line2: #333; --txt: #e6e6e6; --dim: #9a9a9a; --dim2: #6f6f6f; color: var(--txt); font: 14px/1.5 "Segoe UI", system-ui, sans-serif; padding-bottom: 40px; }
 /* Unraid's global button CSS paints an orange border on every <button>; neutralise
@@ -512,7 +522,11 @@ select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repea
 #cc-settings .cc-seg-btn { border: 0 !important; border-radius: 6px; }
 #cc-settings .cc-set-disabled { opacity: .55; pointer-events: none; }
 .cc-set-head { display: flex; flex-direction: column; gap: 5px; padding: 6px 0 16px; border-bottom: 1px solid var(--line); margin-bottom: 20px; }
-.cc-set-brand { font-size: 21px; letter-spacing: .2px; } .cc-set-brand b { font-weight: 700; } .cc-set-brand span { font-weight: 400; color: var(--dim); }
+.cc-set-hero { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 6px; }
+.cc-set-heroleft { display: flex; align-items: center; gap: 16px; }
+.cc-set-logo { width: 64px; height: 64px; border-radius: 14px; display: block; }
+.cc-set-claim { color: var(--dim); font-size: 13px; font-style: italic; margin-top: 2px; }
+.cc-set-brand { font-size: 24px; letter-spacing: .2px; } .cc-set-brand b { font-weight: 700; } .cc-set-brand span { font-weight: 400; color: var(--dim); }
 .cc-set-sub { color: var(--dim2); font-size: 12.5px; }
 .cc-set-wrap { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
 .cc-set-card { background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }

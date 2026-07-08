@@ -1,127 +1,208 @@
-# CannonadeCommander
+<p align="center">
+  <img src="https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/.github/assets/cannonadecommander-banner.png" alt="CannonadeCommand" width="100%">
+</p>
 
-[![Build](https://github.com/junkerderprovinz/cannonadecommander/actions/workflows/build.yml/badge.svg)](https://github.com/junkerderprovinz/cannonadecommander/actions/workflows/build.yml)
-[![Lint](https://github.com/junkerderprovinz/cannonadecommander/actions/workflows/lint.yml/badge.svg)](https://github.com/junkerderprovinz/cannonadecommander/actions/workflows/lint.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+<p align="center">
+  <a href="https://github.com/junkerderprovinz/cannonadecommander/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/junkerderprovinz/cannonadecommander/build.yml?branch=main&label=Build&style=for-the-badge&logo=githubactions&logoColor=white" alt="Build" height="36"></a>&nbsp;
+  <a href="https://github.com/junkerderprovinz/cannonadecommander/actions/workflows/lint.yml"><img src="https://img.shields.io/github/actions/workflow/status/junkerderprovinz/cannonadecommander/lint.yml?branch=main&label=Lint&style=for-the-badge&logo=githubactions&logoColor=white" alt="Lint" height="36"></a>&nbsp;
+  <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-00ADD8?style=for-the-badge&logo=go&logoColor=white" alt="Go" height="36"></a>&nbsp;
+  <a href="https://unraid.net"><img src="https://img.shields.io/badge/Unraid-Plugin-f15a2c?style=for-the-badge&logo=unraid&logoColor=white" alt="Unraid Plugin" height="36"></a>&nbsp;
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge&logo=opensourceinitiative&logoColor=white" alt="License" height="36"></a>
+</p>
 
-Dependency-aware, health-gated Docker start orchestration for Unraid, right in the Docker tab.
+<br>
 
-> Working name — branding is intentionally deferred until the name is final.
+<p align="center">
+CannonadeCommand upgrades Unraid's Docker tab into a full container command post:
+dependency-aware, health-gated start orchestration, live CPU/RAM/bandwidth limits
+with built-in proof diagnostics, one-click actions, and clean, themeable badges —
+all injected right into the native page. A small Go engine does the work; nothing
+leaves your server.
+</p>
 
-Declare *"start postgres, wait until it is healthy, then start nextcloud"*, or
-*"bring up gluetun before the containers that route through it"*, then fire it in
-order. CannonadeCommander fixes the classic *"the app started before its database
-was ready"* and *"the \*arr leaked before the VPN came up"* problems that Unraid's
-blind *wait N seconds* autostart cannot express.
+<br>
 
-## Contents
+<p align="center">
+  <a href="https://buymeacoffee.com/junkerderprovinz">
+    <img src=".github/assets/button-buy-me-a-coffee.svg" alt="Buy me a coffee" width="220">
+  </a>
+</p>
 
-1. [Why](#why)
-2. [How it works](#how-it-works)
-3. [Readiness probes](#readiness-probes)
-4. [Install](#install)
-5. [Safety](#safety)
-6. [Status](#status)
-7. [Build from source](#build-from-source)
+<br>
 
-## Why
+## Table of Contents
 
-Unraid's native container autostart is a flat list plus a blind *wait N seconds*
-delay: no dependency graph, no health gate. So an app can start before its
-database is accepting connections, and a download client can start (and leak your
-real IP) before its VPN container is up. The common workaround is a hand-written
-User Scripts cron hack. CannonadeCommander does it properly, and it does it from
-the **host** because only the host can orchestrate the array-start sequence — a
-sandboxed container has a chicken-and-egg problem (it would have to start itself
-first).
+1. [What is this?](#1-what-is-this)
+2. [Features](#2-features)
+3. [Installation](#3-installation)
+4. [The Docker tab](#4-the-docker-tab)
+5. [The settings page](#5-the-settings-page)
+6. [How it works](#6-how-it-works)
+7. [Safety notes](#7-safety-notes)
+8. [Uninstall](#8-uninstall)
+9. [Development](#9-development)
+10. [License](#10-license)
+11. [Support this project](#11-support-this-project)
 
-## How it works
+<br>
 
-The pieces:
+## 1. What is this?
 
-- A **host supervisor** (a small Go daemon) that owns the dependency graph, talks
-  to the Docker socket, and serves a localhost **unix-socket API**.
-- Unraid's **own container list, enhanced in place** — no bar or panel of our own.
-  Every datum becomes a clean, consistent **material badge**: the state doubles as a
-  start/stop switch, the chain chip opens a compact per-container editor for its
-  dependencies / readiness probe / failure policy **plus its automation** (below)
-  and the **Save** / **Start in order** actions. Live **CPU / RAM** show as badges
-  (in the Simple view too). **CPU, RAM and bandwidth** stack as three limits in the
-  resource cell, each with its own gear: **CPU** (with **graphical pinning** — a
-  clickable grid of the **host's** cores from the daemon, grouped one physical core
-  per row like the VM core picker), **RAM**, and an **egress bandwidth cap** (Mbit/s,
-  applied with `tc` inside the container while it runs). CPU / RAM apply live via
-  Docker container-update, no restart. Each gear turns green when its limit is set; the
-  badges carry a small dot (**filled = a limit / custom network is set, hollow =
-  defaults**), and a **Volumes** badge lists the mounts (shown even for a stopped
-  container). CPU / RAM limits are **apply-fest**: they are also mirrored into the
-  container's Unraid template so an "Apply" doesn't drop them, and **removing** a limit
-  is one click (set to host-unlimited live + stripped from the template).
-- **Automation, per container**: **schedules** (start / stop / restart at a
-  wall-clock time on chosen weekdays), a **watchdog** (auto-restart on unhealthy or
-  a real crash — a clean/manual stop is left alone — with a per-hour cap), and
-  **notifications** (Unraid's own notifications and/or a webhook). Schedules and the
-  watchdog live in the chain-chip editor; notifications on the Settings page.
-- A **Settings page** (Settings → Utilities → CannonadeCommander): badge accent
-  colour and rainbow mode, container-icon tint (an **exact** colour set with a visual
-  picker or a hex field; optionally the VM-tab icons too), which columns show in the
-  Simple vs Advanced view, the default view + row density, the **bandwidth-shaping
-  interface** (the in-container NIC, usually `eth0`), and the **notification** settings.
-- A **same-origin PHP proxy**: the browser only ever talks to the proxy, never to
-  the Docker socket. The supervisor exposes only read + safe lifecycle + resource
-  limits — never create / exec / build.
-- **Event hooks**: on `docker_started` (the daemon is confirmed up) the supervisor
-  applies your plan, starting each stage and waiting for readiness before the next.
+Unraid's Docker tab starts containers in whatever order they come. CannonadeCommand
+replaces guesswork with a **start plan**: containers declare what they depend on,
+the engine starts them in dependency order and only releases the next stage when a
+container is actually **ready** (not merely "running"). On top of that it brings
+per-container **CPU, RAM and bandwidth limits**, a compact **actions column**, and
+a badge-based UI that shows live state at a glance — without replacing any Unraid
+page. Everything is enhanced in place.
 
-The dependency graph is topologically sorted into parallel stages; cycles and
-unknown dependencies are rejected before a plan is ever saved.
+The name says it: it shoots your commands where you need them — and that very
+nicely.
 
-## Readiness probes
+<br>
 
-Most Community-Apps images ship **no** `HEALTHCHECK`, so "ready" is more than
-Docker health:
+## 2. Features
 
-| Probe | Ready when |
-| --- | --- |
-| `health` | the image's own `HEALTHCHECK` reports healthy (falls back to *running* if there is none) |
-| `running` | the container is running, plus an optional grace period |
-| `tcp` | a TCP port accepts a connection (dialed on the container's IP) |
-| `http` | an HTTP `GET` on the container returns OK (2xx/3xx), for a chosen port + path |
-| `exec` | a command run inside the container exits `0` (like a HEALTHCHECK) |
-| `log` | a marker string appears in the container's recent log output |
+**Orchestration**
+- Start plan with dependencies ("start the app after its database"), computed
+  into parallel start stages.
+- Readiness probes per container: running (with grace), TCP port, HTTP check,
+  log-line match, or a command inside the container.
+- Failure policies per node: abort dependents, continue, or degrade.
+- Dependencies on containers **outside** the plan just work — the engine resolves
+  them implicitly, nothing is written into your plan.
+- Watchdog (auto-restart on crash or unhealthy, rate-capped per hour) and time
+  schedules (start/stop/restart at fixed times, per weekday).
 
-On failure, per container: **abort** skips everything that depends on it,
-**continue** / **degrade** start dependents anyway.
+**Resource limits**
+- Live CPU limit, CPU pinning (topology-aware, with P/E-core detection on Intel
+  hybrid CPUs) and RAM limit via Docker update — no container restart.
+- Upload limit (tbf shaper) and download limit (pure netfilter policing — never
+  a tc ingress qdisc) per container, applied inside the container's own network
+  namespace. Works for bridge, ipvlan and macvlan networks alike.
+- Built-in proof: the bandwidth editor reads the LIVE rule from the container and
+  shows either the applied state or the exact failure — a silent no-op is
+  impossible.
 
-## Install
+**UI**
+- Actions column: WebUI, log, edit, restart, pause, stop/start and a "…" menu
+  with the container's project/support/donate links — harvested from Unraid's
+  own page data.
+- Clean badges for state, network, IPs (click to copy), ports, volumes, update
+  status; live CPU/RAM/bandwidth values with their limit editors attached.
+- List view and a card (grid) view with the same controls.
+- Theming: one accent colour for everything, or rainbow mode with an editable
+  palette; icon colours toggleable; settings sync across origins (IP, hostname,
+  domain) via the engine — and they survive cleared browser data.
 
-Plugins tab → *Install Plugin*, paste:
+<br>
+
+## 3. Installation
+
+Unraid → **Plugins → Install Plugin** → paste:
 
 ```
 https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin/cannonadecommander.plg
 ```
 
-## Safety
+The plugin installs the UI pages and starts the engine (a single Go daemon
+listening on a local unix socket). Updates install the same way; the daemon is
+restarted automatically.
 
-The write-capable Docker socket is host-root-equivalent, so CannonadeCommander is
-deliberately conservative: the supervisor exposes only `list / inspect / stats /
-start / stop`, never `create / exec / build`; the API listens on a **unix socket**
-(no TCP port), and every container reference is validated against the live list
-before any action. The browser reaches the engine only through the WebGUI's
-same-origin PHP proxy.
+<br>
 
-## Status
+## 4. The Docker tab
 
-Pre-1.0. Shipping: dependency-ordered, health-gated **start** orchestration,
-read-only live state, per-container **CPU / RAM / bandwidth limits** (CPU / RAM
-mirrored into the template so they survive *apply*; egress shaped with `tc`), and the
-**automation** subsystem (schedules, watchdog, notifications).
+- Every row gets its badges, the actions column, and the resource lines
+  (CPU / RAM / BW) with a gear each. The gear is filled in your accent colour
+  when a limit is set.
+- The **plan badge** opens the per-container editor: manage-in-plan toggle,
+  dependencies, readiness probe, start delay, failure policy, watchdog and
+  schedules — one save button stores it all.
+- The **bandwidth gear** opens the up/down limit editor. After saving, the popup
+  stays open and verifies the applied rule live inside the container.
+- The gear in the table header opens the global menu: list/grid view,
+  basic/advanced view, rainbow and icon-colour toggles, filter, badge selection,
+  and the running UI + engine versions.
 
-## Build from source
+<br>
+
+## 5. The settings page
+
+**Settings → Utilities → CannonadeCommand** holds the appearance settings (accent
+colour with an embedded picker, rainbow palette, density, column defaults), the
+bandwidth interface (blank = auto-detected from the container's default route),
+notifications, and the diagnostics card with the engine's recent limit
+operations. Settings are mirrored into the engine config, so every browser and
+origin sees the same configuration.
+
+<br>
+
+## 6. How it works
+
+| Piece | What it does |
+| --- | --- |
+| `cannonadecommander` daemon (Go) | Talks to the Docker socket (list/start/stop/update only), computes start stages, runs probes, applies limits, persists plan + config on the flash |
+| Unix socket + PHP proxy | The UI talks to `/api/*` through a same-origin proxy with a strict path allowlist; writes carry Unraid's csrf token |
+| Page scripts | Enhance the native Docker tab in place (badges, actions, editors); a settings page under Utilities |
+
+The daemon exposes proof endpoints (`/api/limitlog`, `/api/bwstatus`) so the UI
+can always show what REALLY happened — values read back from Docker, live tc and
+netfilter state from the container's netns, and the monitor's last apply attempt.
+
+<br>
+
+## 7. Safety notes
+
+- **No tc ingress qdisc, ever.** Download limiting is pure netfilter policing on
+  the container's INPUT chain; the `sch_ingress` module (which can freeze some
+  Unraid kernels) is never touched — a unit test enforces that the download path
+  cannot even emit a tc command.
+- Quirk compensation is built in and CI-proven: legacy iptables (≥ 1.8.12)
+  applies byte rates as bits — detected and compensated ×8; hashlimit minimum
+  burst honoured; every build measures real throughput through the rule in a
+  live container netns.
+- Shaping is skipped for host-network / shared-netns containers (it would shape
+  the host or another container).
+- The proxy never passes raw Docker create/exec/build; only read + lifecycle
+  verbs are exposed.
+
+<br>
+
+## 8. Uninstall
+
+**Plugins → Remove**. The daemon is stopped by PID and all program files are
+removed. The start plan and config on the flash are kept, so a reinstall picks up
+where you left off; delete `/boot/config/plugins/cannonadecommander/` if you want
+a truly clean slate.
+
+<br>
+
+## 9. Development
 
 ```bash
-go test ./...                 # unit tests
-bash plugin/pkg_build.sh 0.1.0 # builds the linux binary + the .txz package
+go build ./...          # engine
+go test ./internal/...  # unit tests (incl. the qdisc-free download guard)
+bash plugin/pkg_build.sh <version>   # build the .txz package (Linux/CI)
 ```
 
-The supervisor is pure Go standard library (no external dependencies).
+CI builds the package, lints, and runs three hardware-truth proofs on every push:
+real `docker update` limit assertions against dockerd, the netfilter policing
+rule applied and verified inside a live container netns, and a real throughput
+measurement through the rule.
+
+<br>
+
+## 10. License
+
+[MIT](LICENSE) — do what you like, no warranty.
+
+<br>
+
+## 11. Support this project
+
+<p align="center">
+  <a href="https://buymeacoffee.com/junkerderprovinz">
+    <img src=".github/assets/button-buy-me-a-coffee.svg" alt="Buy me a coffee" width="220">
+  </a>
+</p>

@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.51.0">
+  <!ENTITY version   "1.0.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
@@ -30,6 +30,30 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 1.0.0
+FIRST STABLE RELEASE - consolidates every 0.x release into one.
+- New branding: the plugin is called CannonadeCommand now, with its cannon logo
+  and the claim "Shoots your commands where you need them - and that very
+  nicely." (settings hero, gear tooltips, README with a rendered banner).
+- Start-plan orchestration: dependencies with parallel start stages, readiness
+  probes (running/tcp/http/log/exec), per-node failure policies, implicit
+  dependencies on unmanaged containers (daemon-side, nothing persisted),
+  watchdog with hourly rate cap, and time schedules.
+- Live resource limits: CPU limit, topology-aware CPU pinning (Intel P/E core
+  split), RAM limit via docker update - proven against real dockerd in CI.
+- Bandwidth: upload tbf shaper plus download netfilter policing (NEVER a tc
+  ingress qdisc), ipvlan/macvlan-ready, legacy-iptables x8 compensation,
+  immediate apply on save and live proof diagnostics in the editor; CI applies
+  the rule in a real container netns and measures actual throughput.
+- Docker tab: actions column (WebUI/log/edit/restart/pause/stop + link menu),
+  clean badges with copyable IPs, card view, accent/rainbow theming with
+  cross-origin settings sync that survives cleared browser data.
+- Settings page restyle begins: hero with logo + claim, coloured card bars,
+  clean flat page chrome; the toggle row above the Docker table is gone from
+  the first paint (no more orange gear flash).
+- Roadmap: 2.0.0 = the finished plugin/settings tab; 3.0.0 = the finished VM
+  tab.
 
 ### 0.51.0
 - THE download-limit fix: the box's legacy iptables (v1.8.13) APPLIES byte
@@ -852,7 +876,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>f7a5fb35a2d4f275a5f6e25149b2b74e3ee275bd84bb44636f6073890b12bc3b</SHA256>
+  <SHA256>162d4855442053c0230077cf0119f4e19c49eafa0853653fa77ea2c149d30f41</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

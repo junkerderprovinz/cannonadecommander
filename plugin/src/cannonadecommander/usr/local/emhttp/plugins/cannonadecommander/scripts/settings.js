@@ -148,7 +148,19 @@
   function withConfigLock(fn) { var p = cfgChain.then(fn, fn); cfgChain = p.catch(function () {}); return p; }
 
   function el(tag, cls, txt) { var n = document.createElement(tag); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; }
-  function card(title, sub) { var c = el("div", "cc-set-card"); c.appendChild(el("div", "cc-set-h", title)); if (sub) c.appendChild(el("div", "cc-set-sub", sub)); return c; }
+  var cardN = 0;
+  function card(title, sub) {
+    var c = el("div", "cc-set-card");
+    // coloured top bar per card: the accent normally, the rotating palette in rainbow mode
+    var bar = "var(--cc-accent, #2f6feb)";
+    if (localStorage.getItem("cc.rainbow") === "1") {
+      var pal = ["#d9433f", "#f97316", "#eab308", "#1f9d55", "#0ea5a4", "#2f6feb", "#8b5cf6", "#e05299"];
+      try { var jp = JSON.parse(localStorage.getItem("cc.rbpal") || "null"); if (jp && jp.length) pal = jp; } catch (e9) {}
+      bar = pal[cardN++ % pal.length];
+    }
+    c.style.setProperty("border-top", "3px solid " + bar, "important");
+    c.appendChild(el("div", "cc-set-h", title)); if (sub) c.appendChild(el("div", "cc-set-sub", sub)); return c;
+  }
   function elk(t) { var s = el("span", "cc-b-k"); s.textContent = t; return s; }
   function elv(t) { var s = el("span", "cc-b-v"); s.textContent = t; return s; }
   // normalise a typed hex ("2f6feb" / "#2F6FEB") to "#rrggbb", or "" if invalid.
@@ -177,8 +189,17 @@
     root.style.setProperty("--cc-accent-text", idealText(accent));
 
     var head = el("div", "cc-set-head");
-    var brand = el("div", "cc-set-brand"); brand.appendChild(el("b", null, "Cannonade")); brand.appendChild(el("span", null, "Commander"));
-    head.appendChild(brand);
+    var hero = el("div", "cc-set-hero");
+    var hleft = el("div", "cc-set-heroleft");
+    var lg = el("img", "cc-set-logo"); lg.src = "/plugins/cannonadecommander/images/logo.svg"; lg.alt = "";
+    hleft.appendChild(lg);
+    var htx = el("div", null);
+    var brand = el("div", "cc-set-brand"); brand.appendChild(el("b", null, "Cannonade")); brand.appendChild(el("span", null, "Command"));
+    htx.appendChild(brand);
+    htx.appendChild(el("div", "cc-set-claim", "Shoots your commands where you need them — and that very nicely."));
+    hleft.appendChild(htx);
+    hero.appendChild(hleft);
+    head.appendChild(hero);
     head.appendChild(el("div", "cc-set-sub", T("Aussehen des Docker-Tab-Panels — wirkt sofort im Docker-Tab (pro Browser gespeichert).", "Look of the Docker-tab panel — applies live in the Docker tab (per browser).")));
     // The RUNNING engine version, always findable HERE (the Docker-tab gear was hard to
     // locate) — an old value after an update = the update didn't take / daemon not restarted.

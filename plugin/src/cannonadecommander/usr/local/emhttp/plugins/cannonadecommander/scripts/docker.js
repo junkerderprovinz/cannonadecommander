@@ -924,7 +924,7 @@
   }
 
   // ───────────────────────── gear + menu (the only global control surface)
-  function makeGear(extra) { var g = el("button", "cc-hgear" + (extra ? " " + extra : "") + (daemonUp === false ? " cc-hgear-down" : ""), "⚙"); g.type = "button"; g.title = daemonUp === false ? "CannonadeCommander — daemon not reachable" : "CannonadeCommander"; g.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); toggleMenu(g); }); return g; }
+  function makeGear(extra) { var g = el("button", "cc-hgear" + (extra ? " " + extra : "") + (daemonUp === false ? " cc-hgear-down" : ""), "⚙"); g.type = "button"; g.title = daemonUp === false ? "CannonadeCommand — daemon not reachable" : "CannonadeCommand"; g.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); toggleMenu(g); }); return g; }
   function injectHeaderGear() {
     try {
       // Global idempotency: never place a second list-mode gear once one exists.
@@ -1410,7 +1410,7 @@
   // only way to diagnose a set/remove failure once a stale install is ruled out. Also logs it.
   function popError(e) {
     var m = (e && e.message) ? e.message : String(e);
-    try { console.error("CannonadeCommander:", e); } catch (_) {}
+    try { console.error("CannonadeCommand:", e); } catch (_) {}
     var p = openPop; if (!p) { flash("Error: " + m, true); return; }
     var box = p.querySelector(".cc-pop-err");
     if (!box) { box = el("div", "cc-pop-err"); var foot = p.querySelector(".cc-pop-foot"); if (foot && foot.nextSibling) p.insertBefore(box, foot.nextSibling); else p.appendChild(box); }

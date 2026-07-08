@@ -111,7 +111,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>dda4f0568b52d8c8cc0d9d9de173fb9c5cb0b43767a56a6761e41550a43e89b4</SHA256>
+  <SHA256>1a352b108ccd2d6bdd201f370598ed9aae158094bce535840d6fb07a750c5514</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

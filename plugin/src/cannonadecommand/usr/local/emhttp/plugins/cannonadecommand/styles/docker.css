@@ -573,6 +573,12 @@ div.title span.left, div.title span.right { text-transform: uppercase; letter-sp
    with their knobs, segment buttons, and every tab pill */
 .cc-actbtn, .cc-seg-btn, .cc-set-tab, nav.tabs .tabs-container > button[role=tab] { border-radius: var(--cc-b-radius, 999px) !important; }
 .cc-set-toggle, .cc-set-knob, .cc-advmini, .cc-advmini-knob { border-radius: var(--cc-b-radius, 999px) !important; }
+/* the remaining badge-shaped elements: the NATIVE update-column badges (up to
+   date / force / changelog / tag / apply pill), the limit gears, the scheduler
+   day chips and the popup buttons */
+.cc-enh td.updatecolumn span.green-text, .cc-enh td.updatecolumn span.orange-text,
+.cc-enh td.updatecolumn a.exec, .cc-enh td.updatecolumn div.advanced span,
+.cc-limbtn, .cc-day, .cc-btn { border-radius: var(--cc-b-radius, 999px) !important; }
 
 /* ════════════════ SETTINGS PAGE (Settings > Utilities) ════════════════ */
 #cc-settings { --bg: #161616; --bg2: #1c1c1c; --line: #2a2a2a; --line2: #333; --txt: #e6e6e6; --dim: #9a9a9a; --dim2: #6f6f6f; color: var(--txt); font: 14px/1.5 "Segoe UI", system-ui, sans-serif; padding-bottom: 40px; }

@@ -2,3 +2,4 @@
 plugin/out/
 # the engine binary is built into the package tree at package time
 plugin/src/cannonadecommand/usr/local/emhttp/plugins/cannonadecommand/bin/
+plugin/src/cannonadecommand/usr/local/emhttp/plugins/cannonadecommand/bin/

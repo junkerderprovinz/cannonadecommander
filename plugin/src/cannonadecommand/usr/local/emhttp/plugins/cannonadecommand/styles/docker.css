@@ -512,9 +512,9 @@ select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repea
 nav.tabs { background: transparent !important; border: none !important; box-shadow: none !important; }
 nav.tabs .tabs-container > button[role=tab] {
   background: #2a2a2a !important; color: #b5b5b5 !important; border: none !important;
-  box-shadow: none !important; border-radius: 999px !important; padding: 4px 14px !important;
-  text-transform: uppercase !important; letter-spacing: 1.5px !important; font-size: 12px !important;
-  font-weight: 600 !important; cursor: pointer; margin-right: 6px;
+  box-shadow: none !important; border-radius: 999px !important; padding: 8px 20px !important;
+  text-transform: uppercase !important; letter-spacing: 1.5px !important; font-size: 13px !important;
+  font-weight: 600 !important; cursor: pointer; margin-right: 8px;
 }
 nav.tabs .tabs-container > button[role=tab][aria-selected="true"] {
   background: var(--cc-accent, #2f6feb) !important; color: var(--cc-accent-text, #fff) !important;
@@ -586,7 +586,7 @@ div.title span.left, div.title span.right { text-transform: uppercase; letter-sp
 .cc-set-claim { color: var(--dim); font-size: 13px; font-style: italic; margin-top: 2px; }
 .cc-set-version { margin-left: auto; text-align: right; align-self: center; }
 .cc-set-tabs { display: flex; gap: 8px; margin: 0 0 18px; }
-.cc-set-tab { background: #2a2a2a !important; border: none !important; box-shadow: none !important; color: #b5b5b5 !important; cursor: pointer; padding: 4px 14px !important; font-size: 12px !important; font-weight: 600 !important; text-transform: uppercase !important; letter-spacing: 1.5px !important; border-radius: 999px !important; font-family: inherit !important; } /* typography FORCED — Unraid's button CSS overrode it */
+.cc-set-tab { background: #2a2a2a !important; border: none !important; box-shadow: none !important; color: #b5b5b5 !important; cursor: pointer; padding: 8px 20px !important; font-size: 13px !important; font-weight: 600 !important; text-transform: uppercase !important; letter-spacing: 1.5px !important; border-radius: 999px !important; font-family: inherit !important; } /* typography FORCED — Unraid's button CSS overrode it */
 .cc-set-tab-on { background: var(--cc-accent, #2f6feb) !important; color: var(--cc-accent-text, #fff) !important; }
 .cc-set-brand { font-size: 24px; letter-spacing: .2px; } .cc-set-brand b { font-weight: 700; } .cc-set-brand span { font-weight: 400; color: var(--dim); }
 .cc-set-sub { color: var(--dim2); font-size: 12.5px; }

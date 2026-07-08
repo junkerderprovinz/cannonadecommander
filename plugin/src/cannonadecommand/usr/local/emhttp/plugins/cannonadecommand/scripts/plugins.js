@@ -291,7 +291,17 @@
       });
       // the Check/Update/Remove buttons in the tab bar become accent pills
       Array.prototype.slice.call(document.querySelectorAll("#checkall input, #updateall input, #removeall input")).forEach(function (b2, i2) {
-        if (!b2.getAttribute(MARK)) { pill(b2, colorFor(i2 + 6)); b2.style.setProperty("cursor", "pointer", "important"); b2.setAttribute(MARK, "1"); }
+        if (!b2.getAttribute(MARK)) {
+          pill(b2, colorFor(i2 + 6));
+          // SAME metrics as the tab pills (user call)
+          b2.style.setProperty("padding", "8px 20px", "important");
+          b2.style.setProperty("font-size", "13px", "important");
+          b2.style.setProperty("font-weight", "600", "important");
+          b2.style.setProperty("text-transform", "uppercase", "important");
+          b2.style.setProperty("letter-spacing", "1.5px", "important");
+          b2.style.setProperty("cursor", "pointer", "important");
+          b2.setAttribute(MARK, "1");
+        }
       });
     } catch (e) {}
   }

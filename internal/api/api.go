@@ -14,11 +14,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/junkerderprovinz/cannonadecommander/internal/hostcpu"
-	"github.com/junkerderprovinz/cannonadecommander/internal/model"
-	"github.com/junkerderprovinz/cannonadecommander/internal/netshape"
-	"github.com/junkerderprovinz/cannonadecommander/internal/orchestrator"
-	"github.com/junkerderprovinz/cannonadecommander/internal/unraidtmpl"
+	"github.com/junkerderprovinz/cannonadecommand/internal/hostcpu"
+	"github.com/junkerderprovinz/cannonadecommand/internal/model"
+	"github.com/junkerderprovinz/cannonadecommand/internal/netshape"
+	"github.com/junkerderprovinz/cannonadecommand/internal/orchestrator"
+	"github.com/junkerderprovinz/cannonadecommand/internal/unraidtmpl"
 )
 
 // Docker is the read + lifecycle surface the card panel needs. It stays small on

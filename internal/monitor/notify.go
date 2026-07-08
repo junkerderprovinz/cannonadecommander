@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/junkerderprovinz/cannonadecommander/internal/model"
+	"github.com/junkerderprovinz/cannonadecommand/internal/model"
 )
 
 // unraidNotify is Unraid's own notification agent.
@@ -22,7 +22,7 @@ type SysNotifier struct{ HTTP *http.Client }
 func (s SysNotifier) Notify(ctx context.Context, cfg model.Notify, subject, desc, importance string) {
 	if cfg.Unraid {
 		_ = exec.CommandContext(ctx, unraidNotify,
-			"-e", "CannonadeCommander", "-s", subject, "-d", desc, "-i", importance).Run()
+			"-e", "CannonadeCommand", "-s", subject, "-d", desc, "-i", importance).Run()
 	}
 	if cfg.Webhook != "" {
 		body, _ := json.Marshal(map[string]string{

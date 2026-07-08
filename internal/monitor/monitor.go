@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/junkerderprovinz/cannonadecommander/internal/model"
+	"github.com/junkerderprovinz/cannonadecommand/internal/model"
 )
 
 // Docker is the small lifecycle surface the monitor needs (read + safe verbs).

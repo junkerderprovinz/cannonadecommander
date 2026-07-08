@@ -1,0 +1,4 @@
+#!/bin/bash
+# Array started: bring up the supervisor (its config lives on the flash, which is
+# already mounted, so this is safe pre-array too).
+/usr/local/emhttp/plugins/cannonadecommand/scripts/rc.cannonadecommand start

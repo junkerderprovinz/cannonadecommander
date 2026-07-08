@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/junkerderprovinz/cannonadecommander/internal/model"
+	"github.com/junkerderprovinz/cannonadecommand/internal/model"
 )
 
 func testServer(t *testing.T) (*Client, *httptest.Server) {

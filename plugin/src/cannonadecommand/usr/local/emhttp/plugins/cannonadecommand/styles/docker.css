@@ -1,0 +1,598 @@
+/* CannonadeCommand - enhances Unraid's native Docker list in place.
+ *
+ * ONE consistent badge system: every datum is a borderless material pill of the
+ * same shape/size. Info badges use a solid accent background (chosen in Settings)
+ * with light text; state/update/changelog badges keep a meaningful colour. The
+ * accent + row density are CSS variables set from the Settings page (localStorage).
+ * Native elements stay live (nchan CPU/RAM), clickable and sortable; on uninstall
+ * the stylesheet is removed and everything reappears. */
+
+:root { --cc-accent: #2f6feb; --cc-density: 9px; }
+
+/* hide Unraid's native "Docker Containers" section-title bar (a div.title emitted by
+   the tabless page layout). Scoped with :has(#docker_containers) so it fires ONLY on
+   the Docker page — this stylesheet also loads on the Settings page, whose own title
+   bar must stay. On uninstall the stylesheet is gone, so the bar returns. */
+#displaybox > .content:has(#docker_containers) > div.title { display: none !important; }
+.cc-root, .cc-grid-holder {
+  --cc-bg: #161616; --cc-bg2: #1e1e1e; --cc-bg3: #262626; --cc-line: #2a2a2a;
+  --cc-txt: #e6e6e6; --cc-dim: #8a8a8a;
+  color: var(--cc-txt); font: 13px/1.45 "Segoe UI", system-ui, sans-serif;
+}
+.cc-grid-holder { position: relative; margin: 6px 0 14px; }
+
+/* gear — small icon that lives in Unraid's Advanced/Basic toggle bar (moved there) */
+.cc-hgear { background: transparent !important; border: none !important; box-shadow: none !important; outline: none !important; color: var(--cc-dim, #8a8a8a); cursor: pointer; font-size: 15px; line-height: 1; padding: 0 4px; vertical-align: middle; transition: color .12s; -webkit-appearance: none; appearance: none; }
+.cc-hgear:hover { color: var(--cc-accent, #2f6feb); }
+.cc-hgear-bar { margin-right: 10px; font-size: 17px; color: var(--cc-accent, #2f6feb); }
+.cc-hgear-th { float: right; }
+.cc-hgear-float { position: absolute; top: 4px; right: 8px; z-index: 20; }
+/* the grid gear is a tile within the card grid, not a floating button */
+.cc-gear-tile { display: flex; align-items: center; justify-content: center; min-height: 90px; border: 1px dashed #333; background: transparent; }
+.cc-gear-tile .cc-hgear { position: static; font-size: 18px; }
+/* daemon unreachable → a permanent red gear (CPU/RAM/BW can't work without the daemon) */
+.cc-hgear-down { color: #d9534f !important; }
+.cc-hgear-down:hover { color: #e5484d !important; }
+.cc-ok-text { color: #52c17a; }
+.cc-bad-text { color: #d9534f; }
+.cc-hidden { display: none !important; }
+
+/* ════════════════ NATIVE ROW → ONE CONSISTENT MATERIAL BADGE SET ════════════════ */
+
+/* NAME cell (col 1): a BIGGER logo, the name vertically centred beside it, column
+   ~1/4 narrower. Under the name: the start/stop badge, then ID + Von beneath it. */
+.cc-enh #docker_list tr.sortable td.ct-name { width: 225px !important; vertical-align: middle; }
+.cc-enh #docker_list tr.sortable td.ct-name .outer { display: flex; align-items: center; gap: 12px; }
+.cc-enh #docker_list tr.sortable td.ct-name .outer > span.hand { flex: none; display: flex; align-items: center; }
+/* object-fit:contain so a NON-square logo keeps its aspect ratio instead of being squashed
+   into the 48x48 box ("verzogene Icons"); the glyph <i> keeps font-size, not object-fit. */
+.cc-enh #docker_list tr.sortable td.ct-name .outer > span.hand img { width: 62px !important; height: 62px !important; object-fit: contain !important; }
+.cc-enh #docker_list tr.sortable td.ct-name .outer > span.hand i.img { width: 62px !important; height: 62px !important; font-size: 62px !important; }
+.cc-enh #docker_list tr.sortable td.ct-name .inner { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; line-height: 1.2; min-width: 0; }
+.cc-enh #docker_list tr.sortable td.ct-name .inner br { display: none; }
+.cc-enh #docker_list tr.sortable td.ct-name .inner > i[id^='load-'],
+.cc-enh #docker_list tr.sortable td.ct-name .inner > span.state { display: none !important; }
+.cc-enh #docker_list tr.sortable td.ct-name .appname { font-size: 15px !important; font-weight: 600 !important; letter-spacing: .1px; }
+.cc-enh #docker_list tr.sortable > td { padding-top: var(--cc-density) !important; padding-bottom: var(--cc-density) !important; }
+/* Row density: the row height is mostly the BADGE content, so the --cc-density td padding
+   alone was barely visible ("does nothing"). compact/airy also tighten/loosen the badge
+   groups + name meta so the density is actually felt. */
+.cc-enh.cc-dens-compact .cc-rowbadges { gap: 3px; margin-top: 2px; }
+.cc-enh.cc-dens-compact .cc-namemeta, .cc-enh.cc-dens-compact .cc-resgroup, .cc-enh.cc-dens-compact .cc-netgroup { gap: 3px; }
+.cc-enh.cc-dens-compact .cc-b { margin-top: 1px; margin-bottom: 1px; padding-top: 2px; padding-bottom: 2px; }
+.cc-enh.cc-dens-compact #docker_list td.ct-name .img, .cc-enh.cc-dens-compact #docker_list td.ct-name img { max-height: 44px; object-fit: contain; }
+.cc-enh.cc-dens-airy .cc-rowbadges { gap: 8px; margin-top: 6px; }
+.cc-enh.cc-dens-airy .cc-namemeta, .cc-enh.cc-dens-airy .cc-resgroup, .cc-enh.cc-dens-airy .cc-netgroup { gap: 8px; }
+
+/* consolidated network column: hide the separate native IP / Port / LAN columns */
+.cc-enh.cc-c-net thead tr:last-child th:nth-child(5), .cc-enh.cc-c-net #docker_list tr.sortable > td:nth-child(5),
+.cc-enh.cc-c-net thead tr:last-child th:nth-child(6), .cc-enh.cc-c-net #docker_list tr.sortable > td:nth-child(6),
+.cc-enh.cc-c-net thead tr:last-child th:nth-child(7), .cc-enh.cc-c-net #docker_list tr.sortable > td:nth-child(7) { display: none !important; }
+/* NARROW version + network columns → more room for volumes (actions col = position 2) */
+.cc-enh thead tr:last-child th:nth-child(3) { width: 165px; }
+.cc-enh #docker_list tr.sortable > td:nth-child(3) { max-width: 165px; }
+.cc-enh thead tr:last-child th:nth-child(4) { width: 185px; }
+.cc-enh #docker_list tr.sortable > td:nth-child(4) { max-width: 185px; }
+
+/* volumes (col 7): NARROW column; long paths scroll as a marquee on mouseover */
+.cc-enh thead tr:last-child th:nth-child(8) { width: 260px; }
+.cc-enh #docker_list tr.sortable > td:nth-child(8) { max-width: 260px; }
+.cc-enh #docker_list tr.sortable > td:nth-child(8) span.docker_readmore { display: block; max-width: 260px; max-height: 6.4em; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.cc-enh #docker_list tr.sortable > td:nth-child(8):hover span.docker_readmore { text-overflow: clip; animation: cc-marquee 9s linear infinite; }
+@keyframes cc-marquee { 0%, 8% { text-indent: 0; } 92%, 100% { text-indent: -105%; } }
+
+/* ACTIONS column: icon buttons, name as tooltip; "…" opens the native menu */
+.cc-actcell { white-space: nowrap; }
+.cc-act-th { font-size: 11px; }
+.cc-actbar { display: flex; flex-direction: column; gap: 4px; }
+/* the ACTIONS column only needs its two icon rows — 4×27px + gaps */
+.cc-enh thead tr:last-child th:nth-child(2) { width: 122px; }
+.cc-enh #docker_list tr.sortable > td:nth-child(2) { max-width: 122px; }
+.cc-actbtn i.fa { font-size: 13px; line-height: 1; color: inherit !important; } /* theme CSS colours .fa directly */
+/* gear inside the header strip (last th) — absolute overlays got clipped */
+.cc-hgear-th2 { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); }
+/* card view: the same action block the list rows carry */
+.cc-card-actbar { padding: 6px 12px 0 12px; }
+/* ShipLog's update-all pill is redundant here — Unraid's own Update-All button
+   sits below the table. Hidden only while CannonadeCommand is installed. */
+a.sl-updall { display: none !important; }
+.cc-actrow { display: flex; gap: 4px; } /* row 1: webui/console/edit — row 2: restart/pause/stop/more */
+.cc-actoff { opacity: .35; cursor: default; }
+.cc-actoff:hover { background: #2e2e2e; color: #c9c9c9; }
+/* copyable IP badges react on hover like the plan chip */
+.cc-b-copy { cursor: pointer; transition: filter .12s, transform .12s; }
+.cc-b-copy:hover { filter: brightness(1.18); transform: translateY(-1px); }
+.cc-actmore { display: none; margin-top: 4px; }
+.cc-actmore.cc-open { display: flex; flex-wrap: wrap; }
+.cc-act-flash .cc-actbtn { animation: cc-actflash .5s ease 3; }
+@keyframes cc-actflash { 0%, 100% { box-shadow: none; } 50% { box-shadow: 0 0 0 3px var(--cc-btn-accent, var(--cc-accent, #2f6feb)); } }
+.cc-actbtn { width: 27px; height: 26px; border-radius: 6px; background: #2e2e2e; color: #c9c9c9; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 13px; user-select: none; transition: background .12s, color .12s; }
+.cc-actbtn:hover { background: var(--cc-btn-accent, var(--cc-accent, #2f6feb)); color: var(--cc-accent-text, #fff); }
+
+/* Betriebszeit (col 10): advanced-view only */
+.cc-enh:not(.cc-adv) thead tr:last-child th:nth-child(11),
+.cc-enh:not(.cc-adv) #docker_list tr.sortable > td:nth-child(11) { display: none !important; }
+
+/* the ONE badge shape (padding/radius/font) shared by every pill, native + ours */
+.cc-b,
+.cc-enh #docker_list tr.sortable td.updatecolumn > span.green-text,
+.cc-enh #docker_list tr.sortable td.updatecolumn span.orange-text,
+.cc-enh #docker_list tr.sortable td.updatecolumn a.exec,
+.cc-enh #docker_list tr.sortable td.updatecolumn > div.advanced:last-of-type,
+.cc-enh #docker_list tr.sortable td.updatecolumn .sl-chip,
+.cc-enh #docker_list tr.sortable td.advanced span[class^='cpu-'],
+.cc-enh #docker_list tr.sortable td.advanced span[class^='mem-'],
+.cc-badge, .cc-pill {
+  display: inline-flex; align-items: center; gap: 5px; border: none !important;
+  border-radius: 999px; padding: 3px 11px; margin: 2px 4px 2px 0; font-size: 11px;
+  font-weight: 600; line-height: 1.35; white-space: nowrap; text-decoration: none; vertical-align: middle;
+}
+/* info badges (network/IP/LAN/port/CPU/RAM/ID/Von/image tag): SOLID accent, light text */
+.cc-b,
+.cc-enh.cc-c-res #docker_list tr.sortable td.advanced span[class^='cpu-'],
+.cc-enh.cc-c-res #docker_list tr.sortable td.advanced span[class^='mem-'] {
+  background: var(--cc-accent, #2f6feb); color: var(--cc-accent-text, #fff);
+}
+.cc-b-k { opacity: .72; font-weight: 500; }
+.cc-b-v { font-family: Consolas, "SFMono-Regular", monospace; }
+.cc-b-von .cc-b-v { font-family: inherit; }
+/* "is a value configured here?" dot on a badge: filled green = set, hollow = default */
+.cc-cfg { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-left: 6px; vertical-align: middle; box-sizing: border-box; }
+.cc-cfg-on { background: #35d07f; box-shadow: 0 0 0 1px rgba(0, 0, 0, .28); }
+.cc-cfg-off { background: transparent; border: 1px solid currentColor; opacity: .5; }
+.cc-enh.cc-c-res #docker_list tr.sortable td.advanced span[class^='cpu-']::before { content: "CPU"; opacity: .72; font-weight: 500; margin-right: 4px; }
+.cc-enh.cc-c-res #docker_list tr.sortable td.advanced span[class^='mem-']::before { content: "RAM"; opacity: .72; font-weight: 500; margin-right: 4px; }
+.cc-enh.cc-c-res #docker_list tr.sortable td.advanced { white-space: normal; }
+.cc-enh.cc-c-res #docker_list tr.sortable td.advanced .usage-disk { display: none; }
+.cc-enh.cc-c-ip #docker_list tr.sortable > td:nth-child(5) span.docker_readmore span.advanced { display: none !important; }
+
+/* update status keeps meaning: up-to-date = green, update-ready = amber, force = accent */
+.cc-enh.cc-c-update #docker_list tr.sortable td.updatecolumn > span.green-text { background: #1f9d55; color: #fff !important; }
+.cc-enh.cc-c-update #docker_list tr.sortable td.updatecolumn span.orange-text { background: #e0912a; color: #1a1a1a !important; }
+.cc-enh.cc-c-force  #docker_list tr.sortable td.updatecolumn a.exec { background: var(--cc-accent, #2f6feb); color: var(--cc-accent-text, #fff) !important; }
+.cc-enh.cc-c-force  #docker_list tr.sortable td.updatecolumn a.exec:hover { filter: brightness(1.12); }
+.cc-enh #docker_list tr.sortable td.updatecolumn i { color: inherit !important; }
+
+/* the column toggle must HIDE the datum, not just drop its colour: when a
+   CSS-restyled native column is off for the current view, hide it outright.
+   (Also keeps advanced-only pills out of the Simple view, since their class is
+   absent there — no reliance on how Unraid hides .advanced.) */
+.cc-enh:not(.cc-c-update)  #docker_list tr.sortable td.updatecolumn > span.green-text,
+.cc-enh:not(.cc-c-update)  #docker_list tr.sortable td.updatecolumn span.orange-text,
+.cc-enh:not(.cc-c-force)   #docker_list tr.sortable td.updatecolumn div.advanced a.exec,
+.cc-enh:not(.cc-c-res)     #docker_list tr.sortable td.advanced span[class^='cpu-'],
+.cc-enh:not(.cc-c-res)     #docker_list tr.sortable td.advanced span[class^='mem-'] { display: none !important; }
+/* The APPLY-UPDATE action ("Aktualisierung anwenden", an a.exec wrapping span.orange-text)
+   must NEVER be hidden: the force-update toggle above only scopes to the advanced block's
+   force link now, and this override keeps the apply link + its "update ready" text visible
+   even with the update-status column off — an actionable button may not vanish. */
+.cc-enh #docker_list tr.sortable td.updatecolumn a.exec:has(span.orange-text) { display: inline-flex !important; background: #e0912a; color: #1a1a1a !important; }
+.cc-enh #docker_list tr.sortable td.updatecolumn a.exec:has(span.orange-text):hover { filter: brightness(1.1); }
+.cc-enh #docker_list tr.sortable td.updatecolumn a.exec > span.orange-text { display: inline !important; background: transparent !important; color: inherit !important; padding: 0; margin: 0; }
+
+/* ShipLog "Changelog" chip → a solid badge coloured by its risk dot */
+.cc-enh #docker_list tr.sortable td.updatecolumn .sl-chip { color: #fff !important; background: #4a4a4a; }
+.cc-enh #docker_list tr.sortable td.updatecolumn .sl-chip:has(.sl-low)  { background: #1f9d55; }
+.cc-enh #docker_list tr.sortable td.updatecolumn .sl-chip:has(.sl-mid)  { background: #e0912a; color: #1a1a1a !important; }
+.cc-enh #docker_list tr.sortable td.updatecolumn .sl-chip:has(.sl-high) { background: #d9433f; }
+.cc-enh #docker_list tr.sortable td.updatecolumn .sl-chip .sl-amp { display: none; }
+.cc-enh #docker_list tr.sortable td.updatecolumn .sl-chip .sl-ico { opacity: .85; }
+
+/* injected per-row holders */
+.cc-namemeta { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+.cc-namemeta-ids { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; } /* ALL badges stacked (ID, Volumes, … one under the other) */
+.cc-rowbadges { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.cc-netgroup { flex-direction: column; align-items: flex-start; }
+/* CPU, RAM and Bandwidth stacked one under the other, each on its own line */
+.cc-resgroup { flex-direction: column; align-items: flex-start; gap: 5px; }
+.cc-resline { display: inline-flex; align-items: center; gap: 5px; }
+#docker_list td.updatecolumn .cc-rowbadges { margin-top: 4px; }
+.cc-planholder { margin-top: 5px; } /* same gap as between the CPU and RAM badges (resgroup gap) */
+
+/* CPU/RAM limits editor button on the resource cell */
+.cc-limbtn { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 999px; background: #3a3a3a; color: #ececec; cursor: pointer; font-size: 12px; margin: 2px 0; } /* FILLED — the ghost look was easy to miss */
+.cc-limbtn:hover { background: var(--cc-accent, #2f6feb); color: #fff; }
+/* the gear is tinted green when a CPU/RAM limit IS configured (matches the "set" dot) */
+.cc-limbtn-set { color: #10321f; background: #35d07f; } /* filled green when a limit is configured */
+
+/* plan chip = one tappable Startplan badge (accent) */
+.cc-plan { cursor: pointer; background: var(--cc-accent, #2f6feb); color: var(--cc-accent-text, #fff); }
+.cc-plan:hover { filter: brightness(1.12); }
+/* badges are <a>/<span> chips — never show Unraid's global a:hover underline (the Startplan
+   chip must react like the "läuft" badge: colour only, no line). */
+.cc-b, .cc-b:hover, .cc-b:focus, .cc-plan, .cc-plan:hover, .cc-plan:focus { text-decoration: none !important; }
+.cc-plan-on { box-shadow: 0 0 0 2px rgba(255,255,255,.25) inset; }
+
+/* state badges (semantic solid, start/stop switch) */
+.cc-badge-running    { background: #1f9d55; color: #fff; }
+.cc-badge-exited     { background: #3c3c3c; color: #cfcfcf; }
+.cc-badge-created    { background: #3c3c3c; color: #cfcfcf; } /* reads as "stopped" — same grey as exited */
+.cc-badge-paused     { background: #e0912a; color: #1a1a1a; }
+.cc-badge-restarting { background: #e0912a; color: #1a1a1a; }
+.cc-badge-removing   { background: #e0912a; color: #1a1a1a; }
+.cc-badge-dead       { background: #d9433f; color: #fff; }
+.cc-badge-unknown    { background: #4a4a4a; color: #dcdcdc; }
+.cc-badge-alert      { background: #d9433f; color: #fff; }
+/* optimistic in-transition state (shown the moment stop/restart is clicked, until reload) */
+.cc-badge-transient  { background: #8a6d1f; color: #ffe6a8; animation: cc-badge-pulse 1s ease-in-out infinite; }
+@keyframes cc-badge-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+.cc-badge-toggle { cursor: pointer; user-select: none; transition: filter .12s, box-shadow .12s; }
+.cc-badge-toggle:hover { filter: brightness(1.13); box-shadow: 0 0 0 2px rgba(255,255,255,.22) inset; }
+
+/* last-run pill */
+.cc-pill-ready { background: #1f7a45; color: #dff5e8; }
+.cc-pill-degraded { background: #7a5a1e; color: #ffe6b3; }
+.cc-pill-failed { background: #7a2a28; color: #ffd9d7; }
+.cc-pill-skipped { background: #3a3a3a; color: #c8c8c8; }
+
+/* ════════════════ GRID mode + gear menu + toast + editor ════════════════ */
+.cc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 12px; padding-top: 30px; } /* room for the grid gear pinned top-right */
+.cc-card { background: var(--cc-bg2); border: 1px solid var(--cc-line); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; transition: border-color .12s, transform .12s, box-shadow .12s; }
+.cc-card:hover { border-color: #3a3a3a; transform: translateY(-1px); box-shadow: 0 8px 22px rgba(0,0,0,.35); }
+.cc-card-head { display: flex; align-items: center; gap: 10px; }
+.cc-card-ico { width: 44px; height: 44px; border-radius: 7px; object-fit: contain; background: var(--cc-bg3); flex: none; }
+.cc-card-ico-ph { background: var(--cc-bg3); }
+.cc-card-name { flex: 1; min-width: 0; }
+.cc-card-title { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cc-card-img { color: var(--cc-dim); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cc-card-stats { display: flex; flex-direction: column; gap: 6px; }
+.cc-stat { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+.cc-stat-lbl { color: var(--cc-dim); width: 30px; flex: none; }
+.cc-stat-val { color: var(--cc-dim); margin-left: auto; white-space: nowrap; }
+.cc-gauge { flex: 1; height: 6px; background: var(--cc-bg3); border-radius: 999px; overflow: hidden; }
+.cc-gauge-fill { height: 100%; background: #1f9d55; border-radius: 999px; transition: width .4s; }
+.cc-gauge-fill.cc-hot { background: #d9433f; }
+.cc-dim { color: var(--cc-dim); }
+.cc-card-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.cc-card-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+/* the CPU/RAM/BW limit gears on a GRID card — a full-width stacked group with a hairline
+   separator, so the three limit editors sit together at the bottom of the card. */
+.cc-card-res { display: flex !important; width: 100%; border-top: 1px solid var(--cc-line); padding-top: 8px; margin-top: 2px; }
+.cc-life { display: inline-flex; gap: 6px; }
+.cc-abtn { background: var(--cc-bg3); color: var(--cc-txt); border: 1px solid var(--cc-line); border-radius: 5px; padding: 4px 10px; font-size: 12px; cursor: pointer; transition: background .12s; }
+.cc-abtn:hover { background: #333; }
+.cc-abtn-primary { color: #52c17a; border-color: rgba(63,174,106,.4); }
+
+.cc-filter { background: var(--cc-bg2); color: var(--cc-txt); border: 1px solid var(--cc-line); border-radius: 6px; padding: 5px 10px; font-size: 12px; }
+.cc-btn { background: transparent; color: var(--cc-accent); border: 1px solid var(--cc-accent); border-radius: 5px; padding: 5px 12px; font-size: 12px; cursor: pointer; transition: background .12s, color .12s; }
+.cc-btn:hover { background: var(--cc-accent); color: #fff; }
+.cc-btn-primary { font-weight: 600; }
+.cc-seg { display: inline-flex; border: 1px solid var(--cc-line); border-radius: 6px; overflow: hidden; }
+.cc-seg-btn { background: var(--cc-bg2); color: var(--cc-dim); border: none; padding: 5px 14px; font-size: 12px; cursor: pointer; }
+.cc-seg-btn:hover { color: var(--cc-txt); }
+.cc-seg-btn.cc-seg-on { background: var(--cc-accent); color: var(--cc-accent-text, #fff); font-weight: 600; }
+
+.cc-menu { position: absolute; z-index: 99999; min-width: 190px; background: var(--cc-bg, #161616); border: 1px solid #525252; border-radius: 8px; box-shadow: 0 14px 40px rgba(0,0,0,.55); padding: 6px; font: 13px/1.5 "Segoe UI", system-ui, sans-serif; color: #e6e6e6; }
+.cc-menu-wide { min-width: 240px; max-width: 92vw; }
+.cc-menu-status { font-size: 12px; padding: 2px 8px 6px; }
+.cc-menu-h { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: #8a8a8a; padding: 7px 8px 3px; }
+.cc-menu-row { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 5px; cursor: pointer; }
+.cc-menu-row:hover { background: #262626; }
+.cc-menu-plain { cursor: default; gap: 8px; flex-wrap: wrap; }
+.cc-menu-plain:hover { background: transparent; }
+.cc-menu-plain .cc-filter { width: 100%; }
+.cc-menu-plain .cc-btn { flex: 1; text-align: center; }
+.cc-menu-sep { height: 1px; background: #2a2a2a; margin: 5px 4px; }
+.cc-menu-link { color: var(--cc-accent); font-size: 12px; padding: 6px 8px; display: block; text-decoration: none; }
+.cc-menu-link:hover { text-decoration: underline; }
+
+.cc-toast { position: fixed; right: 18px; bottom: 18px; z-index: 100000; background: #161616; color: #e6e6e6; border: 1px solid #525252; border-radius: 8px; padding: 9px 14px; font: 12px/1.4 "Segoe UI", system-ui, sans-serif; box-shadow: 0 10px 30px rgba(0,0,0,.5); opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity .2s, transform .2s; max-width: 60vw; }
+.cc-toast-show { opacity: 1; transform: translateY(0); }
+
+.cc-pop { position: absolute; z-index: 99999; width: 340px; max-width: 92vw; background: var(--cc-bg, #161616); color: var(--cc-txt, #e6e6e6); border: 1px solid #525252; border-radius: 10px; box-shadow: 0 14px 40px rgba(0,0,0,.55); font: 13px/1.5 "Segoe UI", system-ui, sans-serif; }
+/* Neutralise Unraid's global button/input/select theming INSIDE our popover — it
+   lives on document.body, OUTSIDE #cc-settings, so without this it inherits the
+   orange borders, the uppercasing that clipped our button labels, and the stray
+   input underlines the user reported. Checkboxes keep the native box but recolour
+   to the chosen accent. */
+.cc-pop button, .cc-pop input, .cc-pop select, .cc-pop textarea {
+  -webkit-appearance: none; appearance: none; outline: none; box-shadow: none !important;
+  font-family: inherit; text-transform: none !important; letter-spacing: normal; min-width: 0;
+}
+.cc-pop input[type="checkbox"] {
+  -webkit-appearance: auto; appearance: auto; accent-color: var(--cc-accent, #2f6feb);
+  width: 15px; height: 15px; flex: none; cursor: pointer; margin: 0;
+}
+.cc-pop-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid #2a2a2a; }
+.cc-pop-x { cursor: pointer; color: #8a8a8a; }
+.cc-pop-x:hover { color: #e6e6e6; }
+.cc-pop-row { display: flex; align-items: center; gap: 8px; padding: 8px 14px; }
+.cc-pop-lbl { color: #8a8a8a; font-size: 12px; width: 100px; flex: none; }
+.cc-pop-body.cc-dis { opacity: .4; pointer-events: none; }
+.cc-pop-foot { padding: 9px 14px; border-top: 1px solid #2a2a2a; color: #8a8a8a; font-size: 11px; }
+/* backend/Docker rejection — stays on screen (not a 2.6s toast) so the exact reason is readable, and wraps long messages */
+.cc-pop-err { display: none; margin: 8px 14px 2px; padding: 7px 9px; border-radius: 6px; background: rgba(220,53,69,.13); border: 1px solid rgba(220,53,69,.55); color: #ff7a7a; font-size: 12px; line-height: 1.45; word-break: break-word; white-space: pre-wrap; }
+/* ROTATING rainbow: colours come from --cc-rb-* vars set by docker.js — a random
+   rotation offset per page load walks every badge kind through a 14-colour palette. */
+.cc-enh.cc-rainbow .cc-b-net, .cc-grid-holder.cc-rainbow .cc-b-net { background: var(--cc-rb-net, #1f9d55); color: var(--cc-rb-net-t, #fff); }
+.cc-enh.cc-rainbow .cc-b-ip, .cc-grid-holder.cc-rainbow .cc-b-ip { background: var(--cc-rb-ip, #2f6feb); color: var(--cc-rb-ip-t, #fff); }
+.cc-enh.cc-rainbow .cc-b-lan, .cc-grid-holder.cc-rainbow .cc-b-lan { background: var(--cc-rb-lan, #e0912a); color: var(--cc-rb-lan-t, #161616); }
+.cc-enh.cc-rainbow .cc-b-port, .cc-grid-holder.cc-rainbow .cc-b-port { background: var(--cc-rb-port, #8b5cf6); color: var(--cc-rb-port-t, #fff); }
+.cc-enh.cc-rainbow .cc-b-id, .cc-grid-holder.cc-rainbow .cc-b-id { background: var(--cc-rb-id, #0ea5a4); color: var(--cc-rb-id-t, #fff); }
+.cc-enh.cc-rainbow .cc-b-von, .cc-grid-holder.cc-rainbow .cc-b-von { background: var(--cc-rb-von, #e05299); color: var(--cc-rb-von-t, #fff); }
+.cc-enh.cc-rainbow .cc-b-cpu, .cc-grid-holder.cc-rainbow .cc-b-cpu { background: var(--cc-rb-cpu, #d9433f); color: var(--cc-rb-cpu-t, #fff); }
+.cc-enh.cc-rainbow .cc-b-ram, .cc-grid-holder.cc-rainbow .cc-b-ram { background: var(--cc-rb-ram, #2f9d8b); color: var(--cc-rb-ram-t, #fff); }
+.cc-enh.cc-rainbow .cc-b-bw, .cc-grid-holder.cc-rainbow .cc-b-bw { background: var(--cc-rb-bw, #e0912a); color: var(--cc-rb-bw-t, #161616); }
+.cc-enh.cc-rainbow .cc-b-version, .cc-grid-holder.cc-rainbow .cc-b-version { background: var(--cc-rb-version, #6b7280); color: var(--cc-rb-version-t, #fff); }
+.cc-enh.cc-rainbow .cc-b-vol, .cc-grid-holder.cc-rainbow .cc-b-vol { background: var(--cc-rb-vol, #0891b2); color: var(--cc-rb-vol-t, #fff); }
+.cc-enh.cc-rainbow .cc-plan, .cc-grid-holder.cc-rainbow .cc-plan { background: var(--cc-rb-plan, #6366f1); color: var(--cc-rb-plan-t, #fff); }
+.cc-enh.cc-rainbow.cc-c-res #docker_list tr.sortable td.advanced span[class^='cpu-'] { background: var(--cc-rb-cpu, #d9433f); }
+.cc-enh.cc-rainbow.cc-c-res #docker_list tr.sortable td.advanced span[class^='mem-'] { background: var(--cc-rb-ram, #2f9d8b); }
+/* the same slot in green: the VERIFIED applied values after a successful save */
+.cc-pop-err.cc-pop-ok { background: rgba(31,157,85,.14); border-color: rgba(31,157,85,.6); color: #4bd58a; }
+/* multi-select dropdown under "Hängt ab von": stays open, every click toggles a container */
+.cc-drop { position: absolute; z-index: 100001; background: #1c1c1c; border: 1px solid #3a3a3a; border-radius: 8px; box-shadow: 0 12px 30px rgba(0,0,0,.55); max-height: 220px; overflow: auto; padding: 4px; }
+.cc-drop-it { padding: 5px 11px; border-radius: 5px; font-size: 12px; color: #c9c9c9; cursor: pointer; white-space: nowrap; }
+.cc-drop-it:hover { background: #2a2a2a; color: #fff; }
+.cc-drop-on { color: var(--cc-accent, #6ea0ff); font-weight: 600; }
+.cc-drop-on::after { content: " ✓"; }
+/* ⓘ info bubble beside a dropdown label — hover/focus reveals a small explainer card that
+   lists what each option (health/running/… · abort/continue/degrade) actually does. */
+.cc-lbl-info { display: inline-flex; align-items: center; gap: 6px; }
+.cc-info { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 999px; background: rgba(255,255,255,.14); color: #cfcfcf; font-size: 10px; font-style: normal; cursor: help; flex: none; }
+.cc-info:hover, .cc-info:focus { background: var(--cc-accent, #2f6feb); color: #fff; outline: none; }
+.cc-tip { display: none; position: absolute; top: 21px; left: 0; z-index: 100000; width: 235px; max-width: 78vw; background: #0f0f0f; border: 1px solid #3a3a3a; border-radius: 8px; padding: 8px 10px; box-shadow: 0 12px 30px rgba(0,0,0,.55); color: #d6d6d6; font-size: 11.5px; font-weight: 400; line-height: 1.5; white-space: normal; text-align: left; cursor: default; }
+.cc-info:hover .cc-tip, .cc-info:focus .cc-tip { display: block; }
+.cc-tip-row { display: block; margin: 3px 0; }
+.cc-tip-k { color: var(--cc-accent, #6ea0ff); font-weight: 600; margin-right: 6px; }
+/* every editor field the SAME clean box: NO border, just a lighter background */
+.cc-in { flex: 1; background: #2e2e2e; color: #e6e6e6; border: none !important; border-radius: 6px; padding: 5px 8px; font-size: 12px; }
+.cc-in:focus { background: #383838; outline: none !important; box-shadow: 0 0 0 1px var(--cc-accent, #2f6feb); }
+/* selects lost their native arrow to appearance:none — give them a caret back */
+select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repeat; background-position: right 8px center; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%238a8a8a' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E"); }
+.cc-port { flex: none; width: 70px; margin-left: 6px; }
+.cc-unit { flex: none; width: 68px; margin-left: 6px; }
+.cc-pop-act { gap: 8px; padding: 10px 14px 12px; border-top: 1px solid #2a2a2a; }
+.cc-pop-act .cc-btn { flex: 1; text-align: center; font-size: 11.5px; padding: 7px 6px; white-space: normal; line-height: 1.2; }
+/* Plan editor: each section is a CARD (like the schedule rows) — plan fields, watchdog and
+   schedules get their own bordered block, rows sit tight instead of drifting apart. */
+.cc-pop-body { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; margin: 10px 14px 6px; padding: 3px 0; }
+/* Unraid's theme gives inputs/labels chunky margins+min-heights that pushed the editor rows
+   far apart — force them flat (!important: Unraid's sheet can load after ours). */
+.cc-pop-body .cc-pop-row, .cc-pop-auto .cc-pop-row { padding: 3px 10px !important; } /* rows really tight ("Hängt ab von" → "Startverzögerung" → "Bereit wenn") */
+.cc-pop .cc-pop-row { margin: 0 !important; }
+.cc-pop .cc-pop-row > *, .cc-pop .cc-pop-row .cc-in { margin-top: 0 !important; margin-bottom: 0 !important; min-height: 0 !important; }
+.cc-pop .cc-in { padding-top: 5px !important; padding-bottom: 5px !important; line-height: 1.35 !important; }
+.cc-pop-auto { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; margin: 6px 14px; padding: 5px 0 7px; border-top: 1px solid #2a2a2a; }
+.cc-pop-auto .cc-pop-row { padding: 5px 10px; }
+.cc-pop-auto .cc-pop-lbl { width: 90px; }
+.cc-pop-foot { border-top: none; padding-top: 0; }
+.cc-pop-sech-lone { padding-top: 6px; }
+.cc-pop-toggle { cursor: pointer; }
+.cc-pop-sech { font-weight: 600; font-size: 12.5px; }
+.cc-pop-sech-lone { display: block; color: #9a9a9a; padding: 10px 14px 5px; text-transform: uppercase; letter-spacing: .5px; font-size: 10.5px; }
+.cc-pop-sub { padding-bottom: 4px; }
+.cc-pop-sub.cc-dis { opacity: .4; pointer-events: none; }
+.cc-btn-sm { margin: 4px 14px 6px; padding: 3px 10px; font-size: 11.5px; }
+.cc-sched-list { display: flex; flex-direction: column; gap: 8px; padding: 4px 14px 2px; }
+/* each schedule on its OWN tidy card so action / time / days don't run together */
+.cc-sched-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 7px; padding: 8px 9px; }
+.cc-sched-act { flex: none; width: 92px; }
+.cc-sched-time { flex: none; width: 100px; }
+/* the native dark clock glyph of <input type=time> is nearly invisible on our dark field —
+   invert it so the picker button is clearly readable ("Uhrsymbol kaum erkennbar"). */
+.cc-sched-time::-webkit-calendar-picker-indicator { filter: invert(0.85); opacity: .9; cursor: pointer; }
+.cc-days { display: flex; gap: 3px; flex-wrap: wrap; }
+.cc-day { background: #262626; color: #9a9a9a; border: 1px solid #333; border-radius: 5px; width: 26px; height: 26px; font-size: 11px; line-height: 1; cursor: pointer; padding: 0; display: inline-flex; align-items: center; justify-content: center; transition: background .12s, color .12s, border-color .12s; }
+.cc-day:hover { border-color: var(--cc-accent, #2f6feb); color: #e6e6e6; }
+.cc-day-on { background: var(--cc-accent, #2f6feb); color: var(--cc-accent-text, #fff); border-color: var(--cc-accent, #2f6feb); }
+.cc-sched-x { margin-left: auto; }
+/* CPU-pinning core grid (like the VM settings): one clickable cell per logical core */
+.cc-pin-row { align-items: flex-start; }
+/* VM-manager-style core picker: one BOX per physical core, its hyperthreads stacked
+   vertically inside, boxes wrapping into rows — readable AND compact ("viel zu klein"
+   fixed: bigger cells, clear grouping). On Intel hybrid CPUs each box carries a P / E tag. */
+.cc-pop-wide { width: 430px; }
+.cc-cores { display: flex; flex-wrap: wrap; gap: 5px; flex: 1; }
+.cc-corebox { display: inline-flex; flex-direction: column; gap: 3px; padding: 4px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 7px; align-items: stretch; }
+.cc-corebox-tag { text-align: center; font-size: 9px; line-height: 1; color: #8a8a8a; letter-spacing: .5px; user-select: none; }
+.cc-corebox-p { border-top: 2px solid var(--cc-accent, #2f6feb); }
+.cc-corebox-p .cc-corebox-tag { color: var(--cc-accent, #6ea0ff); }
+.cc-corebox-e { border-top: 2px solid #e0912a; }
+.cc-corebox-e .cc-corebox-tag { color: #e0912a; }
+.cc-core { width: 34px; height: 24px; display: inline-flex; align-items: center; justify-content: center; background: #242424; color: #9a9a9a; border: 1px solid #333; border-radius: 5px; font-size: 12px; cursor: pointer; user-select: none; box-sizing: border-box; transition: background .1s, color .1s, border-color .1s; }
+.cc-core:hover { border-color: var(--cc-accent, #2f6feb); color: #e6e6e6; }
+.cc-core-on { background: var(--cc-accent, #2f6feb); color: var(--cc-accent-text, #fff); border-color: var(--cc-accent, #2f6feb); }
+/* rainbow mode: selected cores wear their physical-core group's colour */
+.cc-pop.cc-rainbow .cc-core-on.cc-rb-0 { background: #1f9d55; border-color: #1f9d55; color: #fff; }
+.cc-pop.cc-rainbow .cc-core-on.cc-rb-1 { background: #2f6feb; border-color: #2f6feb; color: #fff; }
+.cc-pop.cc-rainbow .cc-core-on.cc-rb-2 { background: #8b5cf6; border-color: #8b5cf6; color: #fff; }
+.cc-pop.cc-rainbow .cc-core-on.cc-rb-3 { background: #e0912a; border-color: #e0912a; color: #161616; }
+.cc-pop.cc-rainbow .cc-core-on.cc-rb-4 { background: #d9433f; border-color: #d9433f; color: #fff; }
+.cc-pop.cc-rainbow .cc-core-on.cc-rb-5 { background: #0ea5a4; border-color: #0ea5a4; color: #fff; }
+.cc-pop.cc-rainbow .cc-core-on.cc-rb-6 { background: #e05299; border-color: #e05299; color: #fff; }
+.cc-pop.cc-rainbow .cc-core-on.cc-rb-7 { background: #6366f1; border-color: #6366f1; color: #fff; }
+/* popover checkboxes follow the accent; the manage toggle + day toggles go rainbow too */
+.cc-pop input[type="checkbox"] { accent-color: var(--cc-accent, #2f6feb); }
+/* a toggle is ALWAYS one solid colour, even in rainbow mode (never a gradient) */
+.cc-pop.cc-rainbow .cc-set-toggle-on { background: var(--cc-btn-accent, var(--cc-accent, #2f6feb)); }
+.cc-pop.cc-rainbow .cc-day-on { background: #8b5cf6; border-color: #8b5cf6; color: #fff; }
+.cc-sched-x { cursor: pointer; color: #8a8a8a; padding: 0 4px; }
+.cc-sched-x:hover { color: #d9433f; }
+.cc-plan-mark { margin-left: 5px; opacity: .85; font-size: 10px; }
+.cc-plan-auto .cc-b-k { position: relative; }
+
+/* ════════════════ RAINBOW mode + ICON tint + CPU/RAM force-show ════════════════ */
+/* rainbow: each badge kind its own colour (else all use the accent) */
+/* rainbow badges: each carries its OWN contrast text colour (NOT the accent-derived
+   one), so a light accent can't make the dark badges get dark text. */
+ /* amber is LIGHT → dark text, consistent with every other amber badge (auto-contrast rule) */
+/* rainbow also colours the Startplan badge and the per-row AUTOSTART switch (they
+   use the accent otherwise), so the whole row joins the rainbow scheme. */
+.cc-enh.cc-rainbow #docker_list .switch-button-background.checked { background: #2f9d8b !important; }
+
+/* rainbow + tint also apply to the card GRID (parity with the list) */
+
+/* container-icon tint is a CSS filter applied inline on each icon in JS
+   (applyIconTint) — no positioned overlay, so it can never be mis-aligned. */
+
+/* CPU/RAM is a headline feature: when its badge is on, force the native resource
+   column (8th) visible even in Simple view (overrides Unraid's .advanced hide). */
+/* force the resource cell (8th) visible in BOTH views so our injected CPU/RAM badge
+   shows even in Simple view (Unraid marks the cell .advanced and hides it there). */
+.cc-enh.cc-c-res thead tr:last-child th:nth-child(9),
+.cc-enh.cc-c-res #docker_list tr.sortable > td:nth-child(9) { display: table-cell !important; } /* +1: actions column */
+/* the CPU/RAM values come from our engine badge (.cc-resgroup), so hide Unraid's
+   native cpu/mem spans in the resource cell to avoid a duplicate. */
+.cc-enh.cc-c-res #docker_list tr.sortable td span[class^='cpu-'],
+.cc-enh.cc-c-res #docker_list tr.sortable td span[class^='mem-'] { display: none !important; }
+/* force-show the force-update link when its column is enabled for Simple view, so the
+   column checkbox actually reveals it (the image tag is handled in JS as a badge). */
+.cc-enh.cc-c-force #docker_list tr.sortable td.updatecolumn a.exec { display: inline-flex !important; }
+
+/* native Unraid switchButtons (the per-row AUTOSTART toggle, and the Basic/Advanced
+   view toggle) restyled to a clean accent pill. Unraid's JS positions the knob via
+   an inline `left`, so we ONLY recolour + round + scale up — never touch the geometry
+   the JS drives, so the click behaviour is untouched. Reverts on teardown (cc-enh). */
+/* native Unraid switchButtons (per-row AUTOSTART + the Basic/Advanced view toggle):
+   made to look EXACTLY like our Settings toggle (.cc-set-toggle) — a 44x24 accent
+   pill with an 18px white knob. We override Unraid's inline geometry with !important
+   (including the knob's inline `left`, driven here by the .checked class), so the
+   widget still works and clicks are still Unraid's — only the look changes. */
+.cc-enh #docker_list .switch-button-background,
+.ToggleViewMode .switch-button-background {
+  width: 44px !important; height: 24px !important; border-radius: 999px !important;
+  border: none !important; outline: none !important; box-shadow: none !important;
+  background: #3a3a3a !important; transform: none !important; position: relative !important;
+  display: inline-block; vertical-align: middle; margin: 0 12px 0 3px; cursor: pointer;
+  transition: background .15s; box-sizing: border-box;
+}
+.cc-enh #docker_list .switch-button-background.checked,
+.ToggleViewMode .switch-button-background.checked { background: var(--cc-accent, #2f6feb) !important; }
+.cc-enh #docker_list .switch-button-background .switch-button-button,
+.ToggleViewMode .switch-button-background .switch-button-button {
+  width: 18px !important; height: 18px !important; top: 3px !important; left: 3px !important;
+  border-radius: 50% !important; background: #fff !important; box-shadow: none !important;
+  border: none !important; transition: left .15s;
+}
+.cc-enh #docker_list .switch-button-background.checked .switch-button-button,
+.ToggleViewMode .switch-button-background.checked .switch-button-button { left: 21px !important; }
+/* hide the AN/AUS text next to the PER-ROW autostart switch only. The Basic/Advanced
+   view toggle (div.ToggleViewMode, OUTSIDE the table) keeps its label. */
+.cc-enh #docker_list .switch-button-label { display: none !important; }
+/* The Basic/Advanced view-toggle row is NATIVELY display:flex; justify-content:flex-end;
+   align-items:center (full-width, right-aligned). Restate it so it stays right-aligned
+   even after other CSS touches it — the whole group (incl. ShipLog's "update all" button,
+   which injects as the row's first flex child and relies on flex-end) sits at the RIGHT. */
+/* the whole native toggle row stays hidden from the FIRST paint — the JS collapse
+   came seconds later, so an Unraid-styled orange-bordered gear flashed top-right */
+.ToggleViewMode { display: none !important; }
+/* Vertically centre the toggle's LABEL ("Einfache/Erweiterte Ansicht") against the enlarged
+   24px pill: in the real Unraid DOM the label + switch are FLOAT:left inside `.ToggleViewMode
+   > span`, so we make THAT the flex line (floats are ignored in a flex box → items centre).
+   (.switch-button-container is a fallback for builds that wrap the switch differently.) The
+   abs-positioned knob lives inside .switch-button-background and is untouched. */
+.ToggleViewMode > span,
+.ToggleViewMode .switch-button-container { display: inline-flex !important; align-items: center !important; }
+/* ShipLog's "update all" button (a.sl-updall), restyled to match our badges: an accent
+   pill (green in rainbow mode) with auto-contrast text, sitting left of the view toggle.
+   Colours come from --cc-updall-bg/-text (set on :root by docker.js, so they reach this
+   element outside our table). Only applies while CannonadeCommand is installed. */
+.sl-updall { align-items: center !important; line-height: 1.2 !important; padding-top: 4px !important; padding-bottom: 4px !important;
+  display: inline-flex; align-items: center; height: 24px; padding: 0 13px;
+  border-radius: 999px !important; background: var(--cc-updall-bg, #2f6feb) !important;
+  color: var(--cc-updall-text, #fff) !important; font-weight: 600; font-size: 12px;
+  letter-spacing: .2px; white-space: nowrap; text-decoration: none !important;
+  border: none !important; box-shadow: none !important; cursor: pointer; margin: 0 10px 0 0;
+  transition: filter .12s;
+}
+.sl-updall:hover { filter: brightness(1.08); text-decoration: none !important; }
+/* the native per-container autostart "wait N seconds" belongs in the start plan
+   (Startverzögerung), so hide it here — label text + input share one span#<id>-wait. */
+.cc-enh #docker_list span[id$="-wait"] { display: none !important; }
+
+/* ── minimal, clean page chrome on OUR pages (this stylesheet only loads there):
+   Unraid's title bars / tab strips go flat — no background block, a thin base
+   line, spaced uppercase labels. ── */
+div.title { background: transparent !important; border-bottom: 1px solid #2f2f2f !important; box-shadow: none !important; }
+div.title span.left, div.title span.right { text-transform: uppercase; letter-spacing: 2px; font-size: 12px; }
+.tabs, #tabs { background: transparent !important; border: 0 !important; }
+.tabs .tab, #tabs .tab { background: transparent !important; border: 0 !important; text-transform: uppercase; letter-spacing: 1.5px; }
+
+/* ════════════════ SETTINGS PAGE (Settings > Utilities) ════════════════ */
+#cc-settings { --bg: #161616; --bg2: #1c1c1c; --line: #2a2a2a; --line2: #333; --txt: #e6e6e6; --dim: #9a9a9a; --dim2: #6f6f6f; color: var(--txt); font: 14px/1.5 "Segoe UI", system-ui, sans-serif; padding-bottom: 40px; }
+/* Unraid's global button CSS paints an orange border on every <button>; neutralise
+   it for our controls so toggles/segments/swatches render clean. */
+#cc-settings button { -webkit-appearance: none; appearance: none; outline: none; font-family: inherit; text-transform: none; letter-spacing: normal; }
+#cc-settings input[type="range"] { accent-color: var(--cc-accent, #2f6feb); }
+#cc-settings .cc-set-toggle, #cc-settings .cc-set-sw, #cc-settings .cc-set-mini, #cc-settings .cc-seg-btn, #cc-settings .cc-btn { box-shadow: none; }
+#cc-settings .cc-set-sw { border: 2px solid transparent; }
+/* segments: a clean pill group, no outer frame (the "grauer Rahmen" the user meant) */
+#cc-settings .cc-seg { border: none !important; background: #232323; border-radius: 9px; padding: 3px; gap: 3px; overflow: visible; }
+#cc-settings .cc-seg-btn { border: 0 !important; border-radius: 6px; }
+#cc-settings .cc-set-disabled { opacity: .55; pointer-events: none; }
+.cc-set-head { display: flex; flex-direction: column; gap: 5px; padding: 6px 0 16px; border-bottom: 1px solid var(--line); margin-bottom: 20px; }
+.cc-set-hero { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 6px; }
+.cc-set-heroleft { display: flex; align-items: center; gap: 16px; }
+.cc-set-logo { width: 64px; height: 64px; border-radius: 14px; display: block; }
+.cc-set-claim { color: var(--dim); font-size: 13px; font-style: italic; margin-top: 2px; }
+.cc-set-brand { font-size: 24px; letter-spacing: .2px; } .cc-set-brand b { font-weight: 700; } .cc-set-brand span { font-weight: 400; color: var(--dim); }
+.cc-set-sub { color: var(--dim2); font-size: 12.5px; }
+.cc-set-wrap { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.cc-set-card { background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+.cc-set-h { font-size: 15px; font-weight: 600; margin-bottom: 3px; }
+.cc-set-card .cc-set-sub { margin-bottom: 12px; }
+.cc-set-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; flex-wrap: wrap; }
+.cc-set-rl { min-width: 110px; }
+#cc-settings .cc-seg-btn { padding: 5px 12px; }
+.cc-set-spacer { flex: 1; }
+.cc-set-swatches { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin-bottom: 6px; }
+.cc-set-sw { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; flex: none; }
+.cc-set-sw-on { border-color: #fff; box-shadow: 0 0 0 2px rgba(255,255,255,.15); }
+/* colour picker: force it VISIBLE as a real swatch. Unraid's global input CSS
+   (border:none; border-bottom; transparent bg) otherwise strips it to a thin line
+   so the picker looks missing — appearance:none + swatch pseudo-elements fix it.
+   (Sizing stays on the .cc-set-pick / .cc-set-pick-lg classes below.) */
+#cc-settings input[type="color"] {
+  -webkit-appearance: none; appearance: none;
+  border: 1px solid var(--line2) !important; border-radius: 6px !important;
+  background: #1e1e1e !important; cursor: pointer; padding: 3px !important; box-sizing: border-box;
+}
+#cc-settings input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+#cc-settings input[type="color"]::-webkit-color-swatch { border: none; border-radius: 4px; }
+#cc-settings input[type="color"]::-moz-color-swatch { border: none; border-radius: 4px; }
+.cc-set-pick { width: 40px; height: 30px; box-sizing: border-box; }
+/* hex text field beside the colour picker (override Unraid's input underline) */
+#cc-settings .cc-set-hexin { flex: none; width: 104px; font-family: ui-monospace, "Cascadia Code", monospace; text-transform: uppercase; letter-spacing: .5px; background: #1e1e1e !important; color: var(--txt); border: 1px solid var(--line2) !important; border-radius: 6px !important; padding: 8px 10px !important; font-size: 13px; box-sizing: border-box; }
+#cc-settings .cc-set-hexin:focus { outline: none; border-color: var(--cc-accent, #2f6feb) !important; }
+.cc-set-prev { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+.cc-set-mini { background: transparent; color: var(--dim); border: 1px solid var(--line2); border-radius: 7px; padding: 5px 12px; font-size: 12.5px; cursor: pointer; }
+.cc-set-mini-on { color: #fff; border-color: var(--cc-accent, #2f6feb); background: rgba(255,255,255,.05); }
+/* limit-diagnostics card: monospace log lines, red on a docker rejection */
+.cc-set-diag { font-family: Consolas, "SFMono-Regular", monospace; font-size: 11px; line-height: 1.6; color: #b9b9b9; max-height: 200px; overflow: auto; }
+.cc-set-diag-row { white-space: pre-wrap; word-break: break-word; padding: 2px 0; border-bottom: 1px solid #242424; }
+.cc-set-diag-bad { color: #ff7a7a; }
+/* PERMANENTLY EMBEDDED colour picker (no OS popup window): a saturation/value square +
+   a hue bar, drawn with CSS gradients, draggable dots. Replaces <input type=color>. */
+.cc-ip { flex: 1; min-width: 190px; }
+.cc-ip-sv { position: relative; height: 112px; border-radius: 8px; border: 1px solid #2a2a2a; cursor: crosshair; }
+.cc-ip-dot { position: absolute; width: 12px; height: 12px; border: 2px solid #fff; border-radius: 50%; margin: -6px 0 0 -6px; box-shadow: 0 0 3px rgba(0,0,0,.8); pointer-events: none; }
+.cc-ip-hue { position: relative; height: 14px; margin-top: 8px; border-radius: 999px; background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00); cursor: pointer; }
+.cc-ip-hdot { position: absolute; top: -2px; width: 8px; height: 18px; margin-left: -4px; background: #fff; border-radius: 3px; box-shadow: 0 0 3px rgba(0,0,0,.8); pointer-events: none; }
+/* picker full card width, hex field UNDER it */
+#cc-settings .cc-set-pickrow { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+#cc-settings .cc-set-pickrow .cc-set-hexin { width: 110px; align-self: flex-start; }
+.cc-ip { width: 100%; min-width: 0; }
+.cc-set-toggle { width: 44px; height: 24px; border-radius: 999px; border: none !important; padding: 0 !important; background: #3a3a3a; position: relative; cursor: pointer; transition: background .15s; flex: none; box-sizing: border-box; }
+.cc-set-toggle-on { background: var(--cc-btn-accent, var(--cc-accent, #2f6feb)); }
+/* in rainbow mode the ON toggles wear the rainbow, matching the badge scheme */
+#cc-settings.cc-rainbow .cc-set-toggle-on { background: var(--cc-btn-accent, var(--cc-accent, #2f6feb)); }
+.cc-set-knob { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: left .15s; }
+.cc-set-toggle-on .cc-set-knob { left: 21px; }
+.cc-set-tbl { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
+.cc-set-tbl th { color: var(--dim2); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; font-weight: 500; padding: 4px 10px; text-align: center; }
+.cc-set-tbl td { padding: 5px 10px; border-top: 1px solid var(--line); }
+.cc-set-cname { text-align: left; }
+.cc-set-chk { text-align: center; }
+.cc-set-foot { color: var(--dim2); font-size: 12px; margin-top: 20px; }
+.cc-set-txt { flex: 1; min-width: 160px; background: #1e1e1e; color: var(--txt); border: 1px solid var(--line2); border-radius: 6px; padding: 6px 9px; font-size: 13px; font-family: inherit; }
+.cc-set-txt:focus { outline: none; border-color: var(--cc-accent, #2f6feb); }
+#cc-settings .cc-set-save { margin-top: 12px; padding: 6px 16px; border-radius: 6px; }
+#cc-settings .cc-set-save[disabled] { opacity: .6; cursor: default; }
+/* checkboxes (column matrix, etc.) recolour to the chosen accent */
+#cc-settings input[type="checkbox"] { accent-color: var(--cc-accent, #2f6feb); width: 15px; height: 15px; cursor: pointer; }
+/* the accent-colour picker: always-visible field on top, preset swatches below */
+.cc-set-lbl { font-size: 12.5px; color: var(--dim); margin: 2px 0 7px; }
+.cc-set-pickrow { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.cc-set-pick-lg { width: 100%; max-width: 130px; height: 40px; }
+.cc-set-hex { font-family: ui-monospace, "Cascadia Code", monospace; color: var(--dim); font-size: 13px; text-transform: uppercase; letter-spacing: .5px; }

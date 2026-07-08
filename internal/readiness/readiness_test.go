@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/junkerderprovinz/cannonadecommander/internal/model"
+	"github.com/junkerderprovinz/cannonadecommand/internal/model"
 )
 
 // fakeClock lets Sleep advance a virtual clock so timeout logic is deterministic.

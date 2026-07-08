@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/junkerderprovinz/cannonadecommander/internal/model"
+	"github.com/junkerderprovinz/cannonadecommand/internal/model"
 )
 
 func TestLoadMissingIsEmpty(t *testing.T) {

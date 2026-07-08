@@ -7,7 +7,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/junkerderprovinz/cannonadecommander/internal/model"
+	"github.com/junkerderprovinz/cannonadecommand/internal/model"
 )
 
 // fakeStarter records the order in which containers were started and can be told

@@ -1,7 +1,0 @@
-#!/bin/bash
-# The Docker daemon is up: this is the ONLY safe moment to orchestrate starts
-# (dockerd answers, and unlike array_started it is not under an unshare mount
-# namespace). Ensure the supervisor is running, then apply the start plan.
-DIR=/usr/local/emhttp/plugins/cannonadecommander
-"$DIR/scripts/rc.cannonadecommander" start >/dev/null 2>&1
-"$DIR/bin/cannonadecommander" apply >>/var/log/cannonadecommander.log 2>&1 &

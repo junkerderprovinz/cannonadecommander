@@ -30,7 +30,7 @@ jobs:
       - name: Boot smoke — supervisor serves its socket
         run: |
           set -euo pipefail
-          BIN=plugin/src/cannonadecommander/usr/local/emhttp/plugins/cannonadecommander/bin/cannonadecommander
+          BIN=plugin/src/cannonadecommand/usr/local/emhttp/plugins/cannonadecommand/bin/cannonadecommand
           echo "version: $("$BIN" version)"
           CC_SOCK=/tmp/cc.sock CC_DATA_DIR=/tmp/ccdata CC_DOCKER_SOCK=/tmp/nope.sock "$BIN" serve &
           PID=$!
@@ -50,7 +50,7 @@ jobs:
       - name: Limits integration — real docker
         run: |
           set -euo pipefail
-          BIN=plugin/src/cannonadecommander/usr/local/emhttp/plugins/cannonadecommander/bin/cannonadecommander
+          BIN=plugin/src/cannonadecommand/usr/local/emhttp/plugins/cannonadecommand/bin/cannonadecommand
           CC_SOCK=/tmp/cc-int.sock CC_DATA_DIR=/tmp/ccdata-int "$BIN" serve &
           for _ in $(seq 1 20); do [ -S /tmp/cc-int.sock ] && break; sleep 0.5; done
           CURL="curl -fsS --unix-socket /tmp/cc-int.sock"
@@ -118,5 +118,5 @@ jobs:
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cannonadecommander-txz
+          name: cannonadecommand-txz
           path: plugin/out/*.txz

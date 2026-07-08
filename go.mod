@@ -1,3 +1,3 @@
-module github.com/junkerderprovinz/cannonadecommander
+module github.com/junkerderprovinz/cannonadecommand
 
 go 1.26

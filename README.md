@@ -1,10 +1,12 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/.github/assets/cannonadecommander-banner.png" alt="CannonadeCommand" width="100%">
+  <img src="https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/.github/assets/cannonadecommand-banner.png" alt="CannonadeCommand" width="100%">
 </p>
 
 <p align="center">
-  <a href="https://github.com/junkerderprovinz/cannonadecommander/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/junkerderprovinz/cannonadecommander/build.yml?branch=main&label=Build&style=for-the-badge&logo=githubactions&logoColor=white" alt="Build" height="36"></a>&nbsp;
-  <a href="https://github.com/junkerderprovinz/cannonadecommander/actions/workflows/lint.yml"><img src="https://img.shields.io/github/actions/workflow/status/junkerderprovinz/cannonadecommander/lint.yml?branch=main&label=Lint&style=for-the-badge&logo=githubactions&logoColor=white" alt="Lint" height="36"></a>&nbsp;
+  <a href="https://github.com/junkerderprovinz/cannonadecommand/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/junkerderprovinz/cannonadecommand/build.yml?branch=main&label=Build&style=for-the-badge&logo=githubactions&logoColor=white" alt="Build" height="36"></a>&nbsp;
+  <a href="https://github.com/junkerderprovinz/cannonadecommand/actions/workflows/lint.yml"><img src="https://img.shields.io/github/actions/workflow/status/junkerderprovinz/cannonadecommand/lint.yml?branch=main&label=Lint&style=for-the-badge&logo=githubactions&logoColor=white" alt="Lint" height="36"></a>&nbsp;
+  <a href="https://github.com/junkerderprovinz/cannonadecommand/releases/latest"><img src="https://img.shields.io/github/v/release/junkerderprovinz/cannonadecommand?style=for-the-badge&logo=github&logoColor=white&label=Release&color=1d99f3" alt="Release" height="36"></a>&nbsp;
+  <a href="https://github.com/junkerderprovinz/cannonadecommand/releases"><img src="https://img.shields.io/github/downloads/junkerderprovinz/cannonadecommand/total?style=for-the-badge&logo=github&logoColor=white&label=Downloads&color=1d99f3" alt="Downloads" height="36"></a>&nbsp;
   <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-00ADD8?style=for-the-badge&logo=go&logoColor=white" alt="Go" height="36"></a>&nbsp;
   <a href="https://unraid.net"><img src="https://img.shields.io/badge/Unraid-Plugin-f15a2c?style=for-the-badge&logo=unraid&logoColor=white" alt="Unraid Plugin" height="36"></a>&nbsp;
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge&logo=opensourceinitiative&logoColor=white" alt="License" height="36"></a>
@@ -102,7 +104,7 @@ nicely.
 Unraid → **Plugins → Install Plugin** → paste:
 
 ```
-https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin/cannonadecommander.plg
+https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin/cannonadecommand.plg
 ```
 
 The plugin installs the UI pages and starts the engine (a single Go daemon
@@ -142,7 +144,7 @@ origin sees the same configuration.
 
 | Piece | What it does |
 | --- | --- |
-| `cannonadecommander` daemon (Go) | Talks to the Docker socket (list/start/stop/update only), computes start stages, runs probes, applies limits, persists plan + config on the flash |
+| `cannonadecommand` daemon (Go) | Talks to the Docker socket (list/start/stop/update only), computes start stages, runs probes, applies limits, persists plan + config on the flash |
 | Unix socket + PHP proxy | The UI talks to `/api/*` through a same-origin proxy with a strict path allowlist; writes carry Unraid's csrf token |
 | Page scripts | Enhance the native Docker tab in place (badges, actions, editors); a settings page under Utilities |
 
@@ -173,7 +175,7 @@ netfilter state from the container's netns, and the monitor's last apply attempt
 
 **Plugins → Remove**. The daemon is stopped by PID and all program files are
 removed. The start plan and config on the flash are kept, so a reinstall picks up
-where you left off; delete `/boot/config/plugins/cannonadecommander/` if you want
+where you left off; delete `/boot/config/plugins/cannonadecommand/` if you want
 a truly clean slate.
 
 <br>

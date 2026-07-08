@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/junkerderprovinz/cannonadecommander/internal/model"
+	"github.com/junkerderprovinz/cannonadecommand/internal/model"
 )
 
 // withImplicitDeps appends an IMPLICIT node (ready-when-running, never blocking)

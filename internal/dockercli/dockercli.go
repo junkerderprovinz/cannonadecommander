@@ -21,7 +21,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/junkerderprovinz/cannonadecommander/internal/model"
+	"github.com/junkerderprovinz/cannonadecommand/internal/model"
 )
 
 // apiVersion pins a modern Engine API. Engine 29 rejects versions older than

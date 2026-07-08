@@ -9,8 +9,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/junkerderprovinz/cannonadecommander/internal/hostcpu"
-	"github.com/junkerderprovinz/cannonadecommander/internal/model"
+	"github.com/junkerderprovinz/cannonadecommand/internal/hostcpu"
+	"github.com/junkerderprovinz/cannonadecommand/internal/model"
 )
 
 // fakeHostMem is the host RAM the fake Docker daemon reports via /info — used as the

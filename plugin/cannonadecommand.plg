@@ -1,0 +1,934 @@
+<?xml version='1.0' standalone='yes'?>
+<!DOCTYPE PLUGIN [
+  <!ENTITY name      "cannonadecommand">
+  <!ENTITY slug      "cannonadecommand">
+  <!ENTITY author    "junkerderprovinz">
+  <!ENTITY version   "1.1.0">
+  <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
+  <!ENTITY pluginURL "&gitURL;/&slug;.plg">
+  <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
+  <!ENTITY emhttp    "/usr/local/emhttp/plugins/&slug;">
+  <!ENTITY plgPath   "/boot/config/plugins/&slug;">
+  <!ENTITY txz       "&slug;-&version;-x86_64-1.txz">
+]>
+
+<PLUGIN name="&name;"
+        author="&author;"
+        version="&version;"
+        pluginURL="&pluginURL;"
+        min="6.10.0"
+        support="https://forums.unraid.net/">
+
+<!-- FanCtrlPlus convention: the name is the lowercase slug so Unraid resolves the
+     logo (plugins/<slug>/images/<slug>.png) AND the Plugins-tab description
+     (plugins/<slug>/README.md). The pretty "CannonadeCommand" name is in README.md. -->
+<ICON>
+/usr/local/emhttp/plugins/&slug;/images/&slug;.png
+</ICON>
+
+<CHANGES>
+Dependency-aware, health-gated Docker start orchestration for Unraid: start the
+DB, wait until it is healthy, then start the app; bring up the VPN before the
+containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 1.1.0
+- FULL RENAME: repo, plugin slug, paths and binary are `cannonadecommand` now.
+  The installer migrates the old plan/config automatically; REMOVE the old
+  "cannonadecommander" plugin entry via Plugins - Remove after installing this
+  one (old URLs redirect, but this .plg is the new canonical one).
+- Banner refined: one-colour wordmark, larger two-line claim; README badge row
+  completed (Release + Downloads).
+
+### 1.0.0
+FIRST STABLE RELEASE - consolidates every 0.x release into one.
+- New branding: the plugin is called CannonadeCommand now, with its cannon logo
+  and the claim "Shoots your commands where you need them - and that very
+  nicely." (settings hero, gear tooltips, README with a rendered banner).
+- Start-plan orchestration: dependencies with parallel start stages, readiness
+  probes (running/tcp/http/log/exec), per-node failure policies, implicit
+  dependencies on unmanaged containers (daemon-side, nothing persisted),
+  watchdog with hourly rate cap, and time schedules.
+- Live resource limits: CPU limit, topology-aware CPU pinning (Intel P/E core
+  split), RAM limit via docker update - proven against real dockerd in CI.
+- Bandwidth: upload tbf shaper plus download netfilter policing (NEVER a tc
+  ingress qdisc), ipvlan/macvlan-ready, legacy-iptables x8 compensation,
+  immediate apply on save and live proof diagnostics in the editor; CI applies
+  the rule in a real container netns and measures actual throughput.
+- Docker tab: actions column (WebUI/log/edit/restart/pause/stop + link menu),
+  clean badges with copyable IPs, card view, accent/rainbow theming with
+  cross-origin settings sync that survives cleared browser data.
+- Settings page restyle begins: hero with logo + claim, coloured card bars,
+  clean flat page chrome; the toggle row above the Docker table is gone from
+  the first paint (no more orange gear flash).
+- Roadmap: 2.0.0 = the finished plugin/settings tab; 3.0.0 = the finished VM
+  tab.
+
+### 0.51.0
+- THE download-limit fix: the box's legacy iptables (v1.8.13) APPLIES byte
+  rates as BITS - the live rule read back exactly 1/8 of the cap, twice
+  (30 Mbit set, 3.45 measured). The daemon detects the iptables flavour once
+  and compensates with factor 8 on affected legacy builds (>= 1.8.12); the
+  nf_tables build stays uncompensated (CI measures 105% of the cap there).
+  Note: the rule TEXT then shows 8x the target - the kernel enforces the
+  intended rate.
+- The CPU/RAM/BW gears fill with the CONFIGURED accent colour (like the
+  badges) when a limit is set; unset gears are a clearly visible grey.
+
+### 0.50.0
+- Action icons follow the CONFIGURED accent colour, exactly like the badges;
+  rainbow mode swaps in the rainbow palette. A gear-menu toggle (Icons farbig/
+  grau) turns the colours off if preferred.
+- The CPU/RAM/BW gears are filled FOR REAL now - enforced inline, the theme
+  CSS was beating the stylesheet.
+- Start-plan fix: a dependency on an unmanaged container no longer writes an
+  implicit node into your plan (that is why CrowdSec kept re-activating after
+  every save of a dependent container). The daemon resolves such dependencies
+  internally now - disable CrowdSec in the plan once and it stays disabled.
+- The bandwidth proof line also shows the LIVE rule text on success, so the
+  applied units and rate are visible at a glance.
+
+### 0.49.0
+- Download limit uses the NATIVE byte unit now: the kb/s notation was parsed
+  differently by the box's legacy iptables (60 Mbit configured enforced only
+  ~7 Mbit). CI additionally MEASURES real throughput through the rule on every
+  build.
+- Saving a bandwidth limit applies IMMEDIATELY (the save kicks the monitor -
+  no more 30s wait) and the editor stays open, re-checks after a moment and
+  shows the live proof, so no more "error first, green later".
+- Settings-sync fixed for real: each tab only pushes the keys IT changed,
+  merged into the server map - the Docker tab (rainbow off on its origin) was
+  clobbering the rainbow you had just enabled on the Settings origin. The
+  rainbow toggle also lives in the gear menu now, right where the icons are.
+- Container IP and LAN IP badges copy their address on click and react on
+  hover like the plan chip.
+- The CPU/RAM/BW gears are filled (grey; green when a limit is set) so they
+  are actually visible.
+
+### 0.48.0
+- Download limit works with LEGACY iptables too (the box runs v1.8.13 legacy):
+  it enforces a minimum hashlimit burst of ~1.5x the rate, which rejected the
+  rule at higher rates ("burst cannot be smaller than ..." at 40 Mbit). The
+  burst is 2x the rate now, and CI proves the rule at the real 40-Mbit scale.
+- The explainer text in the bandwidth editor is gone - the popup is compact,
+  the diagnosis line carries the useful information.
+- UI settings survive cleared browser data: the engine-side settings mirror is
+  now SEEDED automatically from the browser's existing settings on first load,
+  not only after the next toggle. Clear your browser data - the settings come
+  back from the engine.
+
+### 0.47.0
+- THE download-limit blocker, found via the new diagnosis line: applying the
+  directions was NOT independent - when no upload cap was set, clearing the
+  (non-existent) upload qdisc errored on the noqueue root and ABORTED before
+  the download policing ever ran. Both directions are applied independently
+  now, and the harmless "handle of zero" clear error is ignored.
+- The bandwidth editor also shows the monitor's LAST APPLY attempt (time,
+  interface, exact error), so the reason is readable instead of guessable.
+- UI settings follow you across origins: every cc.* setting (rainbow, colours,
+  badges, view...) is mirrored into the engine config and adopted on every
+  origin - toggles set via the IP now also apply when browsing via the domain
+  (this was the "my icons are still not tinted / is this cached?" mystery).
+- Settings: the shaping-interface field is optional now - BLANK = automatic
+  (the container's default route), which is the recommended setting.
+
+### 0.46.0
+- Action-icon colours are computed straight from the palette now (no CSS-var
+  indirection): rainbow off = neutral grey with white glyphs, rainbow on =
+  palette colours with auto black/white glyphs.
+- Badges appear INSTANTLY after a reload: the last known engine state seeds the
+  first paint from a local cache and rows are decorated the moment they land;
+  the live fetch corrects moments later.
+- Container logos are finally vertically centred: the offset is MEASURED per
+  row and compensated with a transform, instead of another blind CSS attempt.
+- Bandwidth diagnostics: the editor now reads the LIVE tc + netfilter state
+  from inside the container and shows proof ("tbf AKTIV") or the exact failure
+  ("Limit greift NICHT ..."), so a silent no-op is impossible. The shaping
+  interface is auto-detected from the container's default route when the
+  Settings field is blank.
+- Icon layout: row 1 = WebUI, Log, Bearbeiten (Log opens the native container
+  log); the console moved into the dots menu.
+
+### 0.45.1
+- Fixes the download-limit rule on nf_tables-based iptables: hashlimit in byte
+  mode requires burst to be at least the rate - the burst is now exactly one
+  second of the configured rate. Caught by the new CI netns proof step.
+
+### 0.45.0
+- DOWNLOAD limits are back - kernel-safe this time. The download cap is pure
+  NETFILTER policing: an iptables hashlimit rule on the container's own INPUT
+  chain (entered via nsenter, like the upload shaper) drops packets above the
+  byte rate and TCP settles onto the cap. NO tc ingress qdisc is ever created -
+  the sch_ingress module that froze the server stays untouched forever, and a
+  unit test guards the download path against ever emitting a tc command.
+- Works identically for ipvlan and macvlan (br0.x) networks: the rule lives
+  inside the container's netns, host veth or not.
+- The bandwidth editor has its download field again (Mbit/s, 0 = unlimited);
+  the BW badge tooltip shows both directions.
+- CI proves the mechanics against a real kernel: a hashlimit rule is applied
+  and verified inside a live container netns on every build.
+
+### 0.44.0
+- Icon colours are a rainbow-only feature again: with rainbow off every action
+  button is neutral grey with a white glyph, in list AND card view.
+- Card view: the floating gear above the cards is gone - the gear is a small
+  tile at the end of the card grid instead.
+- Card view: the duplicate text buttons (Stop/Start/Pause/Restart) are gone;
+  the icon block is the one lifecycle control.
+- The start-plan editor's button says just "Speichern".
+
+### 0.43.0
+- Action icons are coloured in NORMAL mode too: they use the same per-kind base
+  palette as the badges; rainbow simply overrides it.
+- The gear is visible again: it sits INSIDE the header row's last cell now -
+  the absolute overlay on the table container was clipped by its overflow,
+  which is why the gear menu seemed to be nowhere.
+- Card view: container logos are back (the icon cache stored misses forever
+  when the grid rendered before Unraid's table rows arrived) and every card
+  carries the same action-icon block as the list rows.
+- The empty toggle row above the table is collapsed in card view as well.
+
+### 0.42.0
+- Action icons really take their colour now: Unraid's theme CSS styles .fa
+  glyphs directly, which beat the inherited colour - the glyph is forced to
+  follow the button colour inline (black/white per background, rainbow too).
+- The update-all pill is gone from the header: Unraid's own Update-All button
+  below the table covers it (ShipLog stays untouched; the pill is only hidden
+  while CannonadeCommand is installed).
+- The Basic/Advanced view toggle moved into the gear menu as an Einfach/
+  Erweitert segment (it flips Unraid's own hidden checkbox, so cookie and
+  re-render stay native). The header strip now carries only the gear.
+
+### 0.41.0
+- Action icons are Font-Awesome glyphs now, not emoji: emoji ignore CSS colour,
+  FA inherits it - every icon renders black or white automatically depending on
+  its background, exactly like the badge text (rainbow mode included).
+- The actions column is narrow (122px) - just its two icon rows.
+- The update-all pill and the Basic/Advanced view switch (plus our gear) moved
+  into the right end of the dark column-header strip; the old row above the
+  table is collapsed, so the empty band between the main menu and the table
+  header is gone.
+
+### 0.40.0
+- Action icons finally carry the RIGHT targets: the per-container data is now
+  read straight from the row's own onclick attribute (name, template, webui,
+  tailscale-webui, shell, support/project/registry/donate/readme links), parsed
+  positionally against Unraid's real addDockerContainerContext signature.
+  Wrapping the function could never work - the attribute only executes when the
+  icon is clicked, and we block that click ourselves.
+- Edit now navigates exactly like Unraid's own editContainer() (raw template
+  path - URL-encoding broke the edit page). Console passes the container's
+  configured shell.
+- Icon layout as requested: row 1 = WebUI, Konsole, Bearbeiten; row 2 =
+  Neustart, Pause, Stopp, dots. The dots button expands Tailscale-WebUI plus
+  the support/project/registry/donate/readme links as icons with proper names;
+  it greys out when a container has no extra links.
+- CPU/RAM/BW badges are back in the simple view: the column-unhide rule still
+  pointed at the pre-actions-column index.
+
+### 0.39.0
+- Fixes the v0.38 column chaos: the actions cell was injected AFTER the shifted
+  column lookups ran, so resource badges landed in Autostart, the plan chip in
+  uptime and the network badge in a hidden column. The cell is now injected
+  first; every badge is back in its own column.
+- Fixes the missing WebUI/Edit icons: Unraid registers its context menus from
+  AJAX-loaded HTML that jQuery executes without adding script nodes to the DOM,
+  so scanning script tags found nothing. The registration function itself is now
+  wrapped and every registration harvested live; action cells rebuild as soon as
+  the data arrives.
+- The actions block is ALWAYS a stable 2x3 icon grid - WebUI, console,
+  stop/start, restart, pause/resume, edit; actions without a target render
+  greyed out instead of vanishing. The dots button is a slim full-width bar
+  under the grid and expands the remaining harvested links in the same style.
+
+### 0.38.0
+- The ACTIONS column moved between the application and the version column; the
+  icons flow as a two-row grid (three per row).
+- "..." no longer opens the native list - it expands the REMAINING actions in
+  the same icon style: pause/resume plus every additional link harvested from
+  the page's own registrations (project page, support, donate).
+- Clicking a container ICON no longer opens the native menu: the action icons
+  flash briefly instead, pointing at the new column.
+- Rainbow mode tints the action icons through the palette.
+- Version and network columns are narrower (165/185px), the volumes column is
+  wider (260px, hover marquee kept).
+- The start-plan popup has ONE save button at the bottom.
+
+### 0.37.0
+- Writes finally reach docker: Unraid's emhttp accepts a POST's csrf_token ONLY as a
+  form-body field (the query-string variant was dropped with an empty 200 - proven by the
+  user's own error trail: PUTs passed, POSTs died). Every write now goes form-encoded
+  (csrf_token plus data) and the proxy unwraps the JSON for the daemon.
+- NEW: per-row ACTIONS column - WebUI, console, stop/start, restart, edit as one-click
+  icon buttons (names on mouseover), plus "..." opening Unraid's full native menu
+  (Entfernen etc. deliberately stay behind a second click). WebUI/template are harvested
+  from the page's own registrations; icons only render when their function really exists.
+- The volumes column is narrow (160px); long paths ellipsize and scroll as a marquee
+  while hovered.
+- "Plan speichern" works with dependencies on unmanaged containers: an implicit node
+  (ready-when-running, never blocking) is auto-added - no more "unknown node" rejection.
+- Rainbow mode tints toggles and primary buttons with one palette colour; the
+  apply-update link always shows its amber pill; the ShipLog update-all button text is
+  vertically centred.
+
+### 0.36.0
+- csrf_token is now fetched from THREE sources (JS global, form field, cookie) - v0.35
+  appended the global only, which does not exist on every box, so writes were still
+  dropped. The empty-reply error now states whether a token WAS sent, so the next failed
+  save (if any) names the exact missing piece.
+- Icon tint at full strength no longer paints a light halo on the icon edges (pure colour
+  matrix instead of merging with the bright original).
+- The network badge lost its trailing dot.
+- Editing any field in the plan editor auto-enables "Im Startplan verwalten" - edits made
+  while the toggle was off were silently discarded (a picked dependency vanished on reopen).
+
+### 0.35.0
+- THE actual root cause of "limits never stick", proven on the box: Unraid's emhttp
+  silently DROPS every POST without a csrf_token and answers an empty 200 - so no
+  save from the browser ever reached docker, while every GET (status, lists,
+  versions) worked. All writes now carry the csrf_token, and an empty reply to a
+  write is a hard error instead of a fake "Angewendet". The daemon side was
+  verified healthy: a direct socket POST applied and verified a real cap.
+- The proxy additionally ships as ccapi.php and the scripts call the new name -
+  no stale PHP cache can ever answer again.
+- Popup buttons react on hover again; icon block vertically centred (stray
+  elements below it are hidden); rainbow = REAL rainbow order with 8 colours and
+  a "reset colours" button; forensic raw-reply line when a verify read is missing.
+
+### 0.34.0
+- THE stale-engine root cause is fixed: the rc script trusted a pidfile that could hold the
+  wrong pid (setsid may fork), so stop() killed nothing and every update kept the OLD engine
+  serving forever - the "verify read missing (engine older than UI)" verdict. is_running and
+  stop now use the binary-path truth (pgrep -f) and kill every daemon process (graceful,
+  then hard). Do ONE clean Remove + reinstall; afterwards every update replaces the engine.
+- Popup buttons are FILLED (primary accent, secondary grey) to match the badges.
+- Icon centring hardened further (the tint pass also centres the icon wrapper inline).
+- Every rainbow palette colour is EDITABLE: Settings shows all 14 swatches - click one and
+  adjust it in the embedded picker (stored as cc.rbpal, read live by the Docker tab).
+
+### 0.33.0
+- The green save confirmation is now the COMPLETE verdict, always: the docker-verified
+  values ("RAM 100M"), or an explicit "verify read missing (engine older than UI?)" when
+  the re-read is absent/fails, plus the template-mirror result (ok AND failed) every time.
+  One save now answers every open question at once.
+- ONE popup style everywhere, enforced centrally: no container name in the CPU/RAM/
+  bandwidth titles, no separator lines in any popup, buttons as wide as the cards above
+  with a roomier gap to the bottom edge.
+- Narrow numeric fields (start delay, max/h, port, unit, schedule) keep their SHORT width.
+- Icons and names sit vertically CENTRED in the row.
+- Rainbow rotation is toggleable in Settings ("rotate colours on every reload", default on).
+
+### 0.32.0
+- Plan-editor rows finally sit TIGHT (the row itself and every child are now styled inline,
+  unbeatable by Unraid's theme), input fields no longer poke out of the popup, and the
+  editor lost the container-name header and both separator lines.
+- The gap between the autostart toggle and the Startplan chip equals the CPU/RAM badge gap
+  (enforced inline; stray line breaks in the native cell are switched off).
+- Logos and names (every cell) are vertically CENTRED in the row.
+- Rainbow mode ROTATES: 14 colours, and every tab reload deals a fresh colour mapping
+  across all badge kinds; text colour flips dark/light automatically by brightness.
+- The Unraid-template mirror of a limit change is no longer silent: the green confirmation
+  shows a warning if it failed, and the diagnostics card records "template ok/FAILED" per
+  operation - a failed mirror is exactly what makes limits vanish on the next recreate.
+
+### 0.31.1
+- THE RAM-limit fix, this time caught and proven by the new real-docker CI test: raising a
+  RAM cap past the stored auto swap cap sent MemorySwap -1, which real dockerd REJECTS on
+  an update; the engine now sends MemorySwap = 2x the new Memory (docker's own create-time
+  semantics) and the whole set/raise/remove chain passes against a live docker daemon.
+
+### 0.31.0
+- Editor styling is now applied INLINE on every popup element: Unraid's own theme was
+  overriding our stylesheet on the real page (which is why row gaps and field styling kept
+  "coming back" despite fixes that rendered correctly in isolation). Tight rows and
+  borderless, lighter input fields can no longer be beaten by any theme.
+- Container icons are 30% bigger (62px) and their size is likewise enforced inline - they
+  cannot shrink back again.
+- "Haengt ab von" now has a real MULTI-select dropdown: it opens on focus, every click
+  toggles a container in the list, and it stays open to pick several (a native suggestion
+  list could only ever insert ONE).
+- CI now PROVES the CPU/RAM limit chain against a REAL docker daemon on every push: set,
+  raise past the auto swap cap, remove, quota-family CPU, NanoCpus + pinning, first-time
+  cap - all asserted via docker inspect.
+
+### 0.30.0
+- Editor input fields have NO border anymore - just a lighter background (focus = accent ring).
+- "Watchdog (Auto-Neustart)" is simply called "Auto-Start" now.
+- The UI version is stamped into the scripts and shown EVERYWHERE the engine version shows
+  (gear menu "engine up ... UI vX", Settings header "UI vX - Engine vY"). If those two ever
+  differ from the installed plugin version, the box is running a stale frontend - which is
+  exactly what repeated "it still doesn't work" reports turned out to be: the editor in the
+  latest screenshot (bordered fields, wide row gaps) is the OLD pre-0.28 UI, while the fixes
+  live in the current one. Check "UI v0.30.0" appears after installing; if not, the update
+  did not take.
+
+### 0.29.0
+- The force-update badge is back: our tag-badge code hid EVERY advanced div in the update
+  cell, including the one carrying the force-update link. Only the text divs are hidden now.
+- ALL badges in the name column stack vertically (ID, Volumes, ... one under the other).
+- Consistent badge text colour: amber badges always carry dark text now (the rainbow BW
+  badge was white-on-amber); accent-coloured badges already auto-switch by brightness.
+- The CPU/RAM diagnostics card sits DIRECTLY above the Bandwidth card.
+- The gap between the autostart toggle and the Startplan chip equals the CPU/RAM badge gap.
+- The container chip list under "Haengt ab von" is gone again (the suggestion popup is
+  enough), and the editor rows sit even tighter.
+
+### 0.28.0
+- THE mystery of "saved but gone on reopen" is solved (reproduced headless with the real
+  script): the limits WERE saved all along — but the reopened editor rendered EMPTY for the
+  seconds its fresh per-container read queued behind the save-triggered bulk inspect sweep,
+  and the post-save auto-close timer could even kill a popup you had reopened meanwhile.
+  The editor now prefills instantly from the cached (and docker-VERIFIED) values, refreshes
+  when the fresh read lands, and the auto-close only ever closes its own editor.
+- After resuming a PAUSED container the badge no longer flashes red "laeuft x": while paused
+  the healthchecks cannot run, so Docker briefly reports "unhealthy" - a pause artifact. An
+  unpause via the plugin now gets a 90s grace before the red alert, and the x badge carries
+  an explanatory tooltip.
+- Settings colour cards: the picker spans the full card width, the hex field sits BELOW it,
+  and both cards have the picker at the same height.
+
+### 0.27.0
+- Every CPU/RAM limit change is now VERIFIED and LOGGED: after a save the editor shows the
+  values docker actually applied (a green line), and a new "Diagnostics: CPU/RAM limits"
+  card on the Settings page lists the recent limit operations with docker's exact result -
+  so "did it apply, and if not why" is readable at any time, not only in a fleeting popup.
+- The colour picker is PERMANENTLY EMBEDDED on the Settings page (a saturation/value field
+  plus a hue bar, always visible) - no more OS colour dialog opening in its own window.
+- The start-plan editor rows sit tight together (Unraid's global input margins are now
+  overridden hard), and the "Hängt ab von" field has ONE-CLICK container chips underneath -
+  no more double-clicking to open the suggestion list.
+
+### 0.26.0
+- The native "apply update" button is back. Our styling hid EVERY update-column action link
+  whenever the "force update" badge column was off (its default in the Basic view) - which
+  also swallowed the apply-update link and its amber "update ready" text on containers with
+  an available update. The force toggle now only affects the advanced force-update link; the
+  apply-update action is always visible (amber pill).
+
+### 0.25.0
+- Icon tinting now KEEPS the icon's shading: each pixel becomes its brightness in the chosen
+  colour (shadows stay dark, highlights stay bright) instead of a flat one-colour silhouette.
+  Applies to container icons (list + grid) and VM icons alike.
+- State badges react to NATIVE Unraid actions too: when a container is stopped/started via
+  Unraid's own buttons/menu, the badge follows as soon as Unraid refreshes its list — not
+  only after the next 9-second poll ("only switches after the page refreshes").
+- A container in Docker's "created" state (built but never started, e.g. right after an
+  Unraid edit) now reads "gestoppt" like any stopped container — no more "erstellt".
+- The start-plan editor is formatted as CARDS: the plan fields, the watchdog and the
+  schedules each sit in their own tidy block, and the top rows sit close together instead
+  of drifting far apart.
+
+### 0.24.0
+- CPU / RAM limits: setting AND removing now works on containers that were capped via the
+  Unraid template's "Extra Parameters". THE cause of the endless "it just doesn't save":
+  a container created with --memory automatically carries MemorySwap = 2x that value, and a
+  live update that raises Memory past it (setting a higher cap, or REMOVING the cap = set to
+  host RAM) is rejected by Docker with "Memory limit should be smaller than already set
+  memoryswap limit". The engine now inspects the container first and lifts the swap cap
+  (MemorySwap -1) in the same update whenever one exists; likewise a legacy CFS CPU quota is
+  cleared (CpuQuota -1) so a NanoCpus update can't be rejected with "Conflicting options".
+  On a cgroup-v1 box the update is retried without the swap change.
+- State badges now update live everywhere: the list-row badge kept its old label forever
+  ("the badge doesn't switch on stop/restart") because rows are only enhanced once — every
+  refresh now syncs all badges in place (and the click action/tooltip follow the new state).
+- The grid (card) view has its OWN gear, pinned top-right above the cards — "which gear
+  menu?" answered. The Settings page header additionally shows the RUNNING engine version.
+- The CPU-pinning picker is a real core picker like the VM manager: one box per physical
+  core with its hyperthreads stacked inside, wrapping into rows, bigger readable cells —
+  and on Intel hybrid CPUs each box is tagged P or E (blue / amber) so E-cores are
+  distinguishable. The editor popup is wider to fit it.
+
+### 0.23.0
+- CRITICAL SAFETY FIX: the DOWNLOAD (ingress) bandwidth limit is removed — it could CRASH the
+  Unraid kernel. Setting a download cap ran "tc qdisc add ... ingress", which faults in the
+  kernel's sch_ingress module (at tcx_miniq_inc, "exited with irqs disabled") on affected Unraid
+  kernels: the WebUI and SSH freeze (ping and already-running containers keep working). Because
+  the limit was re-asserted every tick, it could even recur after a reboot. The plugin now NEVER
+  creates an ingress qdisc. UPLOAD limiting stays (a safe tbf egress qdisc). If your server
+  became unreachable after setting a bandwidth limit, THIS was the cause.
+  AFTER UPDATING: remove any bandwidth limit you set, and reboot once so no leftover ingress
+  qdisc lingers. Download limiting will return only via a method that cannot crash the host.
+- The CPU-pinning core grid is far more compact: a 32-thread CPU is now a few short rows instead
+  of one very long column.
+- The container state badge reacts immediately on click: it shows "wird gestoppt" / "startet neu"
+  the moment you press stop/restart (Docker has no "stopping" state to poll), until the next
+  refresh confirms the real state.
+
+### 0.22.0
+- THE fix for "CPU / RAM / Bandwidth do nothing": those three gears only existed in the LIST
+  view. In the GRID (card) view there was no CPU/RAM/BW gear at all, so there was literally
+  nothing to click — which is why setting AND removing all three failed identically, with no
+  error (no request was ever sent). Each grid card now carries the same CPU / RAM / BW badges
+  and gears as a list row, so the limits are editable in both views.
+- Container icons are no longer stretched in the list view. A non-square logo was squashed into
+  a 48x48 box; it now keeps its aspect ratio (the grid cards already did this).
+- The Startplan chip no longer shows an underline on hover — it reacts like the "läuft" badge
+  (colour only, no line).
+- The toggle in the plan editor (and Settings) is now always ONE solid colour, never a rainbow
+  gradient, even in rainbow mode.
+- "Bereit wenn" and "Bei Fehlschlag" now have a small ⓘ info bubble that explains what each
+  option does (health / running / tcp / http / exec / log · abort / continue / degrade).
+- The schedule rows (Zeitpläne) are cleaner and roomier — each on its own card, with a clearly
+  visible clock icon on the time field.
+- VM-icon tinting is more reliable. The VM list is often filled by an AJAX call AFTER our script
+  runs; the tint now retries attaching until the list appears, so it stops intermittently not
+  colouring.
+
+### 0.21.0
+- The toolbar gear is visible again. It was being inserted just ABOVE Unraid's Basic/Advanced
+  toggle as a stray element that was easy to miss ("there is no gear"); it now sits INSIDE that
+  view-toggle row, right-aligned and accent-coloured, next to the toggle.
+- When setting or removing a CPU / RAM / bandwidth limit fails, the EXACT reason now STAYS on
+  screen in the editor (a red line you can read) instead of a 2.6-second toast. So if a
+  "docker update" is rejected, you can finally see WHY — the daemon's own error text.
+- Honest engine status. CPU / RAM / bandwidth ALL need the host daemon; the VM-icon tint does
+  NOT (it is pure browser CSS). So if limits fail while VM icons still colour, the daemon is not
+  reachable, which is a different problem. The gear now turns RED and the menu says "engine DOWN
+  — daemon not reachable" in that case, instead of the old, misleading "engine up · 0".
+
+### 0.20.0
+- The gear menu now shows the RUNNING daemon version ("engine up · N · vX.Y.Z"). This is a
+  diagnostic for the "I updated but nothing changed" case: if it still shows an OLD version
+  after you update, the update did not actually take on that box. To force a clean update,
+  REMOVE the plugin (Plugins tab → CannonadeCommand → Remove) and then install the URL
+  again — that guarantees the new version + daemon are the ones running.
+
+### 0.19.0
+- Bandwidth is now UPLOAD and DOWNLOAD. The per-container editor has two fields (↑ Upload,
+  ↓ Download, Mbit/s). Upload is shaped with a tbf qdisc; download is limited with an
+  ingress-policing filter inside the container. Setting only an upload cap no longer leaves
+  a download running at full speed (that was the "BW greift nicht" on a JDownloader
+  download — an upload cap can't slow a download).
+- Row density (compact / normal / airy) now actually changes the row height. It only moved
+  the cell padding before, which the tall badge content swallowed; it now also tightens or
+  loosens the badge spacing (and shrinks the icon a touch in compact), so the setting is felt.
+
+### 0.18.0
+- Removing (and setting) a CPU / RAM limit REALLY works now, for real this time. The live
+  "docker update" was still sent with a swap value (MemorySwap = -1); on an Unraid host
+  WITHOUT swap accounting (the default — no swapaccount=1) the kernel has no memory.memsw
+  cgroup, so writing ANY swap value — even -1 — fails with ENOENT and aborts the whole
+  update, so the memory cap was never changed. The swap value is no longer sent at all.
+  The cap is also stripped from the container's Unraid template regardless of the live
+  result, so it's gone after an "Apply" as well.
+- The little status dot on the CPU / RAM / BW badges is gone — the gear turning green
+  already shows when a limit is set on that line.
+- The extra "CannonadeCommand" tab in the VMs area is gone. It was only there to load
+  the VM-icon script on older Unraid; on Unraid 7.1+ the script loads invisibly (no tab)
+  and tints the VM row icons on the Virtual Machines tab directly — just set an icon
+  colour on the Settings page. (On pre-7.1 Unraid, VM-icon tinting no longer applies.)
+
+### 0.17.0
+- Live NETWORK traffic: the BW badge (and the grid card) now show each running
+  container's live download / upload rate (↓ received ↑ transmitted), so a download
+  actually shows up. The configured upload cap still shows in the badge tooltip + dot.
+  (Setting a download LIMIT is coming in a follow-up; upload limiting is unchanged.)
+- You can now remove a CPU / RAM limit by CLEARING its field and pressing Save, not only
+  via the "Remove limit" button. The editor is prefilled with the current limit, so
+  emptying the field and saving now removes that cap (before, clearing it and saving
+  silently did nothing).
+- ShipLog's "update all" button (when ShipLog is installed) is restyled to match the
+  CannonadeCommand badges: an accent pill, green in rainbow mode, and the whole toggle
+  row is right-aligned again so the button and the Basic/Advanced switch sit together on
+  the right. The Basic/Advanced label is now correctly vertically centred with its switch
+  (the previous fix targeted the wrong element and never took on a real Unraid page).
+
+### 0.16.0
+- VM-tab icons now really tint. Root cause found: Unraid's VMs tab is a "tabbed" page,
+  and our injector page had no title, so on many Unraid builds it was never emitted and
+  vms.js never loaded (which is why three earlier tint fixes changed nothing). The VM
+  injector is now a titled tab, so "CannonadeCommand" appears in the VMs area and the
+  script loads on every build and tints the VM row icons on the Virtual Machines tab.
+- VM icon tinting is now ON by default whenever you pick an icon colour. The separate
+  "Also tint VM icons" switch was an easy-to-miss opt-in; it is now an opt-out. Glyph
+  icons (most VM icons are a font glyph, not an image) are tinted with priority so
+  Unraid's own icon colour can't override it.
+- Removing (and setting) a CPU / RAM limit now works on hosts WITHOUT swap accounting
+  (most Unraid boxes). The live "docker update" was sent with a swap limit, which the
+  kernel rejects when there is no swap-accounting cgroup — the update failed and aborted
+  before the limit was removed, so the Remove button silently did nothing. It now sets
+  unlimited swap, which needs no swap cgroup. (The host-RAM value used for "unlimited"
+  also falls back to what the Docker daemon reports if /proc/meminfo can't be read.)
+- The Basic / Advanced view-toggle label is vertically centred with its switch again
+  (it sat too high next to the enlarged pill).
+
+### 0.15.0
+- Container-icon colouring now hits the EXACT colour you pick. It was an approximate
+  hue-rotate before (close, but the wrong shade); it is now an SVG colour-matrix that
+  maps every icon pixel to the precise sRGB colour, alpha kept.
+- VM-tab icons finally tint. Unraid draws most VM icons as a font GLYPH (not an image),
+  which an image filter cannot recolour, so they stayed untinted; glyphs are now tinted
+  by their font colour and real .png VM icons by the same exact colour-matrix filter.
+- Removing a CPU / RAM limit is fixed. It used to do nothing when the browser had not
+  cached the host's RAM size; the "unlimited" value is now computed on the server (all
+  host RAM / all cores) and the flag is stripped from the container's Unraid template,
+  so a later "Apply" starts with no cap.
+- Bandwidth moved next to where it belongs: the egress cap is now a THIRD limit stacked
+  under CPU and RAM in the resource cell, with its own gear (it left the start-plan
+  editor). CPU, RAM and bandwidth always sit one under the other.
+- The interface the egress shaping runs on (the in-container NIC, almost always eth0)
+  is now selectable on the Settings page, instead of being fixed to eth0.
+
+### 0.14.0
+- New readiness probes: "exec" (a command run in the container exits 0, like a
+  HEALTHCHECK) and "log" (a marker string appears in the container's recent logs) —
+  alongside health / running / tcp / http, chosen in the chain-chip editor.
+- Resource limits set here are now apply-fest: they are also written into the
+  container's Unraid template (ExtraParams --cpus/--memory/--cpuset-cpus), so an Unraid
+  "Apply" no longer drops them.
+- New per-container EGRESS bandwidth limit (experimental): set an upload cap in Mbit/s
+  in the chain-chip editor. Docker has no bandwidth API, so it is applied with tc (a tbf
+  shaper) inside the container while it runs; needs nsenter + tc on the host (interface
+  eth0), and is re-applied after a restart on the next monitor cycle.
+
+### 0.13.0
+- Container-icon colouring is rebuilt AGAIN so it can't break: the tint is now a CSS
+  filter applied directly to each icon, not a positioned overlay (the overlay could sit
+  offset from the icon on the real row). Bold recolour, cannot be mis-aligned.
+- VM-tab icons now actually tint: the selector was wrong (the VM list is #kvm_list, not
+  #vms), so it never matched. Fixed against the real VM-manager markup.
+- You can now remove a CPU / RAM limit: a "Remove limit" button in the editor. Docker
+  can't fully unset a limit on a running container, so this sets it to unlimited (host
+  RAM / all cores) live; the dot then reads as "not set". Truly gone needs a recreate.
+- The native per-container autostart "wait N seconds" is hidden — the start delay lives
+  in the start plan (Start delay) instead.
+- The Basic / Advanced view toggle keeps its text label again (only the per-row
+  autostart on/off text is hidden).
+
+### 0.12.0
+- Container-icon colouring now has a clear ON / OFF switch (the old "Off" button that
+  never seemed to move is gone). Flip the switch, pick the colour beside it.
+- CPU pinning is now the HOST's cores, not the browser's: the core grid comes from the
+  server (like the VM core picker), grouped one physical core per row with its
+  hyperthreads, so every core/thread is individually pinnable. Selected cores are
+  colour-coded per physical core in rainbow mode.
+- The CPU / RAM gear turns green when a limit is actually set on that container.
+- A stopped container on a custom network now shows its LAN IP too (it was blank).
+- "Manage in the start plan" is now a toggle. In rainbow mode the toggle, the day
+  buttons and the editor's checkboxes are colour-coded.
+- New HTTP readiness probe: gate the next container on an HTTP GET returning OK
+  (choose "http" as the ready-when check and give it a path like /health).
+
+### 0.11.0
+- Container-icon colouring is rebuilt so it actually works: each icon is now
+  recoloured by a masked overlay in the chosen colour (a solid one-colour silhouette
+  at full strength, a colour wash that keeps the icon detail at lower strength). The
+  old CSS-filter approach could look like nothing changed; this cannot. The strength
+  slider now visibly blends between the original and the colour.
+- CPU, RAM and network badges carry a small status dot: filled = a limit / custom
+  network is configured on that container, hollow = it is on the defaults. So you can
+  see at a glance where something is set and where it is not.
+- New Volumes badge shows a container's volume/bind-mount count (with every
+  "source to dest" in its tooltip), and it shows even for a STOPPED container. It has
+  its own column in the Simple/Advanced matrix.
+- The start-plan badge no longer carries the little chain icon.
+- Rainbow mode now also colours the start-plan badge, the AUTOSTART switch, and the
+  Settings column-matrix checkboxes + toggles, so the whole scheme is consistent.
+
+### 0.10.1
+- Both Settings colour pickers now show the native swatch AND a hex field side by
+  side (kept in sync): pick visually or type "#2f6feb". This applies to the badge
+  accent and to the container-icon colour, so the icon tint is finally settable.
+- Container-icon tinting targets the real Docker-row icons now (it was missing the
+  rows), so "colour all icons" actually recolours them.
+- The per-row AUTOSTART and Basic/Advanced switches are restyled to exactly match
+  the Settings toggles (accent pill, white knob) and the AUTOSTART on/off wording
+  is hidden - the switch alone carries the state.
+- Row density (compact / normal / airy) now takes effect: the padding override is
+  forced past Unraid's own row CSS.
+- CPU and RAM show as live badges in the Simple view too (fed from the engine, not
+  Unraid's advanced-only cell), each with its own gear for its limit.
+- CPU pinning is graphical: a clickable core grid like the VM settings, one cell
+  per logical core (falls back to a text field on very large core counts).
+- The image tag (e.g. "latest") is a proper badge now and only appears in the
+  Advanced view - it no longer leaks into the Simple view as raw text.
+
+### 0.10.0
+- The colour pickers (badge accent AND container-icon colour) are reliably visible
+  again: Unraid's global input CSS was stripping the native colour input down to a
+  thin line, so the picker looked missing and "off" would not turn off. Forced back
+  to a proper swatch. (This is why the icon colouring seemed not to work.)
+- RAM limit is now a plain number with an MB / GB selector; CPU pinning (cpuset,
+  e.g. "0-3,6") can be set alongside the CPU limit; the editor's button is just Save.
+- Badge text colour is consistent now: every rainbow badge carries its own
+  dark/light text, so a light accent no longer leaves dark badges with dark text.
+- The start-plan editor's day toggles, "+ schedule" and action buttons lost the
+  stray orange borders (they were buttons Unraid restyled - now plain controls).
+
+### 0.9.1
+- The native Unraid toggles in the Docker tab (the per-row AUTOSTART switch and the
+  Basic/Advanced view switch) are now styled to match: a clean accent pill with a
+  white knob, instead of Unraid's tiny grey slider. Only the look changes - Unraid
+  still drives the switch, so the click behaviour is untouched.
+- A stopped container now shows its IP again: Docker reports no runtime IP while a
+  container is off, so the engine falls back to the container's CONFIGURED static IP
+  (its br0.x address), which the Docker-tab badge then displays.
+
+### 0.9.0
+- Second round of box-test UI fixes. The Settings page controls that Unraid's
+  global button CSS was still overriding (preset swatches, the Simple/Grid and
+  density segments, the "off" button, Save) are now plain switches like the toggle,
+  so no more orange borders or bloated swatches; the swatches are smaller, the
+  colour picker stays visible with a live hex, the segment group lost its grey
+  frame, and the rainbow preview now uses the REAL badge colours.
+- Badge text now auto-contrasts: dark text on a light accent, white on a dark one
+  (so a light accent colour stays readable).
+- Container logos are 15% larger. CPU / RAM shows by default in the Simple view.
+- CPU and RAM are set SEPARATELY now: a small gear behind each badge opens its own
+  limit editor. Any pop-open badge (start plan, CPU, RAM) closes again when you
+  click it a second time.
+- Container-icon tinting is applied more robustly (per row, on the actual icon).
+
+### 0.8.1
+- CRITICAL uninstall fix, root-caused against Unraid's own plugin-manager source.
+  The removal script was wrapped in a bare `&lt;REMOVE&gt;` tag, which Unraid does NOT
+  execute (it only runs `&lt;FILE Method="remove"&gt;` blocks) - so on every prior version
+  the cleanup silently never ran: the daemon kept running, the plugin files, the
+  installed package and the cached flash .txz all stayed behind (Unraid still moved
+  the flash .plg off, because a remove that runs nothing trivially "succeeds"). This
+  also explains why the earlier "pkill" fix never helped - it lived in a block that
+  never executed. The removal is now a proper `&lt;FILE Run="/bin/bash" Method="remove"&gt;`
+  block that ends with `exit 0` (Unraid only clears the flash .plg on a zero exit, so
+  a non-zero exit would reinstall on boot), stops the daemon by PID, removes the exact
+  registered package, wipes the plugin dir and the cached .txz, and keeps your plan.
+  Installs also drop old flash .txz so packages no longer pile up across updates.
+
+### 0.8.0
+- UI fixes from box testing. The per-container editor (the chain chip) and its new
+  watchdog / schedule controls were inheriting Unraid's global button/input theme
+  (orange borders, clipped uppercase labels, stray underlines) because the popover
+  lives outside the Settings page; that theme is now neutralised inside the popover,
+  the action buttons fit, every field is one consistent box (with a caret on the
+  dropdowns), checkboxes and day toggles take the accent colour, and the whole
+  editor follows the WebGUI language.
+- Settings page: the on/off toggles travel fully again (they were buttons Unraid
+  restyled - now plain switches), the accent picker is a large always-visible field
+  with the preset swatches below it, and the checkboxes and slider take the accent.
+- Container-icon colouring now actually applies (the tint is set directly on each
+  icon, robust to Unraid's live re-render) and the picker no longer closes mid-drag.
+  New: optionally tint the VM-tab icons too (a toggle on the Settings page).
+
+### 0.7.0
+- NEW automation, all per container: SCHEDULES (start / stop / restart at a
+  wall-clock time, optionally on chosen weekdays), a WATCHDOG (auto-restart a
+  container when it goes unhealthy or crashes, with a per-hour cap), and
+  NOTIFICATIONS (Unraid's own notifications and/or a webhook POST). Schedules and
+  the watchdog are set per container from the start-plan chip in the Docker tab;
+  notifications are configured on the Settings page. Schedules run in the server's
+  local time.
+- The watchdog restarts only on a real crash: a clean or manual stop (exit 0, or a
+  SIGTERM / SIGKILL from a docker stop) is left alone, so it never fights a stop
+  you meant. Restart and failure alerts are throttled, and the per-hour cap yields
+  a single "gave up" instead of an endless restart loop.
+- The automation config is persisted on the flash (config.json, kept on uninstall
+  like the start plan) and written atomically with fsync. Both editors
+  read-modify-write the live config, so saving one part never drops another.
+
+### 0.6.1
+- Removed the gear from the Docker tab entirely (all configuration lives on the
+  Settings page now). The plan actions - Save plan and Start in order - moved into
+  the start-plan editor popover (opened from a row's chain badge).
+- Settings page polish: neutralised Unraid's orange button borders on our toggles
+  and segments, fixed the rainbow toggle rendering, and stopped the View card from
+  overflowing.
+
+### 0.6.0
+- Redesigned Settings page (Settings > Utilities, ShipLog-style cards): all
+  configuration now lives here. Nicer colour picker (preset swatches + a custom
+  field), a RAINBOW mode (each badge kind its own colour), colourise every
+  container icon toward a chosen colour with a strength slider, the per-view column
+  matrix, default view and row density.
+- CPU / RAM is shown by default now (a feature), even in the Simple view.
+- The start delay is part of the start plan: set "wait N seconds before starting"
+  per container in the plan editor; the engine honours it.
+
+### 0.5.1
+- CRITICAL uninstall fix. The REMOVE step ran `pkill -f cannonadecommand`, but
+  Unraid executes the uninstall as `/bin/bash /tmp/inlineN-cannonadecommand.sh`
+  under `plugin remove cannonadecommand.plg` - so that pkill matched and killed
+  its OWN script (and Unraid's plugin process) before `rm -rf` ran. The files
+  (and the Docker-tab injection) were left in place - visible even in a fresh
+  incognito window - and because the .plg was never moved off the flash, the
+  plugin reinstalled on the next boot. Removed the pkill entirely; the daemon is
+  stopped precisely by its PID (rc stop), so uninstall now removes everything.
+
+### 0.5.0
+- NEW: a Settings page (Settings > Utilities > CannonadeCommand) to pick the
+  badge accent colour, choose which columns show in the Simple vs Advanced view,
+  and set the default view + row density.
+- NEW: per-container CPU / RAM limits. A small gear on the resource cell opens an
+  editor that reads and sets the memory + CPU caps live via Docker's
+  container-update (no restart; Docker persists them across restarts).
+- One consistent, borderless MATERIAL badge system with strong colours. The
+  container logo is bigger and its name is vertically centred in a narrower
+  column; Container ID and source sit beneath the start/stop badge; the image tag
+  and the ShipLog changelog are badges too (the changelog coloured by its risk);
+  the network group is one solid-accent set; the Startplan badge no longer
+  doubles; the gear moved into Unraid's Advanced/Basic view toggle bar.
+
+### 0.4.3
+- Uninstall now cleans up the OPEN Docker tab fast: a lightweight liveness check
+  tears the injected UI down within a few seconds of the plugin's files being
+  removed, without needing a page reload (note: a tab still running an OLDER
+  cached script has no self-remove - hard-reload it once, Ctrl+Shift+R).
+
+### 0.4.2
+- Thematically grouped columns and a cleaner look. Borderless MATERIAL badges
+  with strong colours (BombVault-style) and much better readability. The
+  container name is vertically centred next to its logo and its column is wider
+  for long names. Network, container IP, LAN IP and port are consolidated into
+  one column; the start plan sits next to autostart; container ID and source
+  (Von) move under the name. Uptime shows only in Advanced view.
+- More robust uninstall: the injected UI self-removes the moment the plugin's
+  proxy is gone, and re-arms automatically if the plugin comes back - no page
+  reload needed.
+
+### 0.4.1
+- Every datum in a row is now a clean, uniform BADGE, integrated in place with no
+  duplication: update status, force update, image tag, network, IP, port,
+  LAN IP:Port, live CPU and RAM, Container ID and the source (Von). The CPU and
+  RAM badges are back. The plan is a real, visible badge now.
+- The green play glyph and the redundant "started/Gestartet" text under the name
+  are hidden; the state is a badge you click to start or stop the container, and
+  the name is enlarged. Start/stop stays available via the icon's context menu.
+- Robust uninstall: the injected UI SELF-REMOVES when the plugin's proxy is gone,
+  so no bars linger even from a cached tab. Update installs wipe old plugin files
+  first (no orphans), and a cache-bust guarantees an update always loads fresh.
+
+### 0.4.0
+- No more bar or section of our own above the Docker list. Every global control
+  now lives behind a single gear in the native table header: the List / Grid
+  switch, the toggleable columns, the plan Save and Start in order, and the
+  filter. The list is enhanced in place; nothing floats above it.
+- The container name is enlarged and Unraid's redundant under-name state text is
+  hidden - state is now a badge you click to start or stop the container.
+- Cleaner default badges (just state and plan) so they fit the native cell and do
+  not duplicate Unraid's own advanced columns; the rest stay one click away in
+  the gear menu.
+- The install now prints the brand ASCII banner.
+
+### 0.3.1
+- CRITICAL FIX: the row injection had stopped being idempotent, so the DOM
+  observer and the injection re-triggered each other in an infinite loop that
+  pegged the CPU and could hang the Docker tab. Injection is idempotent again and
+  the whole script is wrapped in try/catch, so if anything ever fails the native
+  page is left untouched; the native list is never hidden in List mode.
+- Removed the redundant Settings page (it could linger in the Settings menu after
+  an uninstall) - the tool lives in the Docker tab. Uninstall hardened (also
+  kills the daemon and removes its socket/pid). The startup log now prints the
+  brand ASCII banner.
+
+### 0.3.0
+- The native list is much richer now, and toggleable. Container state shows as a
+  localised badge (laeuft / gestoppt / erstellt / pausiert, following the Unraid
+  language), plus optional badges for network, IP, port, CPU and RAM. A gear menu
+  turns each column on or off (remembered), and an Advanced view adds the image,
+  the container ID and a force-update button (delegated to Unraid's own control).
+  A bit more spacing between rows. If ShipLog is installed, an update badge
+  (up-to-date / update, coloured by risk) is read from its status API - ShipLog
+  stays fully standalone; not installed simply means no badge.
+- Engine now reports each container's network, IP and published ports.
+
+### 0.2.1
+- The native container LIST is the DEFAULT again and stays put: it is only
+  beautified in place (a state badge, a dependency chip and a last-run pill per
+  row). A List / Grid toggle in the toolbar switches to the card grid and your
+  choice is remembered; the native table is only hidden while Grid is active,
+  never removed. Reverts v0.2.0 replacing the list outright.
+
+### 0.2.0
+- Rebuilt the whole Docker tab as a modern CARD GRID. Unraid's dated container
+  table is hidden; each container becomes a clean card with a state badge, live
+  CPU and RAM gauges, image, health, and one-click lifecycle actions (start /
+  stop / restart / pause / resume) driven straight through the host supervisor.
+  The dependency-ordered start plan lives on each card; a toolbar filters, saves
+  the plan and fires it in order. New engine endpoints (per-container action, a
+  batched stats snapshot) and socket verbs (restart / pause / unpause). Plugin
+  icon added under icons/ so it shows in the Settings menu.
+
+### 0.1.1
+- Integrated into Unraid's OWN Docker container list instead of a separate
+  table: each row gets a state BADGE (running / exited / created / paused, red
+  when unhealthy) and a chain chip that opens a compact editor for that
+  container's dependencies, readiness probe and failure policy. A slim toolbar
+  saves the plan and fires it in order. Falls back to a self-contained panel if
+  the native rows can't be found.
+
+### 0.1.0
+- First working MVP. Declare a start plan in the Docker tab (and in
+  Settings): dependency edges, a readiness probe per container (Docker health,
+  running plus grace, or a TCP port opening), and a failure policy (abort skips
+  dependents, continue or degrade start them anyway). "Start in order" fires the
+  plan through the host supervisor over the Docker socket. Cycles and unknown
+  dependencies are rejected before saving.
+- Read-only live state (container health, per-run result) in the panel. The
+  browser talks only to a same-origin PHP proxy; it never touches the Docker
+  socket. Working name, subject to change.
+</CHANGES>
+
+<!-- Pre-install: stop the old daemon and WIPE the plugin dir before installing, so
+     files removed between versions cannot linger (installpkg overwrites same-path
+     files but never deletes orphans - the "old bars/JS still there" symptom). Also
+     drop old flash .txz so packages do not pile up across updates. The saved start
+     plan/config on the flash (/boot/config/plugins/&slug;) is left untouched. -->
+<FILE Run="/bin/bash">
+<INLINE>
+# one-time migration from the old plugin name (pre-1.1.0: cannonadecommander)
+if [ -d /boot/config/plugins/cannonadecommander ] &amp;&amp; [ ! -d /boot/config/plugins/cannonadecommand ]; then
+  cp -a /boot/config/plugins/cannonadecommander /boot/config/plugins/cannonadecommand
+  rm -f /boot/config/plugins/cannonadecommand/*.txz /boot/config/plugins/cannonadecommand/*.plg 2>/dev/null
+fi
+/usr/local/emhttp/plugins/cannonadecommander/scripts/rc.cannonadecommander stop 2>/dev/null
+&emhttp;/scripts/rc.&slug; stop 2>/dev/null
+rm -rf &emhttp;
+rm -f &plgPath;/*.txz
+</INLINE>
+</FILE>
+
+<!--
+  The package (supervisor binary + plugin files) is built by plugin/pkg_build.sh
+  and attached to the GitHub release "v&version;". SHA256 is injected at release.
+-->
+<FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
+  <URL>&pkgURL;/&txz;</URL>
+  <SHA256>9fce9c3d537f6dbbdd34467ddb9f2a4d11b96f3fd59ab0e497a141caf61f4a9d</SHA256>
+</FILE>
+
+<!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the
+     supervisor daemon immediately, no reboot needed. -->
+<FILE Run="/bin/bash">
+<INLINE>
+chmod +x &emhttp;/bin/&slug; &emhttp;/scripts/rc.&slug; &emhttp;/event/* 2>/dev/null
+&emhttp;/bin/&slug; banner 2>/dev/null
+&emhttp;/scripts/rc.&slug; restart
+echo ""
+echo "CannonadeCommand &version; installed - open the Docker tab."
+</INLINE>
+</FILE>
+
+<!-- Remove. This MUST be a <FILE ... Method="remove"> block: Unraid's plugin
+     manager (dynamix.plugin.manager/scripts/plugin) only executes <FILE> elements,
+     so a bare <REMOVE> tag is silently IGNORED and the whole cleanup never runs -
+     that is the bug that left the daemon, files, package and cached .txz behind on
+     every prior version (Unraid still moved the flash .plg off, because a remove
+     that runs no FILE trivially "succeeds").
+     INVARIANT: this script MUST end with exit 0. The manager only moves
+     /boot/config/plugins/&slug;.plg off the flash when the remove script returns 0;
+     a NON-ZERO exit leaves the .plg there and it REINSTALLS on the next boot. So:
+     never add `set -e`, and never `pkill -f &slug;` (it would match this very
+     /tmp/inlineN-&slug;.sh AND the `plugin remove` parent -> non-zero -> reinstall).
+     Stop by PID, kill any stray daemon ONLY by its full binary path, drop the
+     package (exact registered name) + files + cached flash .txz; plan/config kept. -->
+<FILE Run="/bin/bash" Method="remove">
+<INLINE>
+&emhttp;/scripts/rc.&slug; stop 2>/dev/null
+for p in $(pgrep -f '&emhttp;/bin/&slug;' 2>/dev/null); do kill -9 "$p" 2>/dev/null; done
+pkg=$(ls /var/log/packages/ 2>/dev/null | grep -E "^&slug;(-[^-]+-[^-]+-[^-]+)?$" | head -n1)
+if [ -n "$pkg" ]; then removepkg "$pkg" 2>/dev/null; fi
+rm -rf &emhttp;
+rm -f &plgPath;/*.txz &plgPath;/*.txz.md5 /var/run/&slug;.pid /var/run/&slug;.sock
+echo "CannonadeCommand removed (start plan kept on the flash)."
+exit 0
+</INLINE>
+</FILE>
+
+</PLUGIN>

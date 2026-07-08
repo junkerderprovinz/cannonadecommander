@@ -1,4 +1,4 @@
-// Package model holds the types shared across every CannonadeCommander unit.
+// Package model holds the types shared across every CannonadeCommand unit.
 // The engine orchestrates Docker containers on the Unraid host: it starts them
 // in a dependency-aware order, gated on each one becoming ready, the way a
 // gunner rakes fire down a line one shot at a time.

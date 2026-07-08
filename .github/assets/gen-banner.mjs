@@ -1,6 +1,6 @@
 /**
  * Generates the CannonadeCommand README banner:
- *   cannonadecommander-banner.svg / .png : white 1600x500; the cannon logo on the
+ *   cannonadecommand-banner.svg / .png : white 1600x500; the cannon logo on the
  *   left (embedded VERBATIM from logo.svg), the "CannonadeCommand" wordmark
  *   (Bree Serif) to the right, and the claim below it (Lato). Wordmark + claim
  *   are converted to SVG paths (opentype.js) so the SVG needs NO font and
@@ -28,15 +28,16 @@ const __dir = dirname(fileURLToPath(import.meta.url));
 // ---- content + styling -----------------------------------------------------
 const NAME_A = "Cannonade";
 const NAME_B = "Command";
-const CLAIM = "Shoots your commands where you need them — and that very nicely.";
+const CLAIM1 = "Shoots your commands where you need them —";
+const CLAIM2 = "and that very nicely.";
 const W = 1600, H = 500;
 const maxTextW = 900; // wordmark + claim must fit between textX and the right margin
-const nameFillA = "#242626", nameFillB = "#575756"; // the logo's own palette
+const nameFill = "#242626"; // ONE colour for the whole wordmark (user call)
 const claimFill = "#5a5d5e";
 const logoBox = 400;                 // rendered logo size (square)
 const logoX = 120, logoY = (H - logoBox) / 2;
 const textX = 590;                   // left edge of wordmark + claim
-const nameBaseline = 255, claimBaseline = 330;
+const nameBaseline = 235, claim1Baseline = 320, claim2Baseline = 385;
 // ---------------------------------------------------------------------------
 
 async function font(file, url) {
@@ -52,13 +53,26 @@ async function font(file, url) {
 const bree = await font("cc-BreeSerif-Regular.ttf", "https://github.com/google/fonts/raw/main/ofl/breeserif/BreeSerif-Regular.ttf");
 const lato = await font("cc-Lato-Regular.ttf", "https://github.com/google/fonts/raw/main/ofl/lato/Lato-Regular.ttf");
 
-// fit the sizes to the available width instead of hard-coding them
-const nameSize = Math.floor(100 * maxTextW / bree.getAdvanceWidth(NAME_A + NAME_B, 100));
-const claimSize = Math.min(38, Math.floor(100 * maxTextW / lato.getAdvanceWidth(CLAIM, 100)));
-const pathA = bree.getPath(NAME_A, textX, nameBaseline, nameSize);
-const widthA = bree.getAdvanceWidth(NAME_A, nameSize);
-const pathB = bree.getPath(NAME_B, textX + widthA, nameBaseline, nameSize);
-const claimPath = lato.getPath(CLAIM, textX + 4, claimBaseline, claimSize);
+// fit the sizes to the available width instead of hard-coding them; the claim is
+// TWO lines and noticeably larger (user call). opentype.js emits NaN points for
+// SOME size/glyph combinations (e.g. Lato "y" at 42px) — step down to the next
+// clean size instead of shipping a truncated path.
+// the NaN depends on the REAL pen position, so the retry loop generates the
+// actual paths and only accepts a size whose output is NaN-free
+function cleanPaths(fnt, runs, size) {
+  for (; size > 10; size--) {
+    const paths = runs.map(([t, x, y]) => fnt.getPath(t, x, y, size));
+    if (paths.every((pp) => !pp.toPathData(2).includes("NaN"))) return { size, paths };
+  }
+  throw new Error("no NaN-free size found");
+}
+const nameFit = cleanPaths(bree, [[NAME_A + NAME_B, textX, nameBaseline]],
+  Math.floor(100 * maxTextW / bree.getAdvanceWidth(NAME_A + NAME_B, 100)));
+const claimFit = cleanPaths(lato, [[CLAIM1, textX + 4, claim1Baseline], [CLAIM2, textX + 4, claim2Baseline]],
+  Math.min(52, Math.floor(100 * maxTextW / Math.max(lato.getAdvanceWidth(CLAIM1, 100), lato.getAdvanceWidth(CLAIM2, 100)))));
+const nameSize = nameFit.size, claimSize = claimFit.size;
+const namePath = nameFit.paths[0];
+const claim1Path = claimFit.paths[0], claim2Path = claimFit.paths[1];
 
 // the logo artwork goes in VERBATIM — only wrapped in a scaling group
 const logoSrc = readFileSync(join(__dir, "logo.svg"), "utf8");
@@ -71,13 +85,13 @@ const svg = `<?xml version="1.0" encoding="UTF-8"?>
   <g transform="translate(${logoX},${logoY}) scale(${scale.toFixed(6)})">
 ${inner}
   </g>
-  <path d="${pathA.toPathData(2)}" fill="${nameFillA}"/>
-  <path d="${pathB.toPathData(2)}" fill="${nameFillB}"/>
-  <path d="${claimPath.toPathData(2)}" fill="${claimFill}"/>
+  <path d="${namePath.toPathData(2)}" fill="${nameFill}"/>
+  <path d="${claim1Path.toPathData(2)}" fill="${claimFill}"/>
+  <path d="${claim2Path.toPathData(2)}" fill="${claimFill}"/>
 </svg>
 `;
 
-writeFileSync(join(__dir, "cannonadecommander-banner.svg"), svg);
+writeFileSync(join(__dir, "cannonadecommand-banner.svg"), svg);
 const png = new Resvg(svg, { fitTo: { mode: "width", value: W } }).render().asPng();
-writeFileSync(join(__dir, "cannonadecommander-banner.png"), png);
+writeFileSync(join(__dir, "cannonadecommand-banner.png"), png);
 console.log(`banner ok: ${W}x${H}, claim ${claimSize}px, png ${png.length} bytes`);

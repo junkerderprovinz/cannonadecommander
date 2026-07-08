@@ -1,0 +1,3 @@
+#!/bin/bash
+# Services stopping (shutdown/reboot): stop the supervisor cleanly.
+/usr/local/emhttp/plugins/cannonadecommand/scripts/rc.cannonadecommand stop

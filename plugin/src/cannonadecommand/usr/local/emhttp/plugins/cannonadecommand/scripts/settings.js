@@ -311,18 +311,31 @@
     // (the VM-icons toggle is obsolete — the VM tab has its own style section)
     c2.appendChild(el("div", "cc-set-lbl", T("Vorschau", "Preview")));
     var tprevWrap = el("div", "cc-set-prev");
-    var tprevImg = el("img"); tprevImg.src = "/plugins/cannonadecommand/images/cannonadecommand.png"; tprevImg.alt = ""; tprevImg.style.width = "62px"; tprevImg.style.height = "62px";
-    tprevWrap.appendChild(tprevImg);
+    var tprevImgs = [];
+    function addPrevImg(src9) {
+      var im9 = el("img"); im9.src = src9; im9.alt = "";
+      im9.style.width = "48px"; im9.style.height = "48px"; im9.style.objectFit = "contain";
+      im9.onerror = function () { this.style.display = "none"; };
+      tprevImgs.push(im9); tprevWrap.appendChild(im9);
+    }
+    // REAL container logos (up to four) — Unraid stores every container icon under
+    // this path; our own logo is only the fallback when none load
+    api("GET", "state").then(function (st9) {
+      var cs9 = (st9 && st9.containers) || [];
+      cs9.slice(0, 4).forEach(function (c9) { if (c9 && c9.name) addPrevImg("/state/plugins/dynamix.docker.manager/images/" + encodeURIComponent(c9.name) + "-icon.png"); });
+      if (!cs9.length) addPrevImg("/plugins/cannonadecommand/images/cannonadecommand.png");
+      tintPrev();
+    }).catch(function () { addPrevImg("/plugins/cannonadecommand/images/cannonadecommand.png"); tintPrev(); });
     function tintPrev() {
       var hx9 = /^#?([0-9a-f]{6})$/i.exec(iconcolor || "");
-      if (!hx9) { tprevImg.style.filter = "none"; return; }
+      if (!hx9) { tprevImgs.forEach(function (im9) { im9.style.filter = "none"; }); return; }
       var n9 = parseInt(hx9[1], 16), r9 = (n9 >> 16 & 255) / 255, g9 = (n9 >> 8 & 255) / 255, b9 = (n9 & 255) / 255;
       var st9 = Math.max(10, iconstrength || 100) / 100, i9 = 1 - st9;
       function row9(c9, ix9) { var v9 = [0.2126 * c9 * st9, 0.7152 * c9 * st9, 0.0722 * c9 * st9, 0, 0]; v9[ix9] += i9; return v9.join(" "); }
       var host9 = document.getElementById("cc-set-tintsvg");
       if (!host9) { host9 = document.createElement("div"); host9.id = "cc-set-tintsvg"; host9.style.cssText = "position:absolute;width:0;height:0;overflow:hidden"; document.body.appendChild(host9); }
       host9.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg"><filter id="cc-set-tint" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%"><feColorMatrix type="matrix" values="' + row9(r9, 0) + " " + row9(g9, 1) + " " + row9(b9, 2) + ' 0 0 0 1 0"/></filter></svg>';
-      tprevImg.style.filter = "url(#cc-set-tint)";
+      tprevImgs.forEach(function (im9) { im9.style.filter = "url(#cc-set-tint)"; });
     }
     c2.appendChild(tprevWrap); tintPrev();
     wrap.appendChild(c2);
@@ -396,7 +409,6 @@
     }
     var cP = card(T("Stil", "Style"), T("Unraids Plugins-Tab im Docker-Tab-Stil darstellen: Badges für Autor/Version/Status, Akzent- bzw. Rainbow-Farben, Pill-Buttons.", "Render Unraid's Plugins tab in the Docker-tab style: badges for author/version/status, accent or rainbow colours, pill buttons."));
     cP.appendChild(styleToggle("cc.styleplugin", null));
-    wrapPlugin.appendChild(cP);
     // per-tab style controls — the SAME set as the Docker tab, active while the
     // adopt-toggle above is OFF (own key prefix per tab)
     // The Plugin/VM sections carry EXACTLY the Docker tab's style cards (same
@@ -457,9 +469,11 @@
     }
     buildStyleCards("ccp.", wrapPlugin);
     buildStyleCards("ccv.", wrapVms);
+    // adopt cards LAST, so every section starts [Badges][Logos] like the Docker tab
+    wrapPlugin.appendChild(cP);
+    wrapVms.appendChild(cV);
     var cV = card(T("Stil", "Style"), T("Akzentfarbe und Icon-Färbung des Docker-Tabs auch auf den VM-Tab anwenden.", "Apply the Docker tab's accent and icon tint to the VMs tab too."));
     cV.appendChild(styleToggle("cc.stylevms", null));
-    wrapVms.appendChild(cV);
     showSec(parseInt(localStorage.getItem("cc.settab") || "0", 10) || 0);
     paintPrev();
   }

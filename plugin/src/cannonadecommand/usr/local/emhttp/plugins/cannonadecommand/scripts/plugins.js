@@ -18,10 +18,15 @@
   function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; }
 
   var RB_PAL = ["#d9433f", "#f97316", "#eab308", "#1f9d55", "#0ea5a4", "#2f6feb", "#8b5cf6", "#e05299"];
+  var RB_OFFSET = Math.floor(Math.random() * RB_PAL.length); // fresh deal per reload, like the Docker tab
   function pal() { try { var jp = JSON.parse(eff("rbpal") || "null"); if (jp && jp.length) return jp; } catch (e) {} return RB_PAL; }
   function idealText(bg) { var n = parseInt(String(bg).replace("#", ""), 16), L = 0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255); return L > 150 ? "#161616" : "#fff"; }
   function accent() { return eff("accent") || "#2f6feb"; }
-  function colorFor(i) { return eff("rainbow") === "1" ? pal()[i % pal().length] : accent(); }
+  function colorFor(i) {
+    if (eff("rainbow") !== "1") return accent();
+    var off = eff("rainbowrot") === "0" ? 0 : RB_OFFSET;
+    return pal()[(i + off) % pal().length];
+  }
 
   // the Docker-tab icon tint, standalone: luminance x target colour via an SVG
   // feColorMatrix, blended by cc.iconstrength; imgs get filter: url(#cc-plug-tint)
@@ -39,6 +44,8 @@
     return "url(#cc-plug-tint)";
   }
   function pill(node, bg, tx) {
+    node.style.setProperty("font-size", "12px", "important"); // same height as the badges
+    node.style.setProperty("vertical-align", "middle", "important");
     node.style.setProperty("background", bg, "important");
     node.style.setProperty("color", tx || idealText(bg), "important");
     node.style.setProperty("border-radius", "999px", "important");
@@ -96,10 +103,9 @@
     if (ico) { ico.style.setProperty("width", "64px", "important"); ico.style.setProperty("height", "64px", "important"); }
     var img = tds[0].querySelector("img, i.fa");
     if (img && img.tagName === "IMG") {
-      img.style.setProperty("max-width", "62px", "important");
-      img.style.setProperty("max-height", "62px", "important");
-      img.style.setProperty("width", "auto", "important");
-      img.style.setProperty("height", "auto", "important");
+      img.style.setProperty("width", "62px", "important");
+      img.style.setProperty("height", "62px", "important");
+      img.style.setProperty("object-fit", "contain", "important"); // letterboxed, never squished
       img.style.setProperty("vertical-align", "middle", "important");
       var f2 = ensureTint(); img.style.setProperty("filter", f2 || "none", "important");
     } else if (img) { img.style.setProperty("font-size", "46px", "important"); var f3 = ensureTint(); img.style.setProperty("filter", f3 || "none", "important"); }

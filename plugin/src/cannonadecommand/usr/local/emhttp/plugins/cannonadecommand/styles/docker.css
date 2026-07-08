@@ -582,7 +582,7 @@ div.title span.left, div.title span.right { text-transform: uppercase; letter-sp
 .cc-set-claim { color: var(--dim); font-size: 13px; font-style: italic; margin-top: 2px; }
 .cc-set-version { margin-left: auto; text-align: right; align-self: center; }
 .cc-set-tabs { display: flex; gap: 8px; margin: 0 0 18px; }
-.cc-set-tab { background: #2a2a2a !important; border: none !important; box-shadow: none !important; color: #b5b5b5 !important; cursor: pointer; padding: 5px 16px; font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; border-radius: 999px; } /* colour forced: Unraid's button CSS painted it orange */
+.cc-set-tab { background: #2a2a2a !important; border: none !important; box-shadow: none !important; color: #b5b5b5 !important; cursor: pointer; padding: 4px 14px; font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; border-radius: 999px; } /* EXACTLY the nav.tabs pill metrics */
 .cc-set-tab-on { background: var(--cc-accent, #2f6feb) !important; color: var(--cc-accent-text, #fff) !important; }
 .cc-set-brand { font-size: 24px; letter-spacing: .2px; } .cc-set-brand b { font-weight: 700; } .cc-set-brand span { font-weight: 400; color: var(--dim); }
 .cc-set-sub { color: var(--dim2); font-size: 12.5px; }

@@ -133,6 +133,7 @@ func serve() {
 	// The always-on automation loop: scheduled actions, the watchdog, notifications.
 	mon := &monitor.Monitor{Docker: docker, Config: st, Notifier: monitor.SysNotifier{}, Pidder: docker, Shaper: shaperAdapter{}}
 	srv.BwLast = mon // the bandwidth editor shows the monitor's last apply attempt
+	srv.Kicker = mon // config saves apply immediately (no 30s tick wait)
 	go mon.Run(ctx)
 
 	log.Print("\n" + bannerArt)

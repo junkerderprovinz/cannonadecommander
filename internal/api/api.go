@@ -68,6 +68,7 @@ type Server struct {
 	Runner       Runner
 	Pidder       Pidder   // resolves a container's main PID for the bandwidth diagnostics
 	BwLast       BwLaster // optional: the monitor's last shaping attempt per container
+	Kicker       Kicker   // optional: nudges the monitor to apply a saved config immediately
 	TemplatesDir string   // Unraid dockerMan templates dir; "" disables the apply-fest template write
 	Version      string   // the running daemon's build version, surfaced in /api/state so the UI can show which backend is live
 
@@ -494,6 +495,11 @@ type BwLaster interface {
 	LastBwApply(name string) string
 }
 
+// Kicker triggers an immediate monitor tick (the monitor implements it).
+type Kicker interface {
+	Kick()
+}
+
 // handleBwStatus answers "does the bandwidth limit ACTUALLY exist right now?" — it
 // reads the live tc qdisc + CC_DL netfilter chain inside the container's netns, so
 // the UI can show proof (or the exact failure) instead of a silent no-op.
@@ -592,6 +598,9 @@ func (s *Server) handlePutConfig(w http.ResponseWriter, r *http.Request) {
 	if err := s.Store.SaveConfig(cfg); err != nil {
 		writeErr(w, http.StatusInternalServerError, err)
 		return
+	}
+	if s.Kicker != nil {
+		s.Kicker.Kick() // apply new bandwidth limits immediately, not up to 30s later
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"status": "saved"})
 }

@@ -81,7 +81,7 @@ jobs:
           CID=$(docker run -d --rm alpine:3 sleep 120)
           PID=$(docker inspect -f '{{.State.Pid}}' "$CID")
           sudo nsenter -t "$PID" -n iptables -w -N CC_DL
-          sudo nsenter -t "$PID" -n iptables -w -A CC_DL -m hashlimit --hashlimit-above 5000kb/s --hashlimit-burst 10000kb --hashlimit-name ccdl -j DROP
+          sudo nsenter -t "$PID" -n iptables -w -A CC_DL -m hashlimit --hashlimit-above 5000000b/s --hashlimit-burst 10000000b --hashlimit-name ccdl -j DROP
           sudo nsenter -t "$PID" -n iptables -w -I INPUT -i eth0 -j CC_DL
           sudo nsenter -t "$PID" -n iptables -w -S CC_DL | grep -q hashlimit
           sudo nsenter -t "$PID" -n iptables -w -S INPUT | grep -q CC_DL
@@ -90,6 +90,30 @@ jobs:
           sudo nsenter -t "$PID" -n iptables -w -X CC_DL
           docker rm -f "$CID"
           echo "✅ download policing (hashlimit in a container netns) PROVEN against a real kernel"
+
+      - name: Download policing — throughput measurement
+        run: |
+          set -e
+          mkdir -p /tmp/ccserve && head -c 8000000 /dev/urandom > /tmp/ccserve/blob
+          (cd /tmp/ccserve && python3 -m http.server 8099 >/dev/null 2>&1 &)
+          sleep 1
+          CID=$(docker run -d --rm alpine:3 sleep 300)
+          PID=$(docker inspect -f '{{.State.Pid}}' "$CID")
+          HOSTIP=$(docker network inspect bridge -f '{{(index .IPAM.Config 0).Gateway}}')
+          docker exec "$CID" wget -q -O /dev/null "http://$HOSTIP:8099/blob"
+          sudo nsenter -t "$PID" -n iptables -w -N CC_DL
+          sudo nsenter -t "$PID" -n iptables -w -A CC_DL -m hashlimit --hashlimit-above 250000b/s --hashlimit-burst 500000b --hashlimit-name ccdl -j DROP
+          sudo nsenter -t "$PID" -n iptables -w -I INPUT -i eth0 -j CC_DL
+          T0=$(date +%s%N)
+          docker exec "$CID" timeout 120 wget -q -O /dev/null "http://$HOSTIP:8099/blob"
+          T1=$(date +%s%N)
+          MS=$(( (T1 - T0) / 1000000 ))
+          RATE=$(( 8000000 * 1000 / MS ))
+          echo "cap 250000 B/s → measured ${RATE} B/s over ${MS}ms"
+          if [ "$RATE" -gt 400000 ]; then echo "::error::limit NOT enforced (>160% of cap)"; exit 1; fi
+          if [ "$RATE" -lt 75000 ]; then echo "::warning::throughput collapsed below 30% of cap (policing quality)"; fi
+          docker rm -f "$CID"
+          echo "✅ download policing THROUGHPUT measured: ${RATE} B/s at a 250000 B/s cap"
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v4

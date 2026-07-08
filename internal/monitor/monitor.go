@@ -62,6 +62,7 @@ type Monitor struct {
 	notifiedAt map[string]time.Time   // notify-throttle key → last time it was sent
 	shaped     map[string]string      // container name → the iface we shaped it on (clear on removal / iface change)
 	bwLast     map[string]string      // last shaping attempt per container (formatted), surfaced by /api/bwstatus
+	kickCh     chan struct{}          // nudge from the API: run a tick NOW (config just changed)
 }
 
 // notifyThrottle is how long the monitor waits before re-sending the same kind of
@@ -76,6 +77,12 @@ func (m *Monitor) Run(ctx context.Context) {
 	if m.Now == nil {
 		m.Now = time.Now
 	}
+	m.mu.Lock()
+	if m.kickCh == nil {
+		m.kickCh = make(chan struct{}, 1)
+	}
+	kick := m.kickCh
+	m.mu.Unlock()
 	t := time.NewTicker(m.Interval)
 	defer t.Stop()
 	for {
@@ -84,7 +91,24 @@ func (m *Monitor) Run(ctx context.Context) {
 			return
 		case <-t.C:
 			m.Tick(ctx)
+		case <-kick:
+			m.Tick(ctx)
 		}
+	}
+}
+
+// Kick asks the running loop for an immediate tick (non-blocking) — the API calls
+// it after a config save so a new bandwidth limit applies NOW, not up to 30s later.
+func (m *Monitor) Kick() {
+	m.mu.Lock()
+	if m.kickCh == nil {
+		m.kickCh = make(chan struct{}, 1)
+	}
+	ch := m.kickCh
+	m.mu.Unlock()
+	select {
+	case ch <- struct{}{}:
+	default:
 	}
 }
 

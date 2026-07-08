@@ -54,22 +54,27 @@
   var configLoaded = false;  // true only after a SUCCESSFUL initial GET /config
   // mirror every cc.* write into the engine config — localStorage is per-origin,
   // so without this the toggles only ever applied to the origin they were set on
-  var uiSyncT = null;
+  var uiSyncT = null, uiPending = {};
   (function () {
     try {
       var orig = localStorage.setItem.bind(localStorage);
       window.__ccLS = orig;
       localStorage.setItem = function (k, v) {
         orig(k, v);
-        try { if (String(k).indexOf("cc.") === 0 && k !== "cc.stateCache") { clearTimeout(uiSyncT); uiSyncT = setTimeout(pushUISettings, 800); } } catch (e) {}
+        try { if (String(k).indexOf("cc.") === 0 && k !== "cc.stateCache") { uiPending[k] = 1; clearTimeout(uiSyncT); uiSyncT = setTimeout(pushUISettings, 800); } } catch (e) {}
       };
     } catch (e) {}
   })();
   function collectUISettings() { var o = {}; for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf("cc.") === 0 && k !== "cc.stateCache") o[k] = localStorage.getItem(k); } return o; }
+  // merge ONLY the changed keys into the server map (never replace it wholesale)
   function pushUISettings() {
+    var keys = Object.keys(uiPending); if (!keys.length) return;
     api("GET", "config").then(function (c) {
       if (!c || typeof c !== "object") return;
-      c.ui_settings = collectUISettings();
+      var u = c.ui_settings || {};
+      keys.forEach(function (k) { var v = localStorage.getItem(k); if (v === null) delete u[k]; else u[k] = v; });
+      uiPending = {};
+      c.ui_settings = u;
       return api("PUT", "config", c);
     }).catch(function () {});
   }
@@ -396,7 +401,7 @@
     fullConfig = { schedules: c.schedules || [], watchdogs: c.watchdogs || [], bandwidths: c.bandwidths || [], notify: c.notify || { unraid: false, webhook: "" }, shape_iface: c.shape_iface || "", ui_settings: c.ui_settings || undefined };
     configLoaded = true;
     adoptUISettings(c.ui_settings); // render() below shows the adopted values
-    if (!c.ui_settings || !Object.keys(c.ui_settings).length) { if (Object.keys(collectUISettings()).length) pushUISettings(); } // seed the mirror
+    if (!c.ui_settings || !Object.keys(c.ui_settings).length) { var seed9 = collectUISettings(); if (Object.keys(seed9).length) { Object.keys(seed9).forEach(function (k9) { uiPending[k9] = 1; }); pushUISettings(); } } // seed the mirror
     // keep the user's in-flight edits if they already started typing; otherwise
     // adopt the loaded values. Either way re-render to enable Save.
     if (!notifyDirty) notify = { unraid: !!fullConfig.notify.unraid, webhook: fullConfig.notify.webhook || "" };

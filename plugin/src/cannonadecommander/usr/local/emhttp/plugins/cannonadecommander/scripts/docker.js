@@ -158,22 +158,27 @@
   // the domain origin (and vice versa) — that is the "my settings do nothing / is
   // this cached?" mystery. Every cc.* write is mirrored into the engine config
   // (ui_settings) and adopted back on every origin.
-  var uiSyncT = null, uiSeeded = false;
+  var uiSyncT = null, uiSeeded = false, uiPending = {};
   (function () {
     try {
       var orig = localStorage.setItem.bind(localStorage);
       window.__ccLS = orig;
       localStorage.setItem = function (k, v) {
         orig(k, v);
-        try { if (String(k).indexOf("cc.") === 0 && k !== "cc.stateCache") { clearTimeout(uiSyncT); uiSyncT = setTimeout(pushUISettings, 800); } } catch (e) {}
+        try { if (String(k).indexOf("cc.") === 0 && k !== "cc.stateCache") { uiPending[k] = 1; clearTimeout(uiSyncT); uiSyncT = setTimeout(pushUISettings, 800); } } catch (e) {}
       };
     } catch (e) {}
   })();
   function collectUISettings() { var o = {}; for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf("cc.") === 0 && k !== "cc.stateCache") o[k] = localStorage.getItem(k); } return o; }
+  // merge ONLY the changed keys into the server map (never replace it wholesale)
   function pushUISettings() {
+    var keys = Object.keys(uiPending); if (!keys.length) return;
     api("GET", "config").then(function (c) {
       if (!c || typeof c !== "object") return;
-      return api("PUT", "config", { schedules: c.schedules || [], watchdogs: c.watchdogs || [], bandwidths: c.bandwidths || [], notify: c.notify || { unraid: false, webhook: "" }, shape_iface: c.shape_iface || "", ui_settings: collectUISettings() });
+      var u = c.ui_settings || {};
+      keys.forEach(function (k) { var v = localStorage.getItem(k); if (v === null) delete u[k]; else u[k] = v; });
+      uiPending = {};
+      return api("PUT", "config", { schedules: c.schedules || [], watchdogs: c.watchdogs || [], bandwidths: c.bandwidths || [], notify: c.notify || { unraid: false, webhook: "" }, shape_iface: c.shape_iface || "", ui_settings: u });
     }).catch(function () {});
   }
   function adoptUISettings(u) {
@@ -189,7 +194,7 @@
         if (adoptUISettings(c.ui_settings)) { applySettings(); if (mode === "list") { applyEnhanceClasses(); reinjectRowBadges(); } else renderGrid(); }
         // first run against this engine: SEED the server mirror from this browser's
         // settings, so they survive origin switches and cleared browser data
-        if (!uiSeeded && (!c.ui_settings || !Object.keys(c.ui_settings).length)) { uiSeeded = true; if (Object.keys(collectUISettings()).length) pushUISettings(); }
+        if (!uiSeeded && (!c.ui_settings || !Object.keys(c.ui_settings).length)) { uiSeeded = true; var seed9 = collectUISettings(); if (Object.keys(seed9).length) { Object.keys(seed9).forEach(function (k9) { uiPending[k9] = 1; }); pushUISettings(); } }
       }
     }).catch(function () { /* older engine or transient: keep the current config */ });
   }
@@ -281,7 +286,22 @@
       });
     } catch (e) {}
   }
-  function badgeInfo(label, value, kind) { var b = el("span", "cc-b cc-b-info" + (kind ? " cc-b-" + kind : "")); b.appendChild(el("span", "cc-b-k", label)); b.appendChild(el("span", "cc-b-v", value)); return b; }
+  function badgeInfo(label, value, kind) {
+    var b = el("span", "cc-b cc-b-info" + (kind ? " cc-b-" + kind : ""));
+    b.appendChild(el("span", "cc-b-k", label)); b.appendChild(el("span", "cc-b-v", value));
+    if (kind === "ip" || kind === "lan") { // IPs copy themselves on click
+      b.classList.add("cc-b-copy"); b.title = LANG === "de" ? "Klicken zum Kopieren" : "Click to copy";
+      b.addEventListener("click", function (e) {
+        e.preventDefault(); e.stopPropagation();
+        var txt = String(value).trim();
+        var done = function () { flash((LANG === "de" ? "kopiert: " : "copied: ") + txt); };
+        try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(txt).then(done, function () { fallbackCopy(txt); done(); }); return; } } catch (e2) {}
+        fallbackCopy(txt); done();
+      });
+    }
+    return b;
+  }
+  function fallbackCopy(txt) { try { var ta = document.createElement("textarea"); ta.value = txt; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); } catch (e) {} }
   // one resource line: a badge + its gear, side by side; the res-group stacks these.
   function resLine(badge, gear) { var line = el("div", "cc-resline"); line.appendChild(badge); line.appendChild(gear); return line; }
   function planBadge(name) {
@@ -954,6 +974,16 @@
     bA.addEventListener("click", function () { setAdvView(true); });
     segA.appendChild(bB); segA.appendChild(bA);
     var arow = el("div", "cc-menu-row cc-menu-plain"); arow.appendChild(segA); m.appendChild(arow);
+    // Rainbow directly here (same origin as the icons — no more cross-tab guessing)
+    var segR = el("div", "cc-seg");
+    var rbOn = localStorage.getItem("cc.rainbow") === "1";
+    var bRoff = el("button", "cc-seg-btn" + (!rbOn ? " cc-seg-on" : ""), LANG === "de" ? "Rainbow aus" : "Rainbow off");
+    var bRon = el("button", "cc-seg-btn" + (rbOn ? " cc-seg-on" : ""), LANG === "de" ? "Rainbow an" : "Rainbow on");
+    function setRb(v) { localStorage.setItem("cc.rainbow", v ? "1" : "0"); closeMenu(); applySettings(); if (mode === "list") { applyEnhanceClasses(); reinjectRowBadges(); } else renderGrid(); }
+    bRoff.addEventListener("click", function () { setRb(false); });
+    bRon.addEventListener("click", function () { setRb(true); });
+    segR.appendChild(bRoff); segR.appendChild(bRon);
+    var rrow = el("div", "cc-menu-row cc-menu-plain"); rrow.appendChild(segR); m.appendChild(rrow);
     var frow = el("div", "cc-menu-row cc-menu-plain");
     var filter = el("input", "cc-filter"); filter.type = "text"; filter.placeholder = t("filter"); filter.value = filterText;
     filter.addEventListener("input", function () { filterText = norm(filter.value); applyFilter(); });
@@ -1327,7 +1357,9 @@
     var r = anchor.getBoundingClientRect(), w = pop.offsetWidth || 300;
     pop.style.left = Math.max(window.scrollX + 8, Math.min(window.scrollX + r.left, window.scrollX + document.documentElement.clientWidth - w - 12)) + "px";
     pop.style.top = (window.scrollY + r.bottom + 6) + "px"; openPop = pop; openPopAnchor = anchor;
-    // LIVE diagnosis: does the limit ACTUALLY exist inside the container right now?
+    checkBwStatus(pop, name); // LIVE diagnosis: does the limit ACTUALLY exist right now?
+  }
+  function checkBwStatus(pop, name) {
     api("GET", "bwstatus", null, "name=" + encodeURIComponent(name)).then(function (st) {
       if (openPop !== pop) return;
       if (!st || st.error) { popError(new Error((st && st.error) || "bwstatus unreadable")); return; }
@@ -1336,10 +1368,14 @@
       var wantUp = !!(cur2 && cur2.egress_kbit > 0), wantDn = !!(cur2 && cur2.ingress_kbit > 0);
       var line = "iface " + (st.iface || "eth0") + " · ↑ tbf " + (hasUp ? (LANG === "de" ? "AKTIV" : "ACTIVE") : (LANG === "de" ? "FEHLT" : "MISSING")) + " · ↓ policing " + (hasDn ? (LANG === "de" ? "AKTIV" : "ACTIVE") : (LANG === "de" ? "FEHLT" : "MISSING"));
       if (st.last_apply) line += " · Apply " + st.last_apply;
-      else line += LANG === "de" ? " · Apply: noch nie versucht (Monitor-Tick alle 30s)" : " · apply: never attempted (monitor ticks every 30s)";
+      if (!wantUp && !wantDn) {
+        if (hasUp || hasDn) popError(new Error((LANG === "de" ? "entfernt, Regel noch aktiv — wird gleich geräumt · " : "removed, rule still active — clearing shortly · ") + line));
+        else popOk("✓ " + (LANG === "de" ? "kein Limit aktiv" : "no limit active"));
+        return;
+      }
       if ((wantUp && !hasUp) || (wantDn && !hasDn)) {
         popError(new Error((LANG === "de" ? "Limit greift NICHT · " : "limit NOT active · ") + line + " · " + (st.qdisc || "") + " " + (st.filter || "")));
-      } else if (wantUp || wantDn) {
+      } else {
         popOk("✓ " + line);
       }
     }).catch(function () {});
@@ -1374,7 +1410,18 @@
         setBandwidth(name, egressKbit, ingressKbit);
         return api("PUT", "config", config);
       })
-      .then(function () { flash(t("done")); closePop(); if (mode === "list") reinjectRowBadges(); else renderGrid(); })
+      .then(function () {
+        flash(t("done"));
+        if (mode === "list") reinjectRowBadges(); else renderGrid();
+        // stay OPEN and verify: the save kicks the monitor server-side, so the rule
+        // should exist within moments — show the proof (or failure) right here
+        var pop0 = openPop;
+        if (pop0) {
+          popOk(LANG === "de" ? "gespeichert — wende an…" : "saved — applying…");
+          setTimeout(function () { if (openPop === pop0) checkBwStatus(pop0, name); }, 1600);
+          setTimeout(function () { if (openPop === pop0) checkBwStatus(pop0, name); }, 5000);
+        }
+      })
       .catch(function (e) { popError(e); });
   }
   // which = "cpu" | "ram" (each badge's own gear) — shows only that field.

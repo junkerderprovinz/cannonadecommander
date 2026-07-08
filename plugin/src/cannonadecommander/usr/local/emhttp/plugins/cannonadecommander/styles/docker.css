@@ -99,6 +99,9 @@ a.sl-updall { display: none !important; }
 .cc-actrow { display: flex; gap: 4px; } /* row 1: webui/console/edit — row 2: restart/pause/stop/more */
 .cc-actoff { opacity: .35; cursor: default; }
 .cc-actoff:hover { background: #2e2e2e; color: #c9c9c9; }
+/* copyable IP badges react on hover like the plan chip */
+.cc-b-copy { cursor: pointer; transition: filter .12s, transform .12s; }
+.cc-b-copy:hover { filter: brightness(1.18); transform: translateY(-1px); }
 .cc-actmore { display: none; margin-top: 4px; }
 .cc-actmore.cc-open { display: flex; flex-wrap: wrap; }
 .cc-act-flash .cc-actbtn { animation: cc-actflash .5s ease 3; }
@@ -187,10 +190,10 @@ a.sl-updall { display: none !important; }
 .cc-planholder { margin-top: 5px; } /* same gap as between the CPU and RAM badges (resgroup gap) */
 
 /* CPU/RAM limits editor button on the resource cell */
-.cc-limbtn { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 999px; background: rgba(255,255,255,.12); color: #8a8a8a; cursor: pointer; font-size: 12px; margin: 2px 0; }
+.cc-limbtn { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 999px; background: #3a3a3a; color: #ececec; cursor: pointer; font-size: 12px; margin: 2px 0; } /* FILLED — the ghost look was easy to miss */
 .cc-limbtn:hover { background: var(--cc-accent, #2f6feb); color: #fff; }
 /* the gear is tinted green when a CPU/RAM limit IS configured (matches the "set" dot) */
-.cc-limbtn-set { color: #35d07f; background: rgba(53,208,127,.16); }
+.cc-limbtn-set { color: #10321f; background: #35d07f; } /* filled green when a limit is configured */
 
 /* plan chip = one tappable Startplan badge (accent) */
 .cc-plan { cursor: pointer; background: var(--cc-accent, #2f6feb); color: var(--cc-accent-text, #fff); }

@@ -69,21 +69,23 @@ func egressArgs(iface string, pid, kbit int) []string {
 		"rate", strconv.Itoa(kbit)+"kbit", "burst", strconv.Itoa(burstBytes(kbit)), "latency", "50ms")
 }
 
-// dlRateKBs converts kbit/s to hashlimit's byte rate unit (kb/s), min 1.
-func dlRateKBs(kbit int) int {
-	r := kbit / 8
-	if r < 1 {
-		r = 1
+// dlRateBytes converts kbit/s to bytes/s (kbit × 125), min 125. The rule uses the
+// NATIVE byte unit ("b") on purpose: the kb/mb prefixes are parsed differently
+// across legacy/nf_tables userspace builds — the box enforced ~1/8 of the
+// configured rate on "kb/s" (60 Mbit set → 7 Mbit measured).
+func dlRateBytes(kbit int) int {
+	r := kbit * 125
+	if r < 125 {
+		r = 125
 	}
 	return r
 }
 
-// dlBurstKB = TWO seconds of the rate. iptables hashlimit in byte mode enforces a
-// minimum burst: nf_tables builds demand >= 1x rate, but LEGACY iptables (v1.8.13 on
-// the box) demands ~1.5x rate ("burst cannot be smaller than 7680704b" at 40 Mbit) —
-// 2x clears both with margin.
-func dlBurstKB(kbit int) int {
-	return 2 * dlRateKBs(kbit)
+// dlBurstBytes = TWO seconds of the rate. iptables hashlimit enforces a minimum
+// burst: nf_tables builds demand >= 1x rate, LEGACY iptables (v1.8.13 on the box)
+// demands ~1.5x rate — 2x clears both with margin.
+func dlBurstBytes(kbit int) int {
+	return 2 * dlRateBytes(kbit)
 }
 
 // iptArgs builds one nsenter+iptables argv inside the netns of `pid`. -w waits for the
@@ -96,8 +98,8 @@ func iptArgs(pid int, args ...string) []string {
 // the -C check and the -A add use the EXACT same spec, and for unit tests.
 func dlRuleSpec(kbit int) []string {
 	return []string{"-m", "hashlimit",
-		"--hashlimit-above", strconv.Itoa(dlRateKBs(kbit)) + "kb/s",
-		"--hashlimit-burst", strconv.Itoa(dlBurstKB(kbit)) + "kb",
+		"--hashlimit-above", strconv.Itoa(dlRateBytes(kbit)) + "b/s",
+		"--hashlimit-burst", strconv.Itoa(dlBurstBytes(kbit)) + "b",
 		"--hashlimit-name", "ccdl", "-j", "DROP"}
 }
 

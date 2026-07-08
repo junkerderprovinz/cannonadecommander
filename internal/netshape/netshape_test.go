@@ -51,19 +51,19 @@ func TestApply_NoIngress_BadPID(t *testing.T) {
 }
 
 func TestDlRuleSpec(t *testing.T) {
-	got := dlRuleSpec(8000) // 8000 kbit/s → 1000 kb/s; burst = 2s of rate (legacy iptables demands ~1.5x)
-	want := []string{"-m", "hashlimit", "--hashlimit-above", "1000kb/s", "--hashlimit-burst", "2000kb", "--hashlimit-name", "ccdl", "-j", "DROP"}
+	got := dlRuleSpec(8000) // 8000 kbit/s → 1,000,000 B/s; burst = 2s of rate; NATIVE byte unit
+	want := []string{"-m", "hashlimit", "--hashlimit-above", "1000000b/s", "--hashlimit-burst", "2000000b", "--hashlimit-name", "ccdl", "-j", "DROP"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("dlRuleSpec =\n %v\nwant\n %v", got, want)
 	}
 }
 
 func TestDlRateAndBurstFloors(t *testing.T) {
-	if r := dlRateKBs(4); r != 1 { // tiny rate must still pass a positive byte rate
-		t.Fatalf("dlRateKBs(4) = %d, want 1", r)
+	if r := dlRateBytes(0); r != 125 { // tiny rate must still pass a positive byte rate
+		t.Fatalf("dlRateBytes(0) = %d, want 125", r)
 	}
-	if b := dlBurstKB(100); b != 2*dlRateKBs(100) { // legacy iptables demands ~1.5x rate
-		t.Fatalf("dlBurstKB(100) = %d, want %d (== 2x rate)", b, 2*dlRateKBs(100))
+	if b := dlBurstBytes(100); b != 2*dlRateBytes(100) { // legacy iptables demands ~1.5x rate
+		t.Fatalf("dlBurstBytes(100) = %d, want %d (== 2x rate)", b, 2*dlRateBytes(100))
 	}
 }
 

@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommander">
   <!ENTITY slug      "cannonadecommander">
   <!ENTITY author    "junkerderprovinz">
-  <!ENTITY version   "0.48.0">
+  <!ENTITY version   "0.49.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommander/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommander/releases/download/v&version;">
@@ -30,6 +30,23 @@
 Dependency-aware, health-gated Docker start orchestration for Unraid: start the
 DB, wait until it is healthy, then start the app; bring up the VPN before the
 containers that route through it. Read-mostly; the only writes are start/stop.
+
+### 0.49.0
+- Download limit uses the NATIVE byte unit now: the kb/s notation was parsed
+  differently by the box's legacy iptables (60 Mbit configured enforced only
+  ~7 Mbit). CI additionally MEASURES real throughput through the rule on every
+  build.
+- Saving a bandwidth limit applies IMMEDIATELY (the save kicks the monitor -
+  no more 30s wait) and the editor stays open, re-checks after a moment and
+  shows the live proof, so no more "error first, green later".
+- Settings-sync fixed for real: each tab only pushes the keys IT changed,
+  merged into the server map - the Docker tab (rainbow off on its origin) was
+  clobbering the rainbow you had just enabled on the Settings origin. The
+  rainbow toggle also lives in the gear menu now, right where the icons are.
+- Container IP and LAN IP badges copy their address on click and react on
+  hover like the plan chip.
+- The CPU/RAM/BW gears are filled (grey; green when a limit is set) so they
+  are actually visible.
 
 ### 0.48.0
 - Download limit works with LEGACY iptables too (the box runs v1.8.13 legacy):
@@ -811,7 +828,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>8387fe185a378f6ee4b49fe2cdf79b1436cc8081ee2d61c9b4e0223bd2c44ccd</SHA256>
+  <SHA256>e2121a4396a89e25a0cd5d71f965b1253988fcc02b9cfb8625a066ff1902adff</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

@@ -91,6 +91,7 @@
 .cc-actbtn i.fa { font-size: 13px; line-height: 1; color: inherit !important; } /* theme CSS colours .fa directly */
 /* gear inside the header strip (last th) — absolute overlays got clipped */
 .cc-hgear-th2 { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: #9a9a9a !important; }
+.cc-act-th .cc-hgear-th2 { position: static; transform: none; margin-left: 8px; vertical-align: middle; } /* inline in the Aktionen header */
 .cc-advmini { position: absolute; right: 38px; top: 50%; transform: translateY(-50%); width: 30px; height: 16px; border-radius: 999px; background: #3a3a3a; cursor: pointer; display: inline-block; }
 .cc-advmini-knob { position: absolute; left: 2px; top: 2px; width: 12px; height: 12px; border-radius: 50%; background: #cfcfcf; transition: transform .15s; }
 .cc-advmini-on { background: var(--cc-accent, #2f6feb); }

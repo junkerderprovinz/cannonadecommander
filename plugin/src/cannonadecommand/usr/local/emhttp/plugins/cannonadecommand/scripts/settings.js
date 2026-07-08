@@ -61,11 +61,11 @@
       window.__ccLS = orig;
       localStorage.setItem = function (k, v) {
         orig(k, v);
-        try { if (String(k).indexOf("cc.") === 0 && k !== "cc.stateCache") { uiPending[k] = 1; clearTimeout(uiSyncT); uiSyncT = setTimeout(pushUISettings, 800); } } catch (e) {}
+        try { if (/^cc[pv]?\./.test(String(k)) && k !== "cc.stateCache") { uiPending[k] = 1; clearTimeout(uiSyncT); uiSyncT = setTimeout(pushUISettings, 800); } } catch (e) {}
       };
     } catch (e) {}
   })();
-  function collectUISettings() { var o = {}; for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf("cc.") === 0 && k !== "cc.stateCache") o[k] = localStorage.getItem(k); } return o; }
+  function collectUISettings() { var o = {}; for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && /^cc[pv]?\./.test(k) && k !== "cc.stateCache") o[k] = localStorage.getItem(k); } return o; }
   // merge ONLY the changed keys into the server map (never replace it wholesale)
   function pushUISettings() {
     var keys = Object.keys(uiPending); if (!keys.length) return;
@@ -80,7 +80,7 @@
   }
   function adoptUISettings(u) {
     var changed = false;
-    try { Object.keys(u || {}).forEach(function (k) { if (k.indexOf("cc.") === 0 && localStorage.getItem(k) !== u[k]) { (window.__ccLS || localStorage.setItem.bind(localStorage))(k, u[k]); changed = true; } }); } catch (e) {}
+    try { Object.keys(u || {}).forEach(function (k) { if (/^cc[pv]?\./.test(k) && localStorage.getItem(k) !== u[k]) { (window.__ccLS || localStorage.setItem.bind(localStorage))(k, u[k]); changed = true; } }); } catch (e) {}
     return changed;
   }
   function api(method, path, body) {
@@ -407,31 +407,31 @@
       row.appendChild(toggle(localStorage.getItem(key) !== "0", function (v) { localStorage.setItem(key, v ? "1" : "0"); if (onChange) onChange(); }));
       return row;
     }
-    var cP = card(T("Stil", "Style"), T("Unraids Plugins-Tab im Docker-Tab-Stil darstellen: Badges für Autor/Version/Status, Akzent- bzw. Rainbow-Farben, Pill-Buttons.", "Render Unraid's Plugins tab in the Docker-tab style: badges for author/version/status, accent or rainbow colours, pill buttons."));
+    var cP = card(T("Stil", "Style"), T("AN = die Docker-Tab-Einstellungen gelten auch hier. AUS = die eigenen Karten dieses Abschnitts gelten.", "ON = the Docker-tab settings apply here too. OFF = this section's own cards apply."));
     cP.appendChild(styleToggle("cc.styleplugin", null));
     // per-tab style controls — the SAME set as the Docker tab, active while the
     // adopt-toggle above is OFF (own key prefix per tab)
     // The Plugin/VM sections carry EXACTLY the Docker tab's style cards (same
     // picker, swatches, rainbow palette, tint toggle + strength) on their own
     // key prefix; they apply while "Adopt the Docker-tab style" is OFF.
-    function buildStyleCards(P, into) {
+    function buildStyleCards(P, into, samples) {
       var acc = get(P + "accent", "#2f6feb"), icol = get(P + "iconcolor", ""), istr = parseInt(get(P + "iconstrength", "100"), 10) || 100;
       var cA = card(T("Badges", "Badges"), T("Akzentfarbe und Farbmodus der Badges.", "Accent colour and colour mode of the badges."));
       var pr = el("div", "cc-set-pickrow");
       var hx = el("input", "cc-set-hexin"); hx.type = "text"; hx.value = acc; hx.placeholder = "#2f6feb"; hx.maxLength = 7; hx.spellcheck = false;
-      var pk = inlinePicker(/^#[0-9a-f]{6}$/i.test(acc) ? acc : "#2f6feb", function (v) { acc = v; hx.value = v; set(P + "accent", v); });
-      hx.addEventListener("input", function () { var v = normHex(hx.value); if (v) { acc = v; pk._set(v); set(P + "accent", v); } });
+      var pk = inlinePicker(/^#[0-9a-f]{6}$/i.test(acc) ? acc : "#2f6feb", function (v) { acc = v; hx.value = v; set(P + "accent", v); paintPv(); });
+      hx.addEventListener("input", function () { var v = normHex(hx.value); if (v) { acc = v; pk._set(v); set(P + "accent", v); paintPv(); } });
       pr.appendChild(pk); pr.appendChild(hx); cA.appendChild(pr);
       var sr = el("div", "cc-set-swatches");
       PRESETS.forEach(function (c) {
         var sw = el("span", "cc-set-sw" + (c === acc ? " cc-set-sw-on" : "")); sw.title = c; sw.style.background = c;
-        sw.addEventListener("click", function () { acc = c; pk._set(c); hx.value = c; set(P + "accent", c); });
+        sw.addEventListener("click", function () { acc = c; pk._set(c); hx.value = c; set(P + "accent", c); paintPv(); });
         sr.appendChild(sw);
       });
       cA.appendChild(sr);
       var rr2 = el("div", "cc-set-row cc-set-inline");
       rr2.appendChild(el("span", null, T("Regenbogen-Modus", "Rainbow mode")));
-      rr2.appendChild(toggle(get(P + "rainbow", "0") === "1", function (v) { set(P + "rainbow", v ? "1" : "0"); }));
+      rr2.appendChild(toggle(get(P + "rainbow", "0") === "1", function (v) { set(P + "rainbow", v ? "1" : "0"); paintPv(); }));
       cA.appendChild(rr2);
       var RB2 = ["#d9433f", "#f97316", "#eab308", "#1f9d55", "#0ea5a4", "#2f6feb", "#8b5cf6", "#e05299"];
       var pal2 = null; try { pal2 = JSON.parse(get(P + "rbpal", "null")); } catch (e2) { pal2 = null; }
@@ -442,7 +442,7 @@
         var sw2 = el("span", "cc-set-sw"); sw2.style.background = cx2; sw2.title = cx2;
         sw2.addEventListener("click", function () {
           ri = ix2; rpw.style.display = "";
-          if (!rp) { rp = inlinePicker(pal2[ix2], function (v) { if (ri >= 0) { pal2[ri] = v; rw.children[ri].style.background = v; rw.children[ri].title = v; set(P + "rbpal", JSON.stringify(pal2)); } }); rpw.appendChild(rp); }
+          if (!rp) { rp = inlinePicker(pal2[ix2], function (v) { if (ri >= 0) { pal2[ri] = v; rw.children[ri].style.background = v; rw.children[ri].title = v; set(P + "rbpal", JSON.stringify(pal2)); paintPv(); } }); rpw.appendChild(rp); }
           else rp._set(pal2[ix2]);
         });
         rw.appendChild(sw2);
@@ -450,30 +450,69 @@
       var rs = el("span", "cc-btn cc-btn-sm", T("Farben zurücksetzen", "Reset colours"));
       rs.addEventListener("click", function () { del(P + "rbpal"); render(); });
       cA.appendChild(rw); cA.appendChild(rpw); cA.appendChild(rs);
+      // live badge preview, exactly like the Docker section
+      cA.appendChild(el("div", "cc-set-lbl", T("Vorschau", "Preview")));
+      var pv = el("div", "cc-set-prev");
+      var pvBadges = [["Netzwerk", "br0.20"], ["IP", "192.168.20.11"], ["LAN", "192.168.20.11"], ["Port", "all"]].map(function (d9) {
+        var b9 = el("span", "cc-b"); b9.appendChild(el("span", "cc-b-k", d9[0])); b9.appendChild(el("span", "cc-b-v", d9[1])); pv.appendChild(b9); return b9;
+      });
+      function paintPv() {
+        var rbOn9 = get(P + "rainbow", "0") === "1";
+        pvBadges.forEach(function (b9, i9) {
+          var col9 = rbOn9 ? pal2[i9 % pal2.length] : acc;
+          b9.style.setProperty("background", col9, "important");
+          b9.style.setProperty("color", idealText(col9), "important");
+        });
+      }
+      paintPv();
+      cA.appendChild(pv);
       into.appendChild(cA);
       var cB = card(T("Logos einfärben", "Colourise logos"), T("Der Schalter aktiviert die Färbung.", "The switch turns the tint on."));
       var ihx = el("input", "cc-set-hexin"); ihx.type = "text"; ihx.value = icol || ""; ihx.placeholder = "#1f9d55"; ihx.maxLength = 7; ihx.spellcheck = false;
       var ipk = inlinePicker(/^#[0-9a-f]{6}$/i.test(icol) ? icol : "#1f9d55", function (v) { icol = v; ihx.value = v; set(P + "iconcolor", v); sy(); });
       function on2() { return !!icol; }
       var tg2 = el("span", "cc-set-toggle" + (on2() ? " cc-set-toggle-on" : "")); tg2.setAttribute("role", "switch"); tg2.setAttribute("tabindex", "0"); tg2.appendChild(el("span", "cc-set-knob"));
-      function sy() { tg2.classList.toggle("cc-set-toggle-on", on2()); tg2.setAttribute("aria-checked", on2() ? "true" : "false"); }
+      function sy() { tg2.classList.toggle("cc-set-toggle-on", on2()); tg2.setAttribute("aria-checked", on2() ? "true" : "false"); try { tp(); } catch (e9) {} }
       tg2.addEventListener("click", function () { if (on2()) { icol = ""; del(P + "iconcolor"); ihx.value = ""; } else { icol = ipk._get(); ihx.value = icol; set(P + "iconcolor", icol); } sy(); });
       ihx.addEventListener("input", function () { var v = normHex(ihx.value); if (v) { icol = v; ipk._set(v); set(P + "iconcolor", v); sy(); } });
       var ir2 = el("div", "cc-set-pickrow"); ir2.appendChild(ipk); ir2.appendChild(ihx); cB.appendChild(ir2);
       var tr2 = el("div", "cc-set-row cc-set-inline"); tr2.appendChild(el("span", null, T("Einfärben", "Colourise"))); tr2.appendChild(tg2); cB.appendChild(tr2);
       var st2 = el("div", "cc-set-row"); st2.appendChild(el("span", "cc-set-rl", T("Intensität", "Strength")));
       var sl2 = el("input"); sl2.type = "range"; sl2.min = "10"; sl2.max = "100"; sl2.value = String(istr); sl2.style.flex = "1";
-      sl2.addEventListener("input", function () { set(P + "iconstrength", sl2.value); });
+      sl2.addEventListener("input", function () { set(P + "iconstrength", sl2.value); try { tp(); } catch (e9) {} });
       st2.appendChild(sl2); cB.appendChild(st2);
+      // live logo preview with real icons of this tab
+      cB.appendChild(el("div", "cc-set-lbl", T("Vorschau", "Preview")));
+      var tpw = el("div", "cc-set-prev"); var tpImgs = [];
+      (samples || []).forEach(function (s9) {
+        var im9 = el("img"); im9.src = s9; im9.alt = "";
+        im9.style.width = "48px"; im9.style.height = "48px"; im9.style.objectFit = "contain";
+        im9.onerror = function () { this.style.display = "none"; };
+        tpImgs.push(im9); tpw.appendChild(im9);
+      });
+      var fid = "cc-set-tint-" + P.replace(/[^a-z]/g, "");
+      function tp() {
+        var hx9 = /^#?([0-9a-f]{6})$/i.exec(icol || "");
+        if (!hx9) { tpImgs.forEach(function (im9) { im9.style.filter = "none"; }); return; }
+        var n9 = parseInt(hx9[1], 16), r9 = (n9 >> 16 & 255) / 255, g9 = (n9 >> 8 & 255) / 255, b9 = (n9 & 255) / 255;
+        var st9 = Math.max(10, parseInt(get(P + "iconstrength", "100"), 10) || 100) / 100, i9 = 1 - st9;
+        function row9(c9, ix9) { var v9 = [0.2126 * c9 * st9, 0.7152 * c9 * st9, 0.0722 * c9 * st9, 0, 0]; v9[ix9] += i9; return v9.join(" "); }
+        var host9 = document.getElementById(fid + "-svg");
+        if (!host9) { host9 = document.createElement("div"); host9.id = fid + "-svg"; host9.style.cssText = "position:absolute;width:0;height:0;overflow:hidden"; document.body.appendChild(host9); }
+        host9.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg"><filter id="' + fid + '" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%"><feColorMatrix type="matrix" values="' + row9(r9, 0) + " " + row9(g9, 1) + " " + row9(b9, 2) + ' 0 0 0 1 0"/></filter></svg>';
+        tpImgs.forEach(function (im9) { im9.style.filter = "url(#" + fid + ")"; });
+      }
+      cB.appendChild(tpw); tp();
       into.appendChild(cB);
     }
-    buildStyleCards("ccp.", wrapPlugin);
-    buildStyleCards("ccv.", wrapVms);
+    // real plugin/VM icons that exist on every Unraid box as preview subjects
+    buildStyleCards("ccp.", wrapPlugin, ["/plugins/dynamix.plugin.manager/images/dynamix.plugin.manager.png", "/plugins/dynamix.docker.manager/images/dynamix.docker.manager.png", "/plugins/cannonadecommand/images/cannonadecommand.png"]);
+    buildStyleCards("ccv.", wrapVms, ["/plugins/dynamix.vm.manager/templates/images/linux.png", "/plugins/dynamix.vm.manager/templates/images/windows.png", "/plugins/cannonadecommand/images/cannonadecommand.png"]);
     // adopt cards LAST, so every section starts [Badges][Logos] like the Docker
     // tab. cV is DEFINED before it is appended — the use-before-define TypeError
     // here killed showSec(), which left every section visible at once and the
     // active tab unstyled.
-    var cV = card(T("Stil", "Style"), T("Akzentfarbe und Icon-Färbung des Docker-Tabs auch auf den VM-Tab anwenden.", "Apply the Docker tab's accent and icon tint to the VMs tab too."));
+    var cV = card(T("Stil", "Style"), T("AN = die Docker-Tab-Einstellungen gelten auch hier. AUS = die eigenen Karten dieses Abschnitts gelten.", "ON = the Docker-tab settings apply here too. OFF = this section's own cards apply."));
     cV.appendChild(styleToggle("cc.stylevms", null));
     wrapPlugin.appendChild(cP);
     wrapVms.appendChild(cV);

@@ -165,11 +165,11 @@
       window.__ccLS = orig;
       localStorage.setItem = function (k, v) {
         orig(k, v);
-        try { if (String(k).indexOf("cc.") === 0 && k !== "cc.stateCache") { uiPending[k] = 1; clearTimeout(uiSyncT); uiSyncT = setTimeout(pushUISettings, 800); } } catch (e) {}
+        try { if (/^cc[pv]?\./.test(String(k)) && k !== "cc.stateCache") { uiPending[k] = 1; clearTimeout(uiSyncT); uiSyncT = setTimeout(pushUISettings, 800); } } catch (e) {}
       };
     } catch (e) {}
   })();
-  function collectUISettings() { var o = {}; for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf("cc.") === 0 && k !== "cc.stateCache") o[k] = localStorage.getItem(k); } return o; }
+  function collectUISettings() { var o = {}; for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && /^cc[pv]?\./.test(k) && k !== "cc.stateCache") o[k] = localStorage.getItem(k); } return o; }
   // merge ONLY the changed keys into the server map (never replace it wholesale)
   function pushUISettings() {
     var keys = Object.keys(uiPending); if (!keys.length) return;
@@ -183,7 +183,7 @@
   }
   function adoptUISettings(u) {
     var changed = false;
-    try { Object.keys(u || {}).forEach(function (k) { if (k.indexOf("cc.") === 0 && localStorage.getItem(k) !== u[k]) { (window.__ccLS || localStorage.setItem.bind(localStorage))(k, u[k]); changed = true; } }); } catch (e) {}
+    try { Object.keys(u || {}).forEach(function (k) { if (/^cc[pv]?\./.test(k) && localStorage.getItem(k) !== u[k]) { (window.__ccLS || localStorage.setItem.bind(localStorage))(k, u[k]); changed = true; } }); } catch (e) {}
     return changed;
   }
   function loadConfig() {
@@ -782,10 +782,14 @@
       if (g9 && !g9.offsetParent) { g9.remove(); g9 = null; } // stranded in a hidden th
       var a9 = hr3.querySelector(".cc-advmini");
       if (a9 && !a9.offsetParent) { a9.remove(); a9 = null; }
+      // the gear lives in the AKTIONEN header (user call: not next to the view
+      // toggle); before the actions th exists it parks in th3 and moves later
+      var thA = hr3.querySelector(".cc-act-th");
+      if (g9 && thA && g9.parentNode !== thA) thA.appendChild(g9);
       if (!g9) {
         var g3 = tv ? tv.querySelector(".cc-hgear-bar") : null; if (g3) g3.remove();
         var hc = document.querySelector(".cc-headctl"); if (hc) hc.remove(); // old overlay
-        th3.appendChild(makeGear("cc-hgear-th2"));
+        (thA || th3).appendChild(makeGear("cc-hgear-th2"));
       }
       // tiny Basic/Advanced switch left of the gear (user call) — flips Unraid's
       // own hidden checkbox, so cookie + re-render stay native

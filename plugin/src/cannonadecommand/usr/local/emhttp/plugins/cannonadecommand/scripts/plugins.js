@@ -219,7 +219,6 @@
 
   function paint() {
     try {
-      if (ls("cc.styleplugin") === "0") return; // takeover disabled in the settings
       var tbs = document.querySelectorAll("#plugin_table, table.tablesorter");
       if (!tbs.length) return;
       Array.prototype.slice.call(tbs).forEach(function (t5) { t5.classList.add(t5.querySelector("#plugin_list") ? "cc-plug" : "cc-plug-lite"); });
@@ -274,7 +273,7 @@
     fetch(PROXY + "?path=config", { headers: { Accept: "application/json" } })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (c) {
-        try { var u = c && c.ui_settings; if (u) Object.keys(u).forEach(function (k) { if (k.indexOf("cc.") === 0 && ls(k) !== u[k]) localStorage.setItem(k, u[k]); }); } catch (e) {}
+        try { var u = c && c.ui_settings; if (u) Object.keys(u).forEach(function (k) { if (/^cc[pv]?\./.test(k) && ls(k) !== u[k]) localStorage.setItem(k, u[k]); }); } catch (e) {}
         done();
       })
       .catch(function () { done(); });

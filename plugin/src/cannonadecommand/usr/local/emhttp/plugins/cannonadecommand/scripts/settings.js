@@ -469,11 +469,14 @@
     }
     buildStyleCards("ccp.", wrapPlugin);
     buildStyleCards("ccv.", wrapVms);
-    // adopt cards LAST, so every section starts [Badges][Logos] like the Docker tab
-    wrapPlugin.appendChild(cP);
-    wrapVms.appendChild(cV);
+    // adopt cards LAST, so every section starts [Badges][Logos] like the Docker
+    // tab. cV is DEFINED before it is appended — the use-before-define TypeError
+    // here killed showSec(), which left every section visible at once and the
+    // active tab unstyled.
     var cV = card(T("Stil", "Style"), T("Akzentfarbe und Icon-Färbung des Docker-Tabs auch auf den VM-Tab anwenden.", "Apply the Docker tab's accent and icon tint to the VMs tab too."));
     cV.appendChild(styleToggle("cc.stylevms", null));
+    wrapPlugin.appendChild(cP);
+    wrapVms.appendChild(cV);
     showSec(parseInt(localStorage.getItem("cc.settab") || "0", 10) || 0);
     paintPrev();
   }

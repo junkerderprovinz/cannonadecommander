@@ -795,7 +795,14 @@
         am.appendChild(el("span", "cc-advmini-knob"));
         am.addEventListener("click", function (e) {
           e.preventDefault(); e.stopPropagation();
-          try { var inp9 = document.querySelector("input.advancedview"); if (inp9 && window.jQuery) window.jQuery(inp9).prop("checked", !inp9.checked).trigger("change"); } catch (e9) {}
+          // set the native cookie DIRECTLY and re-render — triggering the hidden
+          // checkbox did nothing on the box
+          var next = !isAdvancedView();
+          am.classList.toggle("cc-advmini-on", next); // optimistic knob feedback
+          try { document.cookie = "docker_listview_mode=" + (next ? "advanced" : "basic") + "; path=/"; } catch (e9) {}
+          try { var inp9 = document.querySelector("input.advancedview"); if (inp9) inp9.checked = next; } catch (e9) {}
+          if (typeof window.loadlist === "function") { try { window.loadlist(); } catch (e9) {} }
+          setTimeout(function () { try { applyEnhanceClasses(); reinjectRowBadges(); } catch (e9) {} }, 300);
         });
         th3.appendChild(am);
       }

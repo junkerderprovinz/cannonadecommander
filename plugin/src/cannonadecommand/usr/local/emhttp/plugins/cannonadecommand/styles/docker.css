@@ -90,7 +90,7 @@
 .cc-enh #docker_list tr.sortable > td:nth-child(2) { max-width: 122px; }
 .cc-actbtn i.fa { font-size: 13px; line-height: 1; color: inherit !important; } /* theme CSS colours .fa directly */
 /* gear inside the header strip (last th) — absolute overlays got clipped */
-.cc-hgear-th2 { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); }
+.cc-hgear-th2 { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: #9a9a9a !important; }
 .cc-advmini { position: absolute; right: 38px; top: 50%; transform: translateY(-50%); width: 30px; height: 16px; border-radius: 999px; background: #3a3a3a; cursor: pointer; display: inline-block; }
 .cc-advmini-knob { position: absolute; left: 2px; top: 2px; width: 12px; height: 12px; border-radius: 50%; background: #cfcfcf; transition: transform .15s; }
 .cc-advmini-on { background: var(--cc-accent, #2f6feb); }
@@ -543,7 +543,7 @@ div.title span.left, div.title span.right { text-transform: uppercase; letter-sp
 .cc-set-tbl, .cc-set-tbl th, .cc-set-tbl td, .cc-set-tbl tr { background: transparent !important; }
 .cc-plug #plugin_list > tr > td:first-child { text-align: left !important; }
 .cc-plugname { display: flex; align-items: center; gap: 14px; }
-.cc-plugico { display: flex !important; align-items: center; justify-content: center; flex: none; }
+.cc-plugico { display: flex !important; align-items: center; justify-content: center; flex: none; background: rgba(255,255,255,.06); border-radius: 12px; } /* identical tile behind every logo — evens out intrinsic padding differences */
 .cc-plugsup { transition: filter .12s, transform .12s; }
 .cc-plugsup:hover { filter: brightness(1.18); transform: translateY(-1px); }
 /* the other tabs' tables (install errors etc.): same clean look */

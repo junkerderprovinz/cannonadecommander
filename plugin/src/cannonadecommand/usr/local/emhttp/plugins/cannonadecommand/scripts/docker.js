@@ -777,11 +777,39 @@
       // the docked bar's own height feeds the scroll clearance (CSS padding-bottom)
       var bar = document.querySelector("div.js-actions");
       if (bar) { var bh = Math.round(bar.getBoundingClientRect().height); if (bh > 0 && bh < 200) document.documentElement.style.setProperty("--cc-actbar-h", bh + "px"); }
+      // align the bar's LEFT indent with the column-header row above it ("in einer Flucht")
+      var hr0 = headerRow();
+      if (hr0) { var hl = Math.round(hr0.getBoundingClientRect().left); if (hl >= 0 && hl < 800) document.documentElement.style.setProperty("--cc-bar-padl", hl + "px"); }
     } catch (e) {}
     if (!window.__ccDockResize) {
       window.__ccDockResize = true;
       window.addEventListener("resize", function () { try { syncFooterDock(); } catch (e) {} });
     }
+  }
+  // The Basic/Advanced view toggle, living in the floating action bar (its only
+  // home now that the gear is gone). Sets Unraid's own cookie directly and calls
+  // loadlist() — the reliable path proven on the box (triggering the hidden
+  // checkbox did nothing there).
+  function ensureBarToggle(bar) {
+    var existing = bar.querySelector(".cc-bar-adv .cc-set-toggle");
+    if (existing) { var on0 = isAdvancedView(); existing.classList.toggle("cc-set-toggle-on", on0); existing.setAttribute("aria-checked", on0 ? "true" : "false"); return; }
+    var wrap = el("span", "cc-bar-adv"); wrap.setAttribute(MARK, "1");
+    wrap.appendChild(el("span", "cc-bar-adv-lbl", LANG === "de" ? "Erweitert" : "Advanced"));
+    var tg = el("span", "cc-set-toggle" + (isAdvancedView() ? " cc-set-toggle-on" : ""));
+    tg.setAttribute("role", "switch"); tg.setAttribute("tabindex", "0"); tg.setAttribute("aria-checked", isAdvancedView() ? "true" : "false");
+    tg.title = LANG === "de" ? "Einfache / Erweiterte Ansicht" : "Basic / Advanced view";
+    tg.appendChild(el("span", "cc-set-knob"));
+    function flip() {
+      var next = !isAdvancedView();
+      tg.classList.toggle("cc-set-toggle-on", next); tg.setAttribute("aria-checked", next ? "true" : "false");
+      try { document.cookie = "docker_listview_mode=" + (next ? "advanced" : "basic") + "; path=/"; } catch (e9) {}
+      try { var inp9 = document.querySelector("input.advancedview"); if (inp9) inp9.checked = next; } catch (e9) {}
+      if (typeof window.loadlist === "function") { try { window.loadlist(); } catch (e9) {} }
+      setTimeout(function () { try { applyEnhanceClasses(); reinjectRowBadges(); } catch (e9) {} }, 300);
+    }
+    tg.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); flip(); });
+    tg.addEventListener("keydown", function (e) { if (e.key === " " || e.key === "Enter") { e.preventDefault(); flip(); } });
+    wrap.appendChild(tg); bar.appendChild(wrap);
   }
   function relocateTopBar() {
     try {
@@ -801,22 +829,23 @@
       while (th3 && !th3.offsetParent) th3 = th3.previousElementSibling;
       if (!th3) return;
       try { if (getComputedStyle(th3).position === "static") th3.style.position = "relative"; } catch (e2) {}
-      var g9 = hr3.querySelector(".cc-hgear-th2");
-      // The old header advmini toggle is retired: the Basic/Advanced switch lives
-      // in the gear menu, so NOTHING CC stays in the column-header row (that th is
-      // hidden in Basic view and reappeared in Advanced view — the ghost gear).
       var oldAm = document.querySelector(".cc-advmini"); if (oldAm) oldAm.remove();
-      // Canonical gear home: the always-visible floating action bar. The native
-      // Docker page has NO tab strip, which is exactly why the header-th fallback
-      // kept surfacing; our own pages fall back to the tab strip. Never the th.
-      var home = document.querySelector("div.js-actions") || document.querySelector("nav.tabs .tabs-container");
-      if (home) {
-        Array.prototype.slice.call(document.querySelectorAll(".cc-hgear:not(.cc-hgear-grid):not(.cc-hgear-home)")).forEach(function (x9) { x9.remove(); });
+      var jsa = document.querySelector("div.js-actions");
+      if (jsa) {
+        // Docker page: the gear/menu is retired entirely (every option lives in
+        // Settings > Utilities, reachable independently). The one quick control —
+        // the Basic/Advanced view toggle — sits directly in the floating action
+        // bar. Sweep away any old gear anywhere on the page.
+        Array.prototype.slice.call(document.querySelectorAll(".cc-hgear:not(.cc-hgear-grid)")).forEach(function (x9) { x9.remove(); });
         var hc = document.querySelector(".cc-headctl"); if (hc) hc.remove(); // old overlay
-        if (g9) g9.remove();
-        if (!home.querySelector(".cc-hgear-home")) home.appendChild(makeGear("cc-hgear-home"));
-      } else if (!g9) {
-        th3.appendChild(makeGear("cc-hgear-th2"));
+        ensureBarToggle(jsa);
+      } else {
+        // our own pages (Plugins/VMs enhancer) have a tab strip, not js-actions
+        var tc9 = document.querySelector("nav.tabs .tabs-container");
+        if (tc9) {
+          Array.prototype.slice.call(document.querySelectorAll(".cc-hgear:not(.cc-hgear-grid):not(.cc-hgear-home)")).forEach(function (x9) { x9.remove(); });
+          if (!tc9.querySelector(".cc-hgear-home")) tc9.appendChild(makeGear("cc-hgear-home"));
+        }
       }
     } catch (e) {}
   }

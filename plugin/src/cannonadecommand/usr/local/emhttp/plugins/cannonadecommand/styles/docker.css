@@ -701,6 +701,22 @@ div.js-actions .cc-bar-adv { display: inline-flex; align-items: center; gap: 8px
 div.js-actions .cc-bar-adv-lbl { color: #cfcfcf; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
 div.js-actions input[type=button]:hover { filter: brightness(1.14); }
 
+/* ___ ShipLog integration: when its changelog bubble is on the Docker tab,
+   CannonadeCommand re-skins ShipLog's buttons + severity pill to the CC theme.
+   The .sl-bubble selector only matches if ShipLog rendered one (i.e. both plugins
+   installed); ShipLog's own design stays untouched. Accent + shape from the
+   --cc-* vars CC sets on documentElement; rainbow rotation is added in docker.js. ___ */
+.sl-bubble .sl-upd, .sl-bubble .sl-gh {
+  background: var(--cc-accent, #2f6feb) !important; color: var(--cc-accent-text, #fff) !important;
+  border: none !important; border-radius: var(--cc-b-radius, 999px) !important;
+  padding: 5px 12px !important; font-weight: 600 !important; text-decoration: none !important;
+  transition: filter .12s !important;
+}
+.sl-bubble .sl-upd:hover, .sl-bubble .sl-gh:hover { filter: brightness(1.13) !important; }
+.sl-bubble .sl-upd.sl-upd-off { background: transparent !important; color: var(--sl-dim) !important; border: 1px solid var(--sl-line2) !important; filter: none !important; }
+.sl-bubble .sl-pill { border-radius: var(--cc-b-radius, 999px) !important; }
+.sl-bubble .sl-x { border-radius: var(--cc-b-radius, 7px) !important; }
+
 /* ___ badge-shape MASTER overrides: these must remain the LAST rules in this
    file, because any later rule with the same !important radius would win
    (exactly what broke the settings tabs). Covers badges, state badges, action

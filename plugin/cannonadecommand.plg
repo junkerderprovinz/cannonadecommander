@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.0.1">
+  <!ENTITY version   "2.0.2">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,12 @@
 </ICON>
 
 <CHANGES>
+### 2.0.2
+- ShipLog integration: when ShipLog is installed too, its changelog bubble adopts
+  the CannonadeCommand theme (action buttons + severity pill: accent/rainbow colour
+  and badge shape). ShipLog on its own keeps its own design; CC only restyles it
+  when both are present, without touching ShipLog's code.
+
 ### 2.0.1
 - Plugins tab: the toolbar buttons and the page tabs now share one exact height
   (they were a few pixels apart).
@@ -137,7 +143,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>4251441fe18b46b3406319aca7117f227ad1754ff6cdb414afc03b1fd9d1a6c2</SHA256>
+  <SHA256>4ad105ca7906f4136b1d335bdbc6c574a97c5c0c6d099047d62d00c6f1203b89</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

@@ -1798,6 +1798,44 @@
       if (body) mo.observe(body, { childList: true }); else mo.observe(nativeTable() || document.body, { childList: true, subtree: true });
     } catch (e) {}
   }
+  // ── ShipLog integration (only when BOTH CC and ShipLog are installed) ──
+  // ShipLog's changelog bubble (.sl-bubble, appended to <body>) gets CC's button
+  // + severity-pill theme. Accent + badge shape come from CSS (docker.css, via the
+  // --cc-* vars); this only adds the rainbow per-element rotation CSS can't express.
+  // ShipLog's own code is untouched — the restyle lives here in CC, and the
+  // selectors only ever match when ShipLog actually rendered a bubble.
+  function ccRbColor(i) {
+    var pal = RB_PAL;
+    try { var jp = JSON.parse(localStorage.getItem("cc.rbpal") || "null"); if (jp && jp.length) pal = jp; } catch (e) {}
+    var off = localStorage.getItem("cc.rainbowrot") === "0" ? 0 : RB_OFFSET;
+    return pal[(i + off) % pal.length];
+  }
+  function enhanceShipLogBubble(bub) {
+    try {
+      if (localStorage.getItem("cc.rainbow") !== "1") return; // accent + shape are pure CSS
+      Array.prototype.slice.call(bub.querySelectorAll(".sl-upd:not(.sl-upd-off), .sl-gh")).forEach(function (bn, i) {
+        var c = ccRbColor(i);
+        bn.style.setProperty("background", c, "important");
+        bn.style.setProperty("color", idealText(c), "important");
+        bn.style.setProperty("border-color", c, "important");
+      });
+    } catch (e) {}
+  }
+  var slMo = null;
+  function connectShipLogObserver() {
+    try {
+      if (slMo) return;
+      Array.prototype.slice.call(document.querySelectorAll(".sl-bubble")).forEach(enhanceShipLogBubble);
+      slMo = new MutationObserver(function (muts) {
+        muts.forEach(function (m2) {
+          Array.prototype.slice.call(m2.addedNodes).forEach(function (n) {
+            if (n.nodeType === 1 && n.classList && n.classList.contains("sl-bubble")) enhanceShipLogBubble(n);
+          });
+        });
+      });
+      slMo.observe(document.body, { childList: true });
+    } catch (e) {}
+  }
   function startTimers() {
     lastAdv = isAdvancedView();
     // reinject id/Von + re-apply the advanced class on an Advanced/Basic flip
@@ -1865,6 +1903,7 @@
       // off the 9s render path — a bulk inspect must not gate or race the paint.
       load().then(refreshLimits);
       connectObserver();
+      connectShipLogObserver(); // re-skin ShipLog's bubble if it's installed too
       startTimers();
       // the Settings page (separate tab) writes cc.* keys → re-apply live here
       window.addEventListener("storage", function (e) {

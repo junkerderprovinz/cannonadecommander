@@ -17,9 +17,10 @@
  */
 
 /* ═══ left page tabs -> badges ═══ */
+html.cc-header-on #menu .nav-tile:not(.right) { padding-left: 12px; } /* breathing room before the first badge */
 html.cc-header-on #menu .nav-tile:not(.right) .nav-item > a {
   display: inline-flex !important; align-items: center; justify-content: center;
-  height: 26px; line-height: 1; padding: 0 13px !important; margin: 0 3px;
+  height: 28px; line-height: 1; padding: 0 13px !important; margin: 0 3px;
   border-radius: var(--cc-b-radius, 999px) !important;
   background: rgba(128, 128, 128, .18) !important; color: #cfcfcf !important;
   font-weight: 600 !important; transition: filter .12s, background .12s, color .12s;
@@ -34,7 +35,7 @@ html.cc-header-on #menu .nav-item:after, html.cc-header-on #menu .nav-user.show:
 /* ═══ right-side utility icons -> accent-filled boxes, black/white glyph ═══ */
 html.cc-header-on #menu .nav-tile.right .nav-item.util > a {
   display: inline-flex !important; align-items: center; justify-content: center;
-  width: 30px; height: 30px; padding: 0 !important; margin: 0 3px;
+  width: 28px; height: 28px; padding: 0 !important; margin: 0 3px;
   border-radius: var(--cc-b-radius, 7px) !important;
   background: var(--cc-accent, #2f6feb) !important;
   transition: filter .12s;
@@ -43,15 +44,15 @@ html.cc-header-on #menu .nav-tile.right .nav-item.util > a:hover { filter: brigh
 html.cc-header-on #menu .nav-tile.right .nav-item.util > a span { display: none !important; }
 html.cc-header-on #menu .nav-tile.right .nav-item.util b.system,
 html.cc-header-on #menu .nav-tile.right .nav-item.util img.system {
-  font-size: 16px !important; height: auto !important; line-height: 1 !important;
+  font-size: 15px !important; height: auto !important; line-height: 1 !important;
   padding: 0 !important; margin: 0 !important; color: var(--cc-accent-text, #fff) !important;
 }
 
 /* ═══ array-usage meter -> clean, minimal accent pill ═══ */
 html.cc-header-on #menu .usage-bar {
   float: none !important; align-self: center;
-  height: 18px !important; line-height: 18px !important; width: 120px !important;
-  padding: 2px !important; margin: 0 10px !important;
+  height: 28px !important; line-height: 28px !important; width: 130px !important;
+  padding: 3px !important; margin: 0 10px !important;
   border-radius: var(--cc-b-radius, 999px) !important;
   background: rgba(128, 128, 128, .18) !important;
   box-shadow: none !important; border: none !important;
@@ -61,5 +62,5 @@ html.cc-header-on #menu .usage-bar > span {
   background: var(--cc-accent, #2f6feb) !important;
   box-shadow: none !important;
   color: var(--cc-accent-text, #fff) !important;
-  font-size: 10px !important; font-weight: 600 !important; padding-right: 7px !important; line-height: 14px !important;
+  font-size: 11px !important; font-weight: 600 !important; padding-right: 8px !important; line-height: 22px !important;
 }

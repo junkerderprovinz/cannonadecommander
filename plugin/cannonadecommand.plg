@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.2.2">
+  <!ENTITY version   "2.2.3">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,11 @@
 </ICON>
 
 <CHANGES>
+### 2.2.3
+- Main menu bar: the tab badges, utility icons and array-usage meter share one
+  height (28px); icons slightly smaller, usage meter larger, tab badges get a bit
+  of left padding.
+
 ### 2.2.2
 - Main menu bar in the CC design: the page tabs become badges (grey idle / accent
   active, black/white contrast text), the right-side utility icons become
@@ -174,7 +179,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>0859d52b8cdb56ff45a1cdbe2fb03566f1d2b35484d65df05f6ccf60d59e62ee</SHA256>
+  <SHA256>d77d634a8ecb7e0cfd4904df4aac60ea1458e0563a224e4193d0e06d10b4e4bf</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

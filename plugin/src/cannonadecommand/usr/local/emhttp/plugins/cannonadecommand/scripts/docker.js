@@ -774,6 +774,9 @@
       var h = f ? Math.round(f.getBoundingClientRect().height) : 0;
       if (fixed && h > 0 && h < 160) document.documentElement.style.setProperty("--cc-footer-h", h + "px");
       else document.documentElement.style.removeProperty("--cc-footer-h");
+      // the docked bar's own height feeds the scroll clearance (CSS padding-bottom)
+      var bar = document.querySelector("div.js-actions");
+      if (bar) { var bh = Math.round(bar.getBoundingClientRect().height); if (bh > 0 && bh < 200) document.documentElement.style.setProperty("--cc-actbar-h", bh + "px"); }
     } catch (e) {}
     if (!window.__ccDockResize) {
       window.__ccDockResize = true;
@@ -799,39 +802,21 @@
       if (!th3) return;
       try { if (getComputedStyle(th3).position === "static") th3.style.position = "relative"; } catch (e2) {}
       var g9 = hr3.querySelector(".cc-hgear-th2");
-      var a9 = hr3.querySelector(".cc-advmini");
-      if (a9 && !a9.offsetParent) { a9.remove(); a9 = null; }
-      // the gear lives as a pill at the END of the page tab strip (user call:
-      // in the header it inflated the strip); header th only as a fallback
-      var tc9 = document.querySelector("nav.tabs .tabs-container");
-      if (tc9) {
-        // ONE canonical home in the tab strip; sweep away every stray list-mode
-        // gear the fallback placer may have dropped in a header th (the one that
-        // reappeared when the hidden uptime th became visible in Advanced view)
-        Array.prototype.slice.call(document.querySelectorAll(".cc-hgear:not(.cc-hgear-grid):not(.cc-hgear-tabs)")).forEach(function (x9) { x9.remove(); });
+      // The old header advmini toggle is retired: the Basic/Advanced switch lives
+      // in the gear menu, so NOTHING CC stays in the column-header row (that th is
+      // hidden in Basic view and reappeared in Advanced view — the ghost gear).
+      var oldAm = document.querySelector(".cc-advmini"); if (oldAm) oldAm.remove();
+      // Canonical gear home: the always-visible floating action bar. The native
+      // Docker page has NO tab strip, which is exactly why the header-th fallback
+      // kept surfacing; our own pages fall back to the tab strip. Never the th.
+      var home = document.querySelector("div.js-actions") || document.querySelector("nav.tabs .tabs-container");
+      if (home) {
+        Array.prototype.slice.call(document.querySelectorAll(".cc-hgear:not(.cc-hgear-grid):not(.cc-hgear-home)")).forEach(function (x9) { x9.remove(); });
         var hc = document.querySelector(".cc-headctl"); if (hc) hc.remove(); // old overlay
-        if (!tc9.querySelector(".cc-hgear-tabs")) tc9.appendChild(makeGear("cc-hgear-tabs"));
+        if (g9) g9.remove();
+        if (!home.querySelector(".cc-hgear-home")) home.appendChild(makeGear("cc-hgear-home"));
       } else if (!g9) {
         th3.appendChild(makeGear("cc-hgear-th2"));
-      }
-      // tiny Basic/Advanced switch left of the gear (user call) — flips Unraid's
-      // own hidden checkbox, so cookie + re-render stay native
-      if (!a9) {
-        var am = el("span", "cc-advmini" + (isAdvancedView() ? " cc-advmini-on" : "")); am.setAttribute(MARK, "1");
-        am.title = LANG === "de" ? "Einfache / Erweiterte Ansicht" : "Basic / Advanced view";
-        am.appendChild(el("span", "cc-advmini-knob"));
-        am.addEventListener("click", function (e) {
-          e.preventDefault(); e.stopPropagation();
-          // set the native cookie DIRECTLY and re-render — triggering the hidden
-          // checkbox did nothing on the box
-          var next = !isAdvancedView();
-          am.classList.toggle("cc-advmini-on", next); // optimistic knob feedback
-          try { document.cookie = "docker_listview_mode=" + (next ? "advanced" : "basic") + "; path=/"; } catch (e9) {}
-          try { var inp9 = document.querySelector("input.advancedview"); if (inp9) inp9.checked = next; } catch (e9) {}
-          if (typeof window.loadlist === "function") { try { window.loadlist(); } catch (e9) {} }
-          setTimeout(function () { try { applyEnhanceClasses(); reinjectRowBadges(); } catch (e9) {} }, 300);
-        });
-        th3.appendChild(am);
       }
     } catch (e) {}
   }
@@ -989,11 +974,11 @@
     try {
       // Global idempotency: never place a second list-mode gear once one exists.
       if (document.querySelector(".cc-hgear:not(.cc-hgear-grid)")) return true;
-      // Canonical home: the END of the page tab strip (same as relocateTopBar).
-      // Placing it here — instead of a header th that is CSS-hidden in Basic view
-      // and reappears in Advanced view — is what stopped the gear ghosting back.
-      var tcH = document.querySelector("nav.tabs .tabs-container");
-      if (tcH) { tcH.appendChild(makeGear("cc-hgear-tabs")); return true; }
+      // Canonical home: the floating action bar (Docker page) or the tab strip
+      // (our pages) — same as relocateTopBar. Anywhere but a column-header th,
+      // which is CSS-hidden in Basic view and reappears in Advanced view.
+      var homeH = document.querySelector("div.js-actions") || document.querySelector("nav.tabs .tabs-container");
+      if (homeH) { if (!homeH.querySelector(".cc-hgear-home")) homeH.appendChild(makeGear("cc-hgear-home")); return true; }
       // Preferred home: INSIDE Unraid's Advanced/Basic view-toggle row (a full-width
       // flex-end row), as its first child, so the gear sits in the visible right-aligned
       // control group next to the toggle — NOT as a preceding sibling, which lands it

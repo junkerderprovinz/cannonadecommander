@@ -777,9 +777,13 @@
       // the docked bar's own height feeds the scroll clearance (CSS padding-bottom)
       var bar = document.querySelector("div.js-actions");
       if (bar) { var bh = Math.round(bar.getBoundingClientRect().height); if (bh > 0 && bh < 200) document.documentElement.style.setProperty("--cc-actbar-h", bh + "px"); }
-      // align the bar's LEFT indent with the column-header row above it ("in einer Flucht")
+      // make the bar start AND end flush with the column-header row ("in einer Flucht")
       var hr0 = headerRow();
-      if (hr0) { var hl = Math.round(hr0.getBoundingClientRect().left); if (hl >= 0 && hl < 800) document.documentElement.style.setProperty("--cc-bar-padl", hl + "px"); }
+      if (hr0) {
+        var r0 = hr0.getBoundingClientRect();
+        var bl = Math.max(0, Math.round(r0.left)), br = Math.max(0, Math.round(window.innerWidth - r0.right));
+        if (bl < 800 && br < 1200) { document.documentElement.style.setProperty("--cc-bar-left", bl + "px"); document.documentElement.style.setProperty("--cc-bar-right", br + "px"); }
+      }
     } catch (e) {}
     if (!window.__ccDockResize) {
       window.__ccDockResize = true;
@@ -791,10 +795,11 @@
   // loadlist() — the reliable path proven on the box (triggering the hidden
   // checkbox did nothing there).
   function ensureBarToggle(bar) {
-    var existing = bar.querySelector(".cc-bar-adv .cc-set-toggle");
-    if (existing) { var on0 = isAdvancedView(); existing.classList.toggle("cc-set-toggle-on", on0); existing.setAttribute("aria-checked", on0 ? "true" : "false"); return; }
+    function advWord() { return isAdvancedView() ? (LANG === "de" ? "Erweitert" : "Advanced") : (LANG === "de" ? "Einfach" : "Basic"); }
+    var existing = bar.querySelector(".cc-bar-adv");
+    if (existing) { var on0 = isAdvancedView(); var t0 = existing.querySelector(".cc-set-toggle"), l0 = existing.querySelector(".cc-bar-adv-lbl"); if (t0) { t0.classList.toggle("cc-set-toggle-on", on0); t0.setAttribute("aria-checked", on0 ? "true" : "false"); } if (l0) l0.textContent = advWord(); return; }
     var wrap = el("span", "cc-bar-adv"); wrap.setAttribute(MARK, "1");
-    wrap.appendChild(el("span", "cc-bar-adv-lbl", LANG === "de" ? "Erweitert" : "Advanced"));
+    var lbl = el("span", "cc-bar-adv-lbl", advWord()); wrap.appendChild(lbl);
     var tg = el("span", "cc-set-toggle" + (isAdvancedView() ? " cc-set-toggle-on" : ""));
     tg.setAttribute("role", "switch"); tg.setAttribute("tabindex", "0"); tg.setAttribute("aria-checked", isAdvancedView() ? "true" : "false");
     tg.title = LANG === "de" ? "Einfache / Erweiterte Ansicht" : "Basic / Advanced view";
@@ -802,6 +807,7 @@
     function flip() {
       var next = !isAdvancedView();
       tg.classList.toggle("cc-set-toggle-on", next); tg.setAttribute("aria-checked", next ? "true" : "false");
+      lbl.textContent = next ? (LANG === "de" ? "Erweitert" : "Advanced") : (LANG === "de" ? "Einfach" : "Basic");
       try { document.cookie = "docker_listview_mode=" + (next ? "advanced" : "basic") + "; path=/"; } catch (e9) {}
       try { var inp9 = document.querySelector("input.advancedview"); if (inp9) inp9.checked = next; } catch (e9) {}
       if (typeof window.loadlist === "function") { try { window.loadlist(); } catch (e9) {} }

@@ -71,28 +71,53 @@
   // fixed box alone still LOOKS uneven. The alpha bounding box of each icon is
   // measured once on a canvas and the image scaled so the visible artwork spans
   // the same size everywhere.
-  var fitCache = {};
-  function autoFit(img) {
-    var src = img.src || ""; if (!src) return;
-    if (fitCache[src] != null) { if (fitCache[src] > 1.01) { img.style.transform = "scale(" + fitCache[src] + ")"; img.style.transformOrigin = "center"; } return; }
-    fitCache[src] = 1; // provisional (avoid rework while loading)
-    try {
-      var probe = new Image(); probe.src = src;
-      probe.onload = function () {
-        try {
-          var N = 48, cv = document.createElement("canvas"); cv.width = cv.height = N;
-          var cx = cv.getContext("2d"); cx.drawImage(probe, 0, 0, N, N);
-          var dpx = cx.getImageData(0, 0, N, N).data;
-          var minX = N, minY = N, maxX = -1, maxY = -1;
-          for (var y = 0; y < N; y++) for (var x = 0; x < N; x++) { if (dpx[(y * N + x) * 4 + 3] > 8) { if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; } }
-          if (maxX < 0) return;
-          var span = Math.max(maxX - minX + 1, maxY - minY + 1);
-          var k = Math.min(1.6, Math.max(1, (N - 4) / span));
-          fitCache[src] = k;
-          if (k > 1.01) { img.style.transform = "scale(" + k.toFixed(2) + ")"; img.style.transformOrigin = "center"; }
-        } catch (e9) {}
-      };
-    } catch (e9) {}
+  //
+  // Deterministic icon normalization: the transform-scale hack was uneven (a 1.6x
+  // cap left heavily-padded icons small, and drawing to a square distorted the
+  // aspect ratio it measured from). Instead we crop each logo to its real content
+  // bounding box (alpha) and RE-RENDER it centered at the same target fill in a
+  // square canvas, then swap the src. Every plugin logo then shows content at the
+  // SAME visual size regardless of its baked-in padding or source resolution.
+  //
+  var normCache = {};
+  function applyNorm(img, url) {
+    if (img.getAttribute("data-cc-normed") === url) return; // already swapped
+    if (!img.getAttribute("data-cc-osrc")) img.setAttribute("data-cc-osrc", img.src);
+    img.setAttribute("data-cc-normed", url);
+    img.src = url;
+  }
+  function normalizeIcon(img) {
+    // key on the ORIGINAL src so a re-render (Unraid rewrites the row) still hits cache
+    var src = img.getAttribute("data-cc-osrc") || img.src || ""; if (!src) return;
+    if (src.indexOf("data:") === 0) return;
+    if (normCache[src] != null) { if (normCache[src] !== "1") applyNorm(img, normCache[src]); return; }
+    normCache[src] = "1"; // provisional
+    var probe = new Image();
+    probe.onerror = function () { normCache[src] = "1"; };
+    probe.onload = function () {
+      try {
+        var nw = probe.naturalWidth, nh = probe.naturalHeight; if (!nw || !nh) return;
+        // draw the source contain-style into WxW so the measured bbox matches what is seen
+        var W = 96, cv = document.createElement("canvas"); cv.width = cv.height = W;
+        var cx = cv.getContext("2d");
+        var sc = Math.min(W / nw, W / nh), dw = nw * sc, dh = nh * sc, ox = (W - dw) / 2, oy = (W - dh) / 2;
+        cx.drawImage(probe, ox, oy, dw, dh);
+        var dpx = cx.getImageData(0, 0, W, W).data;
+        var minX = W, minY = W, maxX = -1, maxY = -1;
+        for (var y = 0; y < W; y++) for (var x = 0; x < W; x++) { if (dpx[(y * W + x) * 4 + 3] > 12) { if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; } }
+        if (maxX < 0) { normCache[src] = "1"; return; }
+        var bw = maxX - minX + 1, bh = maxY - minY + 1;
+        // re-render the cropped content, centered, filling 88% of the output square
+        var OUT = 128, avail = OUT * 0.88, k = Math.min(avail / bw, avail / bh);
+        var out = document.createElement("canvas"); out.width = out.height = OUT;
+        var ocx = out.getContext("2d"); ocx.imageSmoothingEnabled = true; ocx.imageSmoothingQuality = "high";
+        var tw = bw * k, th = bh * k;
+        ocx.drawImage(cv, minX, minY, bw, bh, (OUT - tw) / 2, (OUT - th) / 2, tw, th);
+        var url = out.toDataURL("image/png"); // tainted (cross-origin) -> throws -> fallback below
+        normCache[src] = url; applyNorm(img, url);
+      } catch (e9) { normCache[src] = "1"; }
+    };
+    probe.src = src;
   }
   function paintRow(tr, idx) {
     var tds = tr.children;
@@ -137,7 +162,8 @@
         img.style.setProperty("height", "62px", "important");
         img.style.setProperty("object-fit", "contain", "important"); // letterboxed, never squished
         img.style.setProperty("vertical-align", "middle", "important");
-        autoFit(img); // even out baked-in icon padding
+        img.style.removeProperty("transform"); // superseded by content normalization
+        normalizeIcon(img); // crop to content bbox -> every logo the SAME visual size
       } else {
         img.style.setProperty("font-size", "46px", "important");
       }

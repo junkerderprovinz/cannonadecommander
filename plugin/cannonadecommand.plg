@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.2.1">
+  <!ENTITY version   "2.2.2">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,12 @@
 </ICON>
 
 <CHANGES>
+### 2.2.2
+- Main menu bar in the CC design: the page tabs become badges (grey idle / accent
+  active, black/white contrast text), the right-side utility icons become
+  accent-filled boxes with a black/white glyph, and the array-usage meter becomes
+  a clean thin accent pill.
+
 ### 2.2.1
 - Settings: the Bereiche toggles line up; disabling an area hides its settings tab
   immediately. New Hauptmenueleiste settings tab with the same style cards as
@@ -168,7 +174,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>59b5954297a8ba28427426efd11cf287b88664db9069f14409956a00160c261f</SHA256>
+  <SHA256>0859d52b8cdb56ff45a1cdbe2fb03566f1d2b35484d65df05f6ccf60d59e62ee</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

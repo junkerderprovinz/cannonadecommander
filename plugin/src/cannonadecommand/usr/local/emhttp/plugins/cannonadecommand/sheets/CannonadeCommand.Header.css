@@ -1,39 +1,65 @@
 /* CannonadeCommand - GLOBAL main-menu-bar restyle.
  *
- * This sheet is auto-<link>-injected into <head> on EVERY Unraid page (the
- * Buttons .page hook loads sheets/<pagename>.css globally). To make that safe,
- * EVERY rule below is scoped to `html.cc-header-on`, a class header.js only adds
- * when the "Hauptmenueleiste" area is enabled in CC settings. Disabled area =>
- * class absent => this sheet has ZERO effect on any page.
+ * Auto-<link>-injected into <head> on EVERY Unraid page (Buttons .page hook). To
+ * make that safe, EVERY rule is scoped to `html.cc-header-on`, a class header.js
+ * only adds when the "Hauptmenueleiste" area is enabled. Disabled => class absent
+ * => this sheet has ZERO effect anywhere.
  *
- * It brings the CC theme to the main menu bar (#menu): the active page tab gets
- * the accent underline, and the right-side utility icons (Terminal / Log / Help /
- * ...) become small rounded Docker-tab-style action icons that light up in the
- * accent on hover. Colours follow --cc-accent / --cc-b-radius (set by header.js).
- * NOTE: the top-header Connect icons (bell/avatar/power) are Shadow-DOM web
- * components and cannot be restyled by plugin CSS - untouched on purpose.
+ * The CC design language, applied to #menu:
+ *   - the page tabs become BADGES (grey pill when idle, accent pill when active,
+ *     with black/white contrast text), following --cc-b-radius.
+ *   - the right-side utility icons become accent-FILLED boxes with a black/white
+ *     glyph (like the Docker-tab action icons), following --cc-b-radius.
+ *   - the array-usage meter becomes a clean, thin accent pill.
+ * Colours come from --cc-accent / --cc-accent-text / --cc-b-radius (set by
+ * header.js). The top-header Connect icons (bell/avatar/power) are Shadow-DOM web
+ * components and cannot be restyled by plugin CSS - left untouched on purpose.
  */
 
-/* ---- left page tabs: accent underline on the active/hovered tab ---- */
-html.cc-header-on #menu .nav-tile:not(.right) .nav-item.active:after,
-html.cc-header-on #menu .nav-tile:not(.right) .nav-item:hover:after {
-  background: var(--cc-accent, #2f6feb) !important;
+/* ═══ left page tabs -> badges ═══ */
+html.cc-header-on #menu .nav-tile:not(.right) .nav-item > a {
+  display: inline-flex !important; align-items: center; justify-content: center;
+  height: 26px; line-height: 1; padding: 0 13px !important; margin: 0 3px;
+  border-radius: var(--cc-b-radius, 999px) !important;
+  background: rgba(128, 128, 128, .18) !important; color: #cfcfcf !important;
+  font-weight: 600 !important; transition: filter .12s, background .12s, color .12s;
 }
+html.cc-header-on #menu .nav-tile:not(.right) .nav-item:hover > a { filter: brightness(1.14); }
+html.cc-header-on #menu .nav-tile:not(.right) .nav-item.active > a {
+  background: var(--cc-accent, #2f6feb) !important; color: var(--cc-accent-text, #fff) !important;
+}
+/* the underline accent is redundant now that the tab itself is a badge */
+html.cc-header-on #menu .nav-item:after, html.cc-header-on #menu .nav-user.show:after { display: none !important; }
 
-/* ---- right-side utility icons -> small Docker-tab action-icon look ---- */
+/* ═══ right-side utility icons -> accent-filled boxes, black/white glyph ═══ */
 html.cc-header-on #menu .nav-tile.right .nav-item.util > a {
   display: inline-flex !important; align-items: center; justify-content: center;
   width: 30px; height: 30px; padding: 0 !important; margin: 0 3px;
   border-radius: var(--cc-b-radius, 7px) !important;
-  background: rgba(128, 128, 128, .16);
-  transition: background .12s, color .12s;
+  background: var(--cc-accent, #2f6feb) !important;
+  transition: filter .12s;
 }
-html.cc-header-on #menu .nav-tile.right .nav-item.util > a:hover {
-  background: var(--cc-accent, #2f6feb) !important; color: var(--cc-accent-text, #fff) !important;
-}
-html.cc-header-on #menu .nav-tile.right .nav-item.util > a span { display: none !important; } /* icon-only, like the Docker tab */
-html.cc-header-on #menu .nav-tile.right .nav-item.util > a:after { display: none !important; } /* drop the underline accent on the boxes */
+html.cc-header-on #menu .nav-tile.right .nav-item.util > a:hover { filter: brightness(1.14); }
+html.cc-header-on #menu .nav-tile.right .nav-item.util > a span { display: none !important; }
 html.cc-header-on #menu .nav-tile.right .nav-item.util b.system,
-html.cc-header-on #menu .nav-tile.right .nav-item.util img.system { font-size: 16px !important; height: 16px; line-height: 1; }
-html.cc-header-on #menu .nav-tile.right .nav-item.util > a:hover b.system,
-html.cc-header-on #menu .nav-tile.right .nav-item.util > a:hover img.system { color: var(--cc-accent-text, #fff) !important; }
+html.cc-header-on #menu .nav-tile.right .nav-item.util img.system {
+  font-size: 16px !important; height: auto !important; line-height: 1 !important;
+  padding: 0 !important; margin: 0 !important; color: var(--cc-accent-text, #fff) !important;
+}
+
+/* ═══ array-usage meter -> clean, minimal accent pill ═══ */
+html.cc-header-on #menu .usage-bar {
+  float: none !important; align-self: center;
+  height: 18px !important; line-height: 18px !important; width: 120px !important;
+  padding: 2px !important; margin: 0 10px !important;
+  border-radius: var(--cc-b-radius, 999px) !important;
+  background: rgba(128, 128, 128, .18) !important;
+  box-shadow: none !important; border: none !important;
+}
+html.cc-header-on #menu .usage-bar > span {
+  border-radius: var(--cc-b-radius, 999px) !important;
+  background: var(--cc-accent, #2f6feb) !important;
+  box-shadow: none !important;
+  color: var(--cc-accent-text, #fff) !important;
+  font-size: 10px !important; font-weight: 600 !important; padding-right: 7px !important; line-height: 14px !important;
+}

@@ -496,10 +496,52 @@
   }
 
   // ───────────────────────── LIST mode: per-row JS badges, thematically placed
+  // (1) Rainbow colouring for the bottom action bar's native buttons — CSS gives
+  // them the accent, but rainbow needs per-button palette colours here in JS.
+  function colorBarButtons() {
+    try {
+      var bar = document.querySelector("div.js-actions"); if (!bar) return;
+      var btns = bar.querySelectorAll("input[type=button]");
+      if (localStorage.getItem("cc.rainbow") !== "1") { Array.prototype.slice.call(btns).forEach(function (b) { b.style.removeProperty("background"); b.style.removeProperty("color"); }); return; }
+      var pal = RB_PAL; try { var jp = JSON.parse(localStorage.getItem("cc.rbpal") || "null"); if (jp && jp.length) pal = jp; } catch (e2) {}
+      var off = localStorage.getItem("cc.rainbowrot") === "0" ? 0 : RB_OFFSET;
+      Array.prototype.slice.call(btns).forEach(function (b, i) { var c = pal[(i + off) % pal.length]; b.style.setProperty("background", c, "important"); b.style.setProperty("color", idealText(c), "important"); });
+    } catch (e) {}
+  }
+  // (2) Per-line hover marquee for the volumes column. The native cell is ONE
+  // span.docker_readmore with <br>-separated lines, so the old text-indent only
+  // moved the first line. We wrap each line and ping-pong it just far enough to
+  // read the whole thing, then back, repeating while hovered — each independently.
+  function setupVolMarquee(tr) {
+    try {
+      var cell = tr.querySelector(":scope > td:nth-child(8)"); if (!cell) return;
+      var span = cell.querySelector("span.docker_readmore"); if (!span || span.getAttribute("data-cc-vm") === "1") return;
+      span.setAttribute("data-cc-vm", "1");
+      var lines = span.innerHTML.split(/<br\s*\/?>/i);
+      span.innerHTML = "";
+      lines.forEach(function (ln) { var w = el("span", "cc-vline"); var t = el("span", "cc-vtext"); t.innerHTML = ln; w.appendChild(t); span.appendChild(w); });
+      var hov = { on: false }, ivs = [];
+      cell.addEventListener("mouseenter", function () {
+        hov.on = true;
+        Array.prototype.slice.call(span.querySelectorAll(".cc-vline")).forEach(function (w) {
+          var t = w.querySelector(".cc-vtext"); var over = t.scrollWidth - w.clientWidth; if (over <= 2) return;
+          var dur = Math.max(1000, Math.round(over / 55 * 1000)), toEnd = true;
+          t.style.transition = "transform " + (dur / 1000) + "s linear"; t.style.transform = "translateX(-" + over + "px)";
+          var iv = setInterval(function () { if (!hov.on || !t.isConnected) { clearInterval(iv); return; } toEnd = !toEnd; t.style.transform = "translateX(" + (toEnd ? -over : 0) + "px)"; }, dur + 700);
+          ivs.push(iv);
+        });
+      });
+      cell.addEventListener("mouseleave", function () {
+        hov.on = false; ivs.forEach(clearInterval); ivs = [];
+        Array.prototype.slice.call(span.querySelectorAll(".cc-vtext")).forEach(function (t) { t.style.transition = "transform .3s ease"; t.style.transform = "translateX(0)"; });
+      });
+    } catch (e) {}
+  }
   function injectRowBadges(tr) {
     try {
       if (tr.getAttribute(ROWMARK)) return;
       tr.setAttribute(ROWMARK, "1");
+      setupVolMarquee(tr);
       var name = rowName(tr);
       if (filterText) tr.style.display = (norm(name).indexOf(filterText) >= 0) ? "" : "none";
       var nameCell = tr.querySelector("td.ct-name"), upCell = tr.querySelector("td.updatecolumn");
@@ -777,6 +819,7 @@
       // the docked bar's own height feeds the scroll clearance (CSS padding-bottom)
       var bar = document.querySelector("div.js-actions");
       if (bar) { var bh = Math.round(bar.getBoundingClientRect().height); if (bh > 0 && bh < 200) document.documentElement.style.setProperty("--cc-actbar-h", bh + "px"); }
+      colorBarButtons(); // rainbow-tint the native bar buttons (accent handled by CSS)
       // make the bar start AND end flush with the column-header row ("in einer Flucht")
       var hr0 = headerRow();
       if (hr0) {

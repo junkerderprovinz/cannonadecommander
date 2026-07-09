@@ -280,6 +280,21 @@
     }
   }
 
+  // (4) colour the page tab buttons: colorFor() gives the accent normally and a
+  // rotated palette colour in rainbow mode, so the active tab follows the theme.
+  function colorTabs() {
+    try {
+      Array.prototype.slice.call(document.querySelectorAll("nav.tabs .tabs-container > button[role=tab]")).forEach(function (t, i) {
+        if (t.getAttribute("aria-selected") === "true") { var c = colorFor(i); t.style.setProperty("background", c, "important"); t.style.setProperty("color", idealText(c), "important"); }
+        else { t.style.removeProperty("background"); t.style.removeProperty("color"); }
+      });
+      Array.prototype.slice.call(document.querySelectorAll("div.tab input[type=radio] + label, .tabbed input[type=radio] + label")).forEach(function (l, i) {
+        var r = l.previousElementSibling, chk = r && r.checked;
+        if (chk) { var c2 = colorFor(i); l.style.setProperty("background", c2, "important"); l.style.setProperty("color", idealText(c2), "important"); }
+        else { l.style.removeProperty("background"); l.style.removeProperty("color"); }
+      });
+    } catch (e) {}
+  }
   function paint() {
     try {
       var tbs = document.querySelectorAll("#plugin_table, table.tablesorter");
@@ -299,6 +314,8 @@
       // — the accent lives in :root vars so the CSS follows the configured colour
       document.documentElement.style.setProperty("--cc-accent", accent());
       document.documentElement.style.setProperty("--cc-accent-text", idealText(accent()));
+      colorTabs();
+      if (!window.__ccTabClick) { window.__ccTabClick = 1; document.addEventListener("click", function (e) { try { if (e.target.closest && e.target.closest("nav.tabs, div.tab, .tabbed")) setTimeout(colorTabs, 30); } catch (x) {} }, true); }
       // Install-Plugin tab: clean dark input + accent pill button + accent checkbox
       Array.prototype.slice.call(document.querySelectorAll("form[name=plugin_install]")).forEach(function (fm) {
         var ti = fm.querySelector("input[type=text]");

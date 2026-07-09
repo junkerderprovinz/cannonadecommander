@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.0.2">
+  <!ENTITY version   "2.0.3">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,13 @@
 </ICON>
 
 <CHANGES>
+### 2.0.3
+- Bottom action bar: the native buttons follow rainbow mode too, and the bar
+  starts flush with the left edge like Unraid's footer.
+- Volumes column: each mount line scrolls independently on hover, far enough to
+  read, then back, repeating (was: only the top line, running all the way off).
+- Plugins tab: the page tab buttons follow rainbow mode.
+
 ### 2.0.2
 - ShipLog integration: when ShipLog is installed too, its changelog bubble adopts
   the CannonadeCommand theme (action buttons + severity pill: accent/rainbow colour
@@ -143,7 +150,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>4ad105ca7906f4136b1d335bdbc6c574a97c5c0c6d099047d62d00c6f1203b89</SHA256>
+  <SHA256>ea7f3b401719af2cd5396c30a6b6dbd658f7b98f72cc5b4c96194172f8aa29b2</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

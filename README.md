@@ -62,7 +62,9 @@ The **Plugins tab** gets the same styling — uniform logos and badges for autho
 version, status and changelog — and the **VM tab** picks up matching icon theming.
 
 Accent or rainbow colours, a configurable badge shape and a floating action bar tie
-it all together.
+it all together — and CannonadeCommand can extend the same theme to Unraid's **main
+menu bar** (opt-in). A **Bereiche** (Areas) tab in the settings lets you turn each
+area — menu bar, Docker, Plugins, VMs — on or off independently.
 
 **Firepower and finish for Unraid's Docker, Plugins and VM tabs.**
 

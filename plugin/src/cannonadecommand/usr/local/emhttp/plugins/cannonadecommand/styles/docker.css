@@ -7,7 +7,17 @@
  * Native elements stay live (nchan CPU/RAM), clickable and sortable; on uninstall
  * the stylesheet is removed and everything reappears. */
 
-:root { --cc-accent: #2f6feb; --cc-density: 9px; }
+:root {
+  --cc-accent: #2f6feb; --cc-density: 9px;
+  /* ── CC badge size system: three standard tiers, used everywhere for a
+     consistent look. sm = data pills (Docker + Plugin rows) · md = tab badges
+     (menu bar, plugin-page tabs, CC-settings tabs, view toggles) · lg = primary
+     action buttons. The md tokens are mirrored in sheets/CannonadeCommand.Header.css
+     — keep the two copies in sync. */
+  --cc-sm-fs: 11px; --cc-sm-pad: 3px 11px;
+  --cc-md-fs: 13px; --cc-md-h: 30px; --cc-md-pad: 0 20px;
+  --cc-lg-fs: 11px; --cc-lg-pad: 4px 14px;
+}
 
 /* hide Unraid's native "Docker Containers" section-title bar (a div.title emitted by
    the tabless page layout). Scoped with :has(#docker_containers) so it fires ONLY on
@@ -127,7 +137,7 @@ a.sl-updall { display: none !important; }
 .cc-enh #docker_list tr.sortable td.advanced span[class^='mem-'],
 .cc-badge, .cc-pill {
   display: inline-flex; align-items: center; gap: 5px; border: none !important;
-  border-radius: 999px; padding: 3px 11px; margin: 2px 4px 2px 0; font-size: 11px;
+  border-radius: 999px; padding: var(--cc-sm-pad, 3px 11px); margin: 2px 4px 2px 0; font-size: var(--cc-sm-fs, 11px);
   font-weight: 600; line-height: 1.35; white-space: nowrap; text-decoration: none; vertical-align: middle;
 }
 /* info badges (network/IP/LAN/port/CPU/RAM/ID/Von/image tag): SOLID accent, light text */
@@ -510,10 +520,10 @@ select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repea
 nav.tabs { background: transparent !important; border: none !important; box-shadow: none !important; }
 nav.tabs .tabs-container > button[role=tab] {
   background: #2a2a2a !important; color: #b5b5b5 !important; border: none !important;
-  box-shadow: none !important; border-radius: 999px !important; padding: 0 20px !important;
-  text-transform: uppercase !important; letter-spacing: 1.5px !important; font-size: 13px !important;
+  box-shadow: none !important; border-radius: 999px !important; padding: var(--cc-md-pad, 0 20px) !important;
+  text-transform: uppercase !important; letter-spacing: 1.5px !important; font-size: var(--cc-md-fs, 13px) !important;
   font-weight: 600 !important; cursor: pointer; margin-right: 8px;
-  height: 34px !important; box-sizing: border-box !important; line-height: 1 !important;
+  height: var(--cc-md-h, 30px) !important; box-sizing: border-box !important; line-height: 1 !important;
   display: inline-flex !important; align-items: center !important; justify-content: center !important; gap: 6px;
 }
 nav.tabs .tabs-container > button[role=tab][aria-selected="true"] {
@@ -523,9 +533,9 @@ div.tab { background: transparent !important; border: none !important; }
 div.tab input[type=radio] + label,
 .tabbed input[type=radio] + label {
   background: #2a2a2a !important; color: #b5b5b5 !important; border: none !important;
-  box-shadow: none !important; border-radius: 999px !important; padding: 0 20px !important;
-  text-transform: uppercase; letter-spacing: 1.5px; font-size: 13px; cursor: pointer;
-  height: 34px; box-sizing: border-box; line-height: 1;
+  box-shadow: none !important; border-radius: 999px !important; padding: var(--cc-md-pad, 0 20px) !important;
+  text-transform: uppercase; letter-spacing: 1.5px; font-size: var(--cc-md-fs, 13px); cursor: pointer;
+  height: var(--cc-md-h, 30px); box-sizing: border-box; line-height: 1;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
 }
 div.tab input[type=radio]:checked + label,
@@ -580,7 +590,7 @@ div.title span.left, div.title span.right { text-transform: uppercase; letter-sp
 .cc-plugsup { font-size: 11px; }
 .cc-plugver { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
 .cc-plug thead th { text-transform: uppercase; letter-spacing: 1.5px; font-size: 12px; }
-.cc-plug .cc-b { display: inline-flex; gap: 5px; align-items: center; border-radius: 999px; padding: 3px 12px; font-size: 12px; }
+.cc-plug .cc-b { display: inline-flex; gap: 5px; align-items: center; border-radius: 999px; padding: var(--cc-sm-pad, 3px 11px); font-size: var(--cc-sm-fs, 11px); }
 .cc-plug .cc-b .cc-b-k { opacity: .72; font-weight: 500; }
 
 /* badge SHAPE follows the Ansicht setting: pills / rounded rectangles / squares */
@@ -605,7 +615,7 @@ div.title span.left, div.title span.right { text-transform: uppercase; letter-sp
 .cc-set-claim { color: var(--dim); font-size: 13px; font-style: italic; margin-top: 2px; }
 .cc-set-version { margin-left: auto; text-align: right; align-self: center; }
 .cc-set-tabs { display: flex; gap: 8px; margin: 0 0 18px; }
-.cc-set-tab { background: #2a2a2a !important; border: none !important; box-shadow: none !important; color: #b5b5b5 !important; cursor: pointer; padding: 8px 20px !important; font-size: 13px !important; font-weight: 600 !important; text-transform: uppercase !important; letter-spacing: 1.5px !important; border-radius: 999px !important; font-family: inherit !important; } /* typography FORCED — Unraid's button CSS overrode it */
+.cc-set-tab { background: #2a2a2a !important; border: none !important; box-shadow: none !important; color: #b5b5b5 !important; cursor: pointer; display: inline-flex !important; align-items: center; justify-content: center; height: var(--cc-md-h, 30px) !important; padding: var(--cc-md-pad, 0 20px) !important; font-size: var(--cc-md-fs, 13px) !important; font-weight: 600 !important; text-transform: uppercase !important; letter-spacing: 1.5px !important; border-radius: 999px !important; font-family: inherit !important; } /* typography FORCED — Unraid's button CSS overrode it */
 .cc-set-tab-on { background: var(--cc-accent, #2f6feb) !important; color: var(--cc-accent-text, #fff) !important; }
 .cc-set-brand { font-size: 24px; letter-spacing: .2px; } .cc-set-brand b { font-weight: 700; } .cc-set-brand span { font-weight: 400; color: var(--dim); }
 .cc-set-sub { color: var(--dim2); font-size: 12.5px; }
@@ -697,7 +707,7 @@ div.js-actions { display: flex !important; flex-wrap: wrap; gap: 8px; align-item
   #displaybox { padding-bottom: calc(var(--cc-footer-h, 30px) + var(--cc-actbar-h, 40px) + 12px) !important; }
   #docker_list.js-fill-available-height { padding-bottom: var(--cc-actbar-h, 40px) !important; box-sizing: border-box; }
 }
-div.js-actions input[type=button] { background: var(--cc-accent, #2f6feb) !important; color: var(--cc-accent-text, #fff) !important; border: none !important; box-shadow: none !important; padding: 4px 14px !important; font-size: 11px !important; font-weight: 600 !important; text-transform: uppercase !important; letter-spacing: 1.2px !important; font-family: inherit !important; cursor: pointer; transition: filter .12s; }
+div.js-actions input[type=button] { background: var(--cc-accent, #2f6feb) !important; color: var(--cc-accent-text, #fff) !important; border: none !important; box-shadow: none !important; padding: var(--cc-lg-pad, 4px 14px) !important; font-size: var(--cc-lg-fs, 11px) !important; font-weight: 600 !important; text-transform: uppercase !important; letter-spacing: 1.2px !important; font-family: inherit !important; cursor: pointer; transition: filter .12s; }
 div.js-actions .cc-bar-adv { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; }
 div.js-actions .cc-bar-adv-lbl { color: #cfcfcf; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
 div.js-actions input[type=button]:hover { filter: brightness(1.14); }

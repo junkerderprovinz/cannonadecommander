@@ -16,14 +16,22 @@
  * components and cannot be restyled by plugin CSS - left untouched on purpose.
  */
 
+:root {
+  /* CC badge size system, md tier — MIRRORED from styles/docker.css (keep in sync).
+     The menu-bar tab badges, the right-side icon boxes, the array-usage meter and
+     the search field all share this ONE height so the whole bar lines up, and the
+     tabs match the plugin-page tabs. */
+  --cc-md-fs: 13px; --cc-md-h: 30px; --cc-md-pad: 0 20px;
+}
+
 /* ═══ left page tabs -> badges ═══ */
 html.cc-header-on #menu .nav-tile:not(.right) { padding-left: 12px; } /* breathing room before the first badge */
 html.cc-header-on #menu .nav-tile:not(.right) .nav-item > a {
   display: inline-flex !important; align-items: center; justify-content: center;
-  line-height: 1; padding: 8px 20px !important; margin: 0 3px; /* same metrics as the CC settings tabs */
+  line-height: 1; height: var(--cc-md-h, 30px) !important; padding: var(--cc-md-pad, 0 20px) !important; margin: 0 3px; /* same metrics as the CC settings tabs */
   border-radius: var(--cc-b-radius, 999px) !important;
   background: rgba(128, 128, 128, .18) !important; color: #cfcfcf !important;
-  font-size: 13px !important; font-weight: 600 !important; text-transform: uppercase !important; letter-spacing: 1.5px !important;
+  font-size: var(--cc-md-fs, 13px) !important; font-weight: 600 !important; text-transform: uppercase !important; letter-spacing: 1.5px !important;
   transition: filter .12s, background .12s, color .12s;
 }
 html.cc-header-on #menu .nav-tile:not(.right) .nav-item:hover > a { filter: brightness(1.14); }
@@ -36,7 +44,7 @@ html.cc-header-on #menu .nav-item:after, html.cc-header-on #menu .nav-user.show:
 /* ═══ right-side utility icons -> accent-filled boxes, black/white glyph ═══ */
 html.cc-header-on #menu .nav-tile.right .nav-item.util > a {
   display: inline-flex !important; align-items: center; justify-content: center;
-  width: 28px; height: 28px; padding: 0 !important; margin: 0 3px;
+  width: var(--cc-md-h, 30px); height: var(--cc-md-h, 30px); padding: 0 !important; margin: 0 3px;
   border-radius: var(--cc-b-radius, 7px) !important;
   background: var(--cc-accent, #2f6feb) !important;
   transition: filter .12s;
@@ -52,7 +60,7 @@ html.cc-header-on #menu .nav-tile.right .nav-item.util img.system {
 /* ═══ array-usage meter -> clean, minimal accent pill ═══ */
 html.cc-header-on #menu .usage-bar {
   float: none !important; align-self: center;
-  height: 28px !important; line-height: 28px !important; width: 130px !important;
+  height: var(--cc-md-h, 30px) !important; line-height: var(--cc-md-h, 30px) !important; width: 130px !important;
   padding: 3px !important; margin: 0 10px !important;
   border-radius: var(--cc-b-radius, 999px) !important;
   background: rgba(128, 128, 128, .18) !important;
@@ -63,27 +71,24 @@ html.cc-header-on #menu .usage-bar > span {
   background: var(--cc-accent, #2f6feb) !important;
   box-shadow: none !important;
   color: var(--cc-accent-text, #fff) !important;
-  font-size: 11px !important; font-weight: 600 !important; padding-right: 8px !important; line-height: 22px !important;
+  font-size: 11px !important; font-weight: 600 !important; padding-right: 8px !important; line-height: 24px !important;
 }
 
 /* ═══ gui_search field (horizontal top-nav layout only) ═══
-   Clicking search opens Unraid's box (prepended into #menu .nav-tile.right, the
-   util icons hidden). Desired: the box fans out to the LEFT and everything left of
-   it (tabs, array-usage) shifts/scrolls left so nothing is covered. #menu is a GRID
-   (auto max-content); the fix is to make the LEFT column shrinkable+scrollable and
-   let the right group keep its full content width -> the box and the usage meter
-   stay fully visible, the tabs scroll. Scoped to >=768px and NOT the sidebar theme. */
+   Clicking search opens Unraid's NATIVE box (prepended into #menu .nav-tile.right;
+   the util icons are hidden by gui_search). We keep the box at its NATIVE size and
+   position — we do NOT stretch it across the bar — and only give it the CC look.
+   Opening it lets the badge-styled left tabs shrink/scroll aside so the native box
+   never overlaps them. Scoped to >=768px and NOT the sidebar theme. */
 @media (min-width: 768px) {
+  /* CC look only — width + position stay native (no width override) */
   html.cc-header-on:not(.Theme--sidebar) #guiSearchBox {
-    height: 28px !important; padding: 0 14px !important; width: min(40rem, 48vw) !important;
+    height: var(--cc-md-h, 30px) !important; padding: 0 14px !important;
     border: 1px solid var(--cc-accent, #2f6feb) !important; border-radius: var(--cc-b-radius, 999px) !important;
     background: rgba(18, 18, 18, .94) !important; color: #eaeaea !important; font-size: 13px !important;
     box-shadow: none !important; outline: none !important;
   }
-  html.cc-header-on.cc-search-open:not(.Theme--sidebar) #menu { grid-template-columns: 0 1fr !important; }
-  html.cc-header-on.cc-search-open:not(.Theme--sidebar) #menu .nav-tile:not(.right) { display: none !important; }
-  html.cc-header-on.cc-search-open:not(.Theme--sidebar) #menu .nav-tile.right { display: flex !important; align-items: center !important; justify-content: flex-start !important; gap: 10px; min-width: 0 !important; overflow: visible !important; }
-  /* the search box GROWS to fill the freed bar; the array-usage meter stays to its right */
-  html.cc-header-on.cc-search-open:not(.Theme--sidebar) #guiSearchBoxSpan { flex: 1 1 auto !important; min-width: 0 !important; order: -1 !important; }
-  html.cc-header-on.cc-search-open:not(.Theme--sidebar) #guiSearchBox { width: 100% !important; max-width: none !important; }
+  /* the left tabs give way (shrink + scroll) so the native box + array-usage stay visible */
+  html.cc-header-on.cc-search-open:not(.Theme--sidebar) #menu .nav-tile:not(.right) { min-width: 0 !important; overflow-x: auto !important; }
+  html.cc-header-on.cc-search-open:not(.Theme--sidebar) #menu .nav-tile.right { min-width: 0 !important; }
 }

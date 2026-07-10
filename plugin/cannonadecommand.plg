@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.2.6">
+  <!ENTITY version   "2.2.7">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,12 @@
 </ICON>
 
 <CHANGES>
+### 2.2.7
+- Settings: Badge-Form (shape) is now its own card in every section (consistent
+  card layout).
+- Search: the "make room" grid change is scoped to >=768px, so it no longer
+  squeezes the stacked/narrow header together.
+
 ### 2.2.6
 - Search: fixed the "make room" (menu is a grid -> grid-template-columns).
 - Rainbow mode now colours the menu-bar active tab, utility icons and usage meter.
@@ -195,7 +201,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>7fd168d7eda851f203f5f70ffb238b766ee196ae1cf0b3b63d1854873ee4493d</SHA256>
+  <SHA256>a0ab03f2135de934a789d22db85fed0bf26e90152b3af486765f5c581ac01ee7</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

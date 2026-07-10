@@ -391,9 +391,12 @@
     c4.appendChild(segRow(T("Standard-Ansicht", "Default view"), [["list", T("Liste", "List")], ["grid", T("Raster", "Grid")]], view, function (v) { view = v; set("cc.view", v); }));
     c4.appendChild(segRow(T("Zeilenhöhe", "Row density"), [["compact", T("kompakt", "compact")], ["normal", "normal"], ["airy", T("luftig", "airy")]], density, function (v) { density = v; set("cc.density", v); }));
     function applyShape() { var m9 = { pill: "999px", rounded: "6px", square: "0px" }; var r9 = m9[get("cc.badgeshape", "pill")] || "999px"; root.style.setProperty("--cc-b-radius", r9); document.documentElement.style.setProperty("--cc-b-radius", r9); }
-    c4.appendChild(segRow(T("Badge-Form", "Badge shape"), [["pill", "Pills"], ["rounded", T("abgerundet", "rounded")], ["square", T("eckig", "square")]], get("cc.badgeshape", "pill"), function (v) { set("cc.badgeshape", v); applyShape(); }));
-    applyShape();
     wrap.appendChild(c4);
+    // Badge-Form as its OWN card (kept identical across every section)
+    var c4b = card(T("Badge-Form", "Badge shape"), T("Form der Badges: Pills, abgerundet oder eckig.", "Badge shape: pills, rounded or square."));
+    c4b.appendChild(segRow(T("Badge-Form", "Badge shape"), [["pill", "Pills"], ["rounded", T("abgerundet", "rounded")], ["square", T("eckig", "square")]], get("cc.badgeshape", "pill"), function (v) { set("cc.badgeshape", v); applyShape(); }));
+    applyShape();
+    wrap.appendChild(c4b);
 
     // ── Notifications (engine-side; saved to the flash) ──
     var c5 = card(T("Benachrichtigungen", "Notifications"), T("Warnungen bei Watchdog-Neustarts, fehlgeschlagenen Starts und Zeitplan-Fehlern.", "Alerts on watchdog restarts, failed starts and schedule errors."));
@@ -485,9 +488,6 @@
       var rs = el("span", "cc-btn cc-btn-sm", T("Farben zurücksetzen", "Reset colours"));
       rs.addEventListener("click", function () { del(P + "rbpal"); render(); });
       cA.appendChild(rw); cA.appendChild(rpw); cA.appendChild(rs);
-      // badge shape control — same global cc.badgeshape as the Docker card, now
-      // exposed in every section's Badges card (Hauptmenueleiste / Plugins / VMs)
-      cA.appendChild(segRow(T("Badge-Form", "Badge shape"), [["pill", "Pills"], ["rounded", T("abgerundet", "rounded")], ["square", T("eckig", "square")]], get("cc.badgeshape", "pill"), function (v) { set("cc.badgeshape", v); applyShape(); paintPv(); }));
       // live badge preview, exactly like the Docker section
       cA.appendChild(el("div", "cc-set-lbl", T("Vorschau", "Preview")));
       var pv = el("div", "cc-set-prev");
@@ -505,6 +505,10 @@
       paintPv();
       cA.appendChild(pv);
       into.appendChild(cA);
+      // Badge-Form as its own card (same as the Docker section, for consistency)
+      var cS = card(T("Badge-Form", "Badge shape"), T("Form der Badges: Pills, abgerundet oder eckig.", "Badge shape: pills, rounded or square."));
+      cS.appendChild(segRow(T("Badge-Form", "Badge shape"), [["pill", "Pills"], ["rounded", T("abgerundet", "rounded")], ["square", T("eckig", "square")]], get("cc.badgeshape", "pill"), function (v) { set("cc.badgeshape", v); applyShape(); }));
+      into.appendChild(cS);
       var cB = card(T("Logos einfärben", "Colourise logos"), T("Der Schalter aktiviert die Färbung.", "The switch turns the tint on."));
       var ihx = el("input", "cc-set-hexin"); ihx.type = "text"; ihx.value = icol || ""; ihx.placeholder = "#1f9d55"; ihx.maxLength = 7; ihx.spellcheck = false;
       var ipk = inlinePicker(/^#[0-9a-f]{6}$/i.test(icol) ? icol : "#1f9d55", function (v) { icol = v; ihx.value = v; set(P + "iconcolor", v); sy(); });

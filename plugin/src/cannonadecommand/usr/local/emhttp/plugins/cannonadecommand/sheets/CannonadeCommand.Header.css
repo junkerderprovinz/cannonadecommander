@@ -80,8 +80,13 @@ html.cc-header-on #guiSearchBox {
 /* header.js adds .cc-search-open while the search box is present: hide the left
    tabs so the field gets the whole bar (the util icons are already hidden by
    gui_search), and let the field grow. */
-html.cc-header-on.cc-search-open #menu { grid-template-columns: 0 1fr !important; } /* #menu is a GRID (auto max-content) -> give the search group the full width */
-html.cc-header-on.cc-search-open #menu .nav-tile:not(.right) { display: none !important; }
-html.cc-header-on.cc-search-open #menu .nav-tile.right { justify-content: flex-start !important; min-width: 0 !important; }
-html.cc-header-on.cc-search-open #guiSearchBoxSpan { flex: 1 1 auto !important; min-width: 0 !important; }
-html.cc-header-on.cc-search-open #guiSearchBox { width: 100% !important; max-width: none !important; }
+/* Only the horizontal top-nav layout (>=768px) is a two-column grid. On the
+   stacked/narrow layout #menu is a single 1fr column, so touching the grid there
+   squeezed everything together -> scope the whole room-making to >=768px. */
+@media (min-width: 768px) {
+  html.cc-header-on.cc-search-open #menu { grid-template-columns: 0 1fr !important; }
+  html.cc-header-on.cc-search-open #menu .nav-tile:not(.right) { display: none !important; }
+  html.cc-header-on.cc-search-open #menu .nav-tile.right { justify-content: flex-start !important; min-width: 0 !important; }
+  html.cc-header-on.cc-search-open #guiSearchBoxSpan { flex: 1 1 auto !important; min-width: 0 !important; }
+  html.cc-header-on.cc-search-open #guiSearchBox { width: 100% !important; max-width: none !important; }
+}

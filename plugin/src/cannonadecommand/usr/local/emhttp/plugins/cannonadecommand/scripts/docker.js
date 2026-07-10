@@ -659,7 +659,7 @@
         var vh = el("div", "cc-rowbadges"); vh.setAttribute(MARK, "1");
         var advs = upCell.querySelectorAll(":scope > div.advanced");
         var tagDiv = null; // the LAST advanced div without an action link = the image-tag text
-        for (var ai = advs.length - 1; ai >= 0; ai--) { if (!advs[ai].querySelector("a.exec")) { tagDiv = advs[ai]; break; } }
+        for (var ai = advs.length - 1; ai >= 0; ai--) { if (!advs[ai].querySelector("a.exec, span.orange-text, span.green-text")) { tagDiv = advs[ai]; break; } }
         var tagTxt = tagDiv ? tagDiv.textContent.replace(/\s+/g, " ").trim() : "";
         // Hide only the TEXT advanced divs (the image tag we re-render as a badge) — NOT
         // the one carrying the force-update a.exec link, or the "Update erzwingen" badge

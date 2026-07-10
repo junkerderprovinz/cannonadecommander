@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.5.0">
+  <!ENTITY version   "2.5.1">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,11 @@
 </ICON>
 
 <CHANGES>
+### 2.5.1
+- Fix: a container with a pending update showed a bogus "Tag: update ready" badge in the
+  version column (the image-tag detector picked the "update ready" text block). It now
+  skips the update-status blocks and shows the real image tag.
+
 ### 2.5.0
 - The "Logo-Hintergrund" and "Logos einfärben" cards are merged into ONE "Logos" card per
   area, with a "Hintergrund" (background) toggle at the top, plus a colour picker, strength
@@ -319,7 +324,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>5fc2cc8d0cbd55d078289824e6cf96869963737b4b3a5f9b7789c2d4f4e65ead</SHA256>
+  <SHA256>83c7f3b99c1ba561e538a3a32e63e4f283f2482033b48e1cfc66e11c05a9e4ec</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

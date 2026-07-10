@@ -1,0 +1,50 @@
+/* CannonadeCommand - GLOBAL Settings-page category-icon restyle.
+ *
+ * Auto-<link>-injected into <head> on EVERY Unraid page (Buttons .page hook). To make
+ * that safe, EVERY rule is scoped to html.cc-settingsgrid-on, a class settingsgrid.js
+ * only adds on the /Settings LANDING page when the "Einstellungen" area is enabled.
+ * Absent => this sheet has ZERO effect anywhere (including the identically-marked /Tools).
+ *
+ * Each category tile's icon wrapper (the bare <span> inside the tile's <a>, DOM:
+ *   <div class="Panel"><a><span><i class="icon-x PanelIcon"></i></span>
+ *                          <div class="PanelText">Label</div></a></div>)
+ * becomes a LARGE square accent badge (clearly bigger than the 26px menu-bar chips),
+ * following --cc-b-radius (capped so pill-mode reads as a rounded SQUARE, not a circle,
+ * since the user asked for square badges), with a centred contrast glyph. Colours come
+ * from --cc-accent / --cc-accent-text (set by settingsgrid.js; rainbow mode paints each
+ * badge per-tile inline). The native .Panels grid layout is left intact. */
+
+:root { --cc-sg-size: 64px; --cc-sg-glyph: 32px; --cc-sg-rmax: 16px; }
+
+/* the tile's icon wrapper <span> -> the big square badge */
+html.cc-settingsgrid-on #displaybox .Panel > a > span {
+  display: inline-flex !important; align-items: center; justify-content: center;
+  box-sizing: border-box !important; position: relative;
+  width: var(--cc-sg-size, 64px) !important; height: var(--cc-sg-size, 64px) !important;
+  margin: 0 auto !important; padding: 0 !important;
+  /* cap the radius so pill-mode gives a rounded SQUARE; rounded(6px)/square(0) stay exact
+     -> one shape family across all badge-form modes (same trick as the header sheet) */
+  border-radius: min(var(--cc-b-radius, 14px), var(--cc-sg-rmax, 16px)) !important;
+  background: var(--cc-accent, #2f6feb) !important;
+  transition: filter .12s;
+}
+html.cc-settingsgrid-on #displaybox .Panel > a:hover > span { filter: brightness(1.1); }
+
+/* the icon-font glyph (icon-* / fa-*) inside the badge: big, contrast colour */
+html.cc-settingsgrid-on #displaybox .Panel > a > span > i.PanelIcon {
+  font-size: var(--cc-sg-glyph, 32px) !important; line-height: 1 !important;
+  color: var(--cc-accent-text, #fff) !important; margin: 0 !important; padding: 0 !important;
+}
+/* a raster glyph (img.PanelImg) can't be tinted -> just scale it to the badge */
+html.cc-settingsgrid-on #displaybox .Panel > a > span > img.PanelImg {
+  width: var(--cc-sg-glyph, 32px) !important; height: var(--cc-sg-glyph, 32px) !important;
+  max-width: none !important; object-fit: contain !important; margin: 0 !important;
+}
+/* the favourites heart that Settings.page injects into the span on hover -> pin it to a
+   corner so it doesn't sit under the glyph, and keep it readable on the accent badge */
+html.cc-settingsgrid-on #displaybox .Panel > a > span > i.favo {
+  position: absolute !important; top: 3px !important; right: 4px !important; left: auto !important;
+  font-size: 12px !important; line-height: 1 !important; color: var(--cc-accent-text, #fff) !important; opacity: .8;
+}
+/* a touch more air between the badge and its label */
+html.cc-settingsgrid-on #displaybox .Panel .PanelText { margin-top: 4px; }

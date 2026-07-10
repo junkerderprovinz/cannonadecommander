@@ -1,0 +1,15 @@
+Menu="Buttons:96"
+Title="CannonadeCommand"
+Icon="cannonadecommand.png"
+Link="cc-sgrid-hook"
+---
+<?php
+/* CannonadeCommand GLOBAL hook. Registered under Menu="Buttons" so Unraid loads this
+   page's assets into the <head> of EVERY page: sheets/CannonadeCommand.SettingsGrid.css
+   (auto-injected because the basename matches this .page) restyles the /Settings
+   category icons into big square badges, and the script below loads the enhancer.
+   Link="cc-sgrid-hook" makes Navigation render a bare <div> instead of adding a visible
+   CC icon. All styling is gated behind html.cc-settingsgrid-on, which the enhancer only
+   sets on the Settings landing page when the "Einstellungen" area is enabled in CC settings. */
+?>
+<script defer src="<?autov('/plugins/cannonadecommand/scripts/settingsgrid.js')?>"></script>

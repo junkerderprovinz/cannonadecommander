@@ -208,11 +208,12 @@
     var tabRow = el("div", "cc-set-tabs");
     var wrap = el("div", "cc-set-wrap");
     var wrapPlugin = el("div", "cc-set-wrap"), wrapVms = el("div", "cc-set-wrap"), wrapHeader = el("div", "cc-set-wrap");
+    var wrapSettings = el("div", "cc-set-wrap");
     var wrapMain = el("div", "cc-set-wrap");
     // Bereiche: enable/disable each area CannonadeCommand enhances
     (function () {
       var c = card(T("Bereiche", "Areas"), T("Aktiviere, welche Bereiche CannonadeCommand verschönert. Ein deaktivierter Bereich blendet seinen Tab hier sofort aus.", "Choose which areas CannonadeCommand enhances. Disabling an area hides its tab here immediately."));
-      [["cc.enable.header", T("Hauptmenüleiste", "Main menu bar"), "0"], ["cc.enable.docker", T("Docker-Tab", "Docker tab"), "1"], ["cc.enable.plugins", T("Plugin-Tab", "Plugins tab"), "1"], ["cc.enable.vms", T("VM-Tab", "VMs tab"), "1"]].forEach(function (a) {
+      [["cc.enable.header", T("Hauptmenüleiste", "Main menu bar"), "0"], ["cc.enable.docker", T("Docker-Tab", "Docker tab"), "1"], ["cc.enable.plugins", T("Plugin-Tab", "Plugins tab"), "1"], ["cc.enable.vms", T("VM-Tab", "VMs tab"), "1"], ["cc.enable.settings", T("Einstellungen", "Settings"), "1"]].forEach(function (a) {
         var row = el("div", "cc-set-row cc-set-inline");
         row.appendChild(el("span", null, a[1]));
         var cur = localStorage.getItem(a[0]);
@@ -226,7 +227,8 @@
       { t: T("Hauptmenüleiste", "Main menu bar"), w: wrapHeader, key: "cc.enable.header" },
       { t: T("Docker-Tab", "Docker tab"), w: wrap, key: "cc.enable.docker" },
       { t: T("Plugin-Tab", "Plugins tab"), w: wrapPlugin, key: "cc.enable.plugins" },
-      { t: T("VM-Tab", "VMs tab"), w: wrapVms, key: "cc.enable.vms" }
+      { t: T("VM-Tab", "VMs tab"), w: wrapVms, key: "cc.enable.vms" },
+      { t: T("Einstellungen", "Settings"), w: wrapSettings, key: "cc.enable.settings" }
     ];
     var tabBtns = [];
     function areaOn(key) { return !key || localStorage.getItem(key) !== "0"; }
@@ -251,7 +253,7 @@
       tabBtns.push(b); tabRow.appendChild(b);
     });
     root.appendChild(tabRow);
-    root.appendChild(wrapMain); root.appendChild(wrapHeader); root.appendChild(wrap); root.appendChild(wrapPlugin); root.appendChild(wrapVms);
+    root.appendChild(wrapMain); root.appendChild(wrapHeader); root.appendChild(wrap); root.appendChild(wrapPlugin); root.appendChild(wrapVms); root.appendChild(wrapSettings);
 
     // ── Badges ──
     var c1 = card(T("Badges", "Badges"), T("Akzentfarbe und Farbmodus der Badges.", "Accent colour and colour mode of the badges."));
@@ -553,8 +555,11 @@
     cV.appendChild(styleToggle("cc.stylevms", null));
     var cH = card(T("Stil", "Style"), T("AN = die Docker-Tab-Einstellungen gelten auch hier. AUS = die eigenen Karten dieses Abschnitts gelten.", "ON = the Docker-tab settings apply here too. OFF = this section's own cards apply."));
     cH.appendChild(styleToggle("cc.styleheader", null));
-    wrapHeader.appendChild(cH); wrapPlugin.appendChild(cP); wrapVms.appendChild(cV);
+    var cSet = card(T("Stil", "Style"), T("AN = die Docker-Tab-Einstellungen gelten auch hier. AUS = die eigenen Karten dieses Abschnitts gelten.", "ON = the Docker-tab settings apply here too. OFF = this section's own cards apply."));
+    cSet.appendChild(styleToggle("cc.stylesettings", null));
+    wrapHeader.appendChild(cH); wrapPlugin.appendChild(cP); wrapVms.appendChild(cV); wrapSettings.appendChild(cSet);
     buildStyleCards("cch.", wrapHeader, [], true); // Hauptmenueleiste: pill/badge settings only
+    buildStyleCards("ccs.", wrapSettings, [], true); // Einstellungen: badges + shape only, no logo-tint card
     buildStyleCards("ccp.", wrapPlugin, ["/plugins/dynamix.plugin.manager/images/dynamix.plugin.manager.png", "/plugins/dynamix.docker.manager/images/dynamix.docker.manager.png", "/plugins/cannonadecommand/images/cannonadecommand.png"]);
     buildStyleCards("ccv.", wrapVms, ["/plugins/dynamix.vm.manager/templates/images/linux.png", "/plugins/dynamix.vm.manager/templates/images/windows.png", "/plugins/cannonadecommand/images/cannonadecommand.png"]);
     refreshTabs();

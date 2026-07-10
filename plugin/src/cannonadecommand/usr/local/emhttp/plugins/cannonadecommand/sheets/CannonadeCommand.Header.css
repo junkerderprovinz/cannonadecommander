@@ -67,6 +67,18 @@ html.cc-header-on #menu .nav-tile.right .nav-item.util img.system {
   object-fit: contain !important;
 }
 
+/* ═══ right-edge alignment: line the right group up with the page content ═══
+   Unraid's page body (#displaybox) carries `padding: 1rem 1rem 4rem`, so the content's
+   right edge sits 16px (1rem) in from the viewport. The native right nav group
+   (.nav-tile.right, justify-content:flex-end) has NO right padding, so its last item
+   lands flush with the viewport and overshoots the body by ~13px. Match the body's 1rem
+   right padding and zero the trailing item's right margin so the rightmost icon (or the
+   usage meter, whichever is last) lines up exactly with the content below. Sidebar theme
+   is a vertical menu (and uses padding-left:8rem) — excluded, like the search rules. */
+html.cc-header-on:not(.Theme--sidebar) #menu .nav-tile.right { padding-right: 1rem !important; }
+html.cc-header-on:not(.Theme--sidebar) #menu .nav-tile.right > *:last-child { margin-right: 0 !important; }
+html.cc-header-on:not(.Theme--sidebar) #menu .nav-tile.right .nav-item.util:last-child > a { margin-right: 0 !important; }
+
 /* ═══ array-usage meter -> clean, minimal accent pill ═══ */
 html.cc-header-on #menu .usage-bar {
   float: none !important; align-self: center;

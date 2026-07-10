@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.2.10">
+  <!ENTITY version   "2.2.11">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,10 @@
 </ICON>
 
 <CHANGES>
+### 2.2.11
+- Search (top-nav themes): open search shrinks/scrolls the left tabs so the box +
+  array-usage stay fully visible on the right, nothing covered (grid minmax(0,1fr) auto).
+
 ### 2.2.10
 - Volumes marquee doubling fixed: it ran before the Actions column was inserted, so
   the header/row column indices were off by one and it landed in the CPU/Memory
@@ -218,7 +222,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>c364cf538d62912bc252876c8d3e1534f43f15259fdc73563b8dbfb4017e8889</SHA256>
+  <SHA256>097a63d1b918421825bc5df4dae8a77f4bab2b09ee57f5aef459bd53fd605876</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

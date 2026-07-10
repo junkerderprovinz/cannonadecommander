@@ -66,7 +66,21 @@ html.cc-header-on #menu .usage-bar > span {
   font-size: 11px !important; font-weight: 600 !important; padding-right: 8px !important; line-height: 22px !important;
 }
 
-/* ═══ gui_search field ═══
-   The CC search restyle + "make room" is DISABLED for now: it kept breaking on
-   this user's layout and can't be verified without the live DOM. Unraid's native
-   search is left completely untouched until the exact theme/layout is confirmed. */
+/* ═══ gui_search field (horizontal top-nav layout only) ═══
+   Clicking search opens Unraid's box (prepended into #menu .nav-tile.right, the
+   util icons hidden). Desired: the box fans out to the LEFT and everything left of
+   it (tabs, array-usage) shifts/scrolls left so nothing is covered. #menu is a GRID
+   (auto max-content); the fix is to make the LEFT column shrinkable+scrollable and
+   let the right group keep its full content width -> the box and the usage meter
+   stay fully visible, the tabs scroll. Scoped to >=768px and NOT the sidebar theme. */
+@media (min-width: 768px) {
+  html.cc-header-on:not(.Theme--sidebar) #guiSearchBox {
+    height: 28px !important; padding: 0 14px !important; width: min(40rem, 48vw) !important;
+    border: 1px solid var(--cc-accent, #2f6feb) !important; border-radius: var(--cc-b-radius, 999px) !important;
+    background: rgba(18, 18, 18, .94) !important; color: #eaeaea !important; font-size: 13px !important;
+    box-shadow: none !important; outline: none !important;
+  }
+  html.cc-header-on.cc-search-open:not(.Theme--sidebar) #menu { grid-template-columns: minmax(0, 1fr) auto !important; }
+  html.cc-header-on.cc-search-open:not(.Theme--sidebar) #menu .nav-tile:not(.right) { overflow-x: auto !important; min-width: 0 !important; }
+  html.cc-header-on.cc-search-open:not(.Theme--sidebar) #menu .nav-tile.right { min-width: 0 !important; overflow: visible !important; }
+}

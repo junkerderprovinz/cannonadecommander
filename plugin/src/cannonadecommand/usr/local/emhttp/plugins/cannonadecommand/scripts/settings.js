@@ -213,7 +213,7 @@
     // Bereiche: enable/disable each area CannonadeCommand enhances
     (function () {
       var c = card(T("Bereiche", "Areas"), T("Aktiviere, welche Bereiche CannonadeCommand verschönert. Ein deaktivierter Bereich blendet seinen Tab hier sofort aus.", "Choose which areas CannonadeCommand enhances. Disabling an area hides its tab here immediately."));
-      [["cc.enable.header", T("Hauptmenüleiste", "Main menu bar"), "0"], ["cc.enable.docker", T("Docker-Tab", "Docker tab"), "1"], ["cc.enable.plugins", T("Plugin-Tab", "Plugins tab"), "1"], ["cc.enable.vms", T("VM-Tab", "VMs tab"), "1"], ["cc.enable.settings", T("Einstellungen", "Settings"), "1"]].forEach(function (a) {
+      [["cc.enable.header", T("Hauptmenüleiste", "Main menu bar"), "0"], ["cc.enable.docker", T("Docker-Tab", "Docker tab"), "1"], ["cc.enable.plugins", T("Plugin-Tab", "Plugins tab"), "1"], ["cc.enable.vms", T("VM-Tab", "VMs tab"), "1"], ["cc.enable.settings", T("Einstellungs-Tab", "Settings tab"), "1"]].forEach(function (a) {
         var row = el("div", "cc-set-row cc-set-inline");
         row.appendChild(el("span", null, a[1]));
         var cur = localStorage.getItem(a[0]);
@@ -228,7 +228,7 @@
       { t: T("Docker-Tab", "Docker tab"), w: wrap, key: "cc.enable.docker" },
       { t: T("Plugin-Tab", "Plugins tab"), w: wrapPlugin, key: "cc.enable.plugins" },
       { t: T("VM-Tab", "VMs tab"), w: wrapVms, key: "cc.enable.vms" },
-      { t: T("Einstellungen", "Settings"), w: wrapSettings, key: "cc.enable.settings" }
+      { t: T("Einstellungs-Tab", "Settings tab"), w: wrapSettings, key: "cc.enable.settings" }
     ];
     var tabBtns = [];
     function areaOn(key) { return !key || localStorage.getItem(key) !== "0"; }
@@ -376,6 +376,13 @@
     c2.appendChild(tprevWrap); tintPrev();
     wrap.appendChild(c2);
 
+    // ── Logo-Hintergrund: its OWN card. While ON the container logos are forced
+    // monochrome on an accent tile, so colourising them makes no sense → grey c2. ──
+    var cBg = card(T("Logo-Hintergrund", "Logo background"), T("Logo auf einer Akzent-Kachel, monochrom. Solange aktiv, ist das Einfärben der Logos deaktiviert.", "The logo on an accent tile, monochrome. While on, colourising the logos is disabled."));
+    cBg.appendChild(toggleRow(T("Logo-Hintergrund", "Logo background"), get("cc.iconbg", "0") === "1", function (v) { set("cc.iconbg", v ? "1" : "0"); c2.classList.toggle("cc-set-disabled", v); }));
+    c2.classList.toggle("cc-set-disabled", get("cc.iconbg", "0") === "1");
+    wrap.appendChild(cBg);
+
     // (The CPU/RAM diagnostics card is built right before the Bandwidth card below,
     //  so it sits DIRECTLY above it — explicit user placement request.)
 
@@ -394,7 +401,6 @@
     var c4 = card(T("Ansicht", "View"), null);
     c4.appendChild(segRow(T("Standard-Ansicht", "Default view"), [["list", T("Liste", "List")], ["grid", T("Raster", "Grid")]], view, function (v) { view = v; set("cc.view", v); }));
     c4.appendChild(segRow(T("Zeilenhöhe", "Row density"), [["compact", T("kompakt", "compact")], ["normal", "normal"], ["airy", T("luftig", "airy")]], density, function (v) { density = v; set("cc.density", v); }));
-    c4.appendChild(toggleRow(T("Logo-Hintergrund", "Logo background"), get("cc.iconbg", "0") === "1", function (v) { set("cc.iconbg", v ? "1" : "0"); }));
     function applyShape() { var m9 = { pill: "999px", rounded: "6px", square: "0px" }; var r9 = m9[get("cc.badgeshape", "pill")] || "999px"; root.style.setProperty("--cc-b-radius", r9); document.documentElement.style.setProperty("--cc-b-radius", r9); }
     wrap.appendChild(c4);
     // Badge-Form as its OWN card (kept identical across every section)
@@ -551,11 +557,14 @@
       }
       cB.appendChild(tpw); tp();
       if (!noLogos) into.appendChild(cB); // header tab: badges only, no logo-tint card
-      // ── Ansicht card: Logo-Hintergrund badge toggle (all areas except the header tab) ──
-      if (P !== "cch.") {
-        var cViewA = card(T("Ansicht", "View"), null);
-        cViewA.appendChild(toggleRow(T("Logo-Hintergrund", "Logo background"), get(P + "iconbg", P === "ccs." ? "1" : "0") === "1", function (v) { set(P + "iconbg", v ? "1" : "0"); }));
-        into.appendChild(cViewA);
+      // ── Logo-Hintergrund: its OWN card (same tabs as the logo-tint card). While ON
+      // the logos are forced monochrome on an accent tile, so colourising them makes
+      // no sense → grey out the "Logos einfärben" card (cB) reactively. ──
+      if (!noLogos) {
+        var cBg2 = card(T("Logo-Hintergrund", "Logo background"), T("Logo auf einer Akzent-Kachel, monochrom. Solange aktiv, ist das Einfärben der Logos deaktiviert.", "The logo on an accent tile, monochrome. While on, colourising the logos is disabled."));
+        cBg2.appendChild(toggleRow(T("Logo-Hintergrund", "Logo background"), get(P + "iconbg", P === "ccs." ? "1" : "0") === "1", function (v) { set(P + "iconbg", v ? "1" : "0"); cB.classList.toggle("cc-set-disabled", v); }));
+        cB.classList.toggle("cc-set-disabled", get(P + "iconbg", P === "ccs." ? "1" : "0") === "1");
+        into.appendChild(cBg2);
       }
     }
     // the adopt "Stil" card is the FIRST card of every section (user call), then
@@ -568,7 +577,7 @@
     cSet.appendChild(styleToggle("cc.stylesettings", null));
     wrapHeader.appendChild(cH); wrapPlugin.appendChild(cP); wrapVms.appendChild(cV); wrapSettings.appendChild(cSet);
     buildStyleCards("cch.", wrapHeader, [], true); // Hauptmenueleiste: pill/badge settings only
-    buildStyleCards("ccs.", wrapSettings, [], true); // Einstellungen: badges + shape only, no logo-tint card
+    buildStyleCards("ccs.", wrapSettings, [], false); // Einstellungs-Tab: badges + shape + logo-tint + Logo-Hintergrund cards (font-glyph icons → empty preview)
     buildStyleCards("ccp.", wrapPlugin, ["/plugins/dynamix.plugin.manager/images/dynamix.plugin.manager.png", "/plugins/dynamix.docker.manager/images/dynamix.docker.manager.png", "/plugins/cannonadecommand/images/cannonadecommand.png"]);
     buildStyleCards("ccv.", wrapVms, ["/plugins/dynamix.vm.manager/templates/images/linux.png", "/plugins/dynamix.vm.manager/templates/images/windows.png", "/plugins/cannonadecommand/images/cannonadecommand.png"]);
     refreshTabs();

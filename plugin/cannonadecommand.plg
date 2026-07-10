@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.4.0">
+  <!ENTITY version   "2.4.1">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,14 @@
 </ICON>
 
 <CHANGES>
+### 2.4.1
+- Logo-Hintergrund (logo background) is now its own card in every area's settings, next to
+  "Logos einfärben" (colourise logos). While the background is on, the colourise card is
+  greyed out - the logos are forced monochrome black/white on the badge anyway.
+- The Einstellungs-Tab (Settings page) now also has the "Logos einfärben" colour tint,
+  applied to its category icons when the badge background is off.
+- Renamed the CC settings area "Einstellungen" to "Einstellungs-Tab".
+
 ### 2.4.0
 - New "Logo-Hintergrund" (logo background) option per area (Docker, Plugins, VM, Settings),
   in each area's Ansicht (View) card: the container / plugin / VM / category icon sits on a
@@ -298,7 +306,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>dee537bd188ab8df856632d880988bf6efcc408afb24b8138ab8bd51773394ca</SHA256>
+  <SHA256>a62718a8f7349ad50ac97a432c3baa8cd4146ded3524017d0a81505a146eac35</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

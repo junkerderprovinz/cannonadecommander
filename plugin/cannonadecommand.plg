@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.3.0">
+  <!ENTITY version   "2.3.1">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,11 @@
 </ICON>
 
 <CHANGES>
+### 2.3.1
+- Fix: toggling an area on/off in Settings > CannonadeCommand > Bereiche did not hide/show
+  its tab anymore. Since 2.2.13 the tab buttons are `display: inline-flex !important`, which
+  outranked the plain inline "none" used to hide them. The hide now uses inline !important.
+
 ### 2.3.0
 - New area: Settings. CannonadeCommand now restyles Unraid's Settings page (the category
   grid: Docker, VM Manager, Network Settings, ...) so each category icon becomes a large
@@ -285,7 +290,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>e4ec2953aa20a2c200f606d4bd06a396a11e45dde7069f0f589954b808e0c579</SHA256>
+  <SHA256>cced636dd2deb8b01638adab257834608015efbc771588f0c70f4d146cdeecfa</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

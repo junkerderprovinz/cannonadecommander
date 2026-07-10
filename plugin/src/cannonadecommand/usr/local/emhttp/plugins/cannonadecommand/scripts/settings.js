@@ -242,7 +242,9 @@
       var activeHidden = false;
       SECS.forEach(function (sc, j) {
         var on = areaOn(sc.key);
-        tabBtns[j].style.display = on ? "" : "none";
+        // .cc-set-tab is `display: inline-flex !important` (badge sizing), so a plain
+        // inline "none" can't hide it -> use inline !important, which outranks the sheet.
+        if (on) tabBtns[j].style.removeProperty("display"); else tabBtns[j].style.setProperty("display", "none", "important");
         if (!on && tabBtns[j].classList.contains("cc-set-tab-on")) { activeHidden = true; sc.w.style.display = "none"; }
       });
       if (activeHidden) showSec(0);

@@ -63,8 +63,9 @@ version, status and changelog — and the **VM tab** picks up matching icon them
 
 Accent or rainbow colours, a configurable badge shape and a floating action bar tie
 it all together — and CannonadeCommand can extend the same theme to Unraid's **main
-menu bar** (opt-in). A **Bereiche** (Areas) tab in the settings lets you turn each
-area — menu bar, Docker, Plugins, VMs — on or off independently.
+menu bar** (opt-in) and turn the **Settings page** category icons into large square
+badges. A **Bereiche** (Areas) tab in the settings lets you turn each area — menu bar,
+Docker, Plugins, VMs, Settings — on or off independently, each with its own style tab.
 
 **Firepower and finish for Unraid's Docker, Plugins and VM tabs.**
 
@@ -103,6 +104,9 @@ area — menu bar, Docker, Plugins, VMs — on or off independently.
 - Theming: one accent colour for everything, or rainbow mode with an editable
   palette; icon colours toggleable; settings sync across origins (IP, hostname,
   domain) via the engine — and they survive cleared browser data.
+- Areas: the Docker, Plugins and VM tabs, plus (opt-in) the main menu bar and the
+  Settings-page category icons (large square badges) — each toggleable under
+  **Bereiche** (Areas) with its own style tab.
 
 <br>
 

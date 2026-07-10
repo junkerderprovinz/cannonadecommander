@@ -709,7 +709,7 @@ div.js-actions { display: flex !important; flex-wrap: wrap; gap: 8px; align-item
 }
 div.js-actions input[type=button] { background: var(--cc-accent, #2f6feb) !important; color: var(--cc-accent-text, #fff) !important; border: none !important; box-shadow: none !important; padding: var(--cc-lg-pad, 4px 14px) !important; font-size: var(--cc-lg-fs, 11px) !important; font-weight: 600 !important; text-transform: uppercase !important; letter-spacing: 1.2px !important; font-family: inherit !important; cursor: pointer; transition: filter .12s; }
 div.js-actions .cc-bar-adv { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; }
-div.js-actions .cc-bar-adv-lbl { color: #cfcfcf; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+div.js-actions .cc-bar-adv-lbl { color: #cfcfcf; font-size: var(--cc-md-fs, 13px); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
 div.js-actions input[type=button]:hover { filter: brightness(1.14); }
 
 /* ___ ShipLog integration: when its changelog bubble is on the Docker tab,

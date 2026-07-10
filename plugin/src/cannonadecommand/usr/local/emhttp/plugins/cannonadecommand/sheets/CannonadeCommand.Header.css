@@ -21,7 +21,7 @@
      The menu-bar tab badges, the right-side icon boxes, the array-usage meter and
      the search field all share this ONE height so the whole bar lines up, and the
      tabs match the plugin-page tabs. */
-  --cc-md-fs: 13px; --cc-md-h: 30px; --cc-md-pad: 0 20px;
+  --cc-md-fs: 13px; --cc-md-h: 30px; --cc-md-pad: 0 20px; --cc-md-icon: 15px;
 }
 
 /* ═══ left page tabs -> badges ═══ */
@@ -44,7 +44,8 @@ html.cc-header-on #menu .nav-item:after, html.cc-header-on #menu .nav-user.show:
 /* ═══ right-side utility icons -> accent-filled boxes, black/white glyph ═══ */
 html.cc-header-on #menu .nav-tile.right .nav-item.util > a {
   display: inline-flex !important; align-items: center; justify-content: center;
-  width: var(--cc-md-h, 30px); height: var(--cc-md-h, 30px); padding: 0 !important; margin: 0 3px;
+  box-sizing: border-box !important; flex: 0 0 auto;
+  width: var(--cc-md-h, 30px) !important; height: var(--cc-md-h, 30px) !important; padding: 0 !important; margin: 0 3px;
   border-radius: var(--cc-b-radius, 7px) !important;
   background: var(--cc-accent, #2f6feb) !important;
   transition: filter .12s;
@@ -53,8 +54,14 @@ html.cc-header-on #menu .nav-tile.right .nav-item.util > a:hover { filter: brigh
 html.cc-header-on #menu .nav-tile.right .nav-item.util > a span { display: none !important; }
 html.cc-header-on #menu .nav-tile.right .nav-item.util b.system,
 html.cc-header-on #menu .nav-tile.right .nav-item.util img.system {
-  font-size: 15px !important; height: auto !important; line-height: 1 !important;
+  font-size: var(--cc-md-icon, 15px) !important; line-height: 1 !important;
   padding: 0 !important; margin: 0 !important; color: var(--cc-accent-text, #fff) !important;
+}
+/* raster glyphs (img.system) ignore font-size — pin them to the icon token so they
+   scale to the box exactly like the icon-font glyphs, instead of rendering natural size */
+html.cc-header-on #menu .nav-tile.right .nav-item.util img.system {
+  width: var(--cc-md-icon, 15px) !important; height: var(--cc-md-icon, 15px) !important;
+  object-fit: contain !important;
 }
 
 /* ═══ array-usage meter -> clean, minimal accent pill ═══ */
@@ -75,20 +82,29 @@ html.cc-header-on #menu .usage-bar > span {
 }
 
 /* ═══ gui_search field (horizontal top-nav layout only) ═══
-   Clicking search opens Unraid's NATIVE box (prepended into #menu .nav-tile.right;
-   the util icons are hidden by gui_search). We keep the box at its NATIVE size and
-   position — we do NOT stretch it across the bar — and only give it the CC look.
-   Opening it lets the badge-styled left tabs shrink/scroll aside so the native box
-   never overlaps them. Scoped to >=768px and NOT the sidebar theme. */
+   Clicking search opens Unraid's NATIVE box, prepended as the FIRST child of
+   #menu .nav-tile.right. gui_search hides the util icons + user menu with a jQuery
+   inline display:none — we OVERRIDE that with !important so every icon AND the
+   array-usage meter STAY VISIBLE and simply shift aside; nothing is covered. The box
+   gets a MODERATE width (not stretched across the bar) plus the CC look, and the left
+   page tabs shrink/scroll to make room. Scoped to >=768px and NOT the sidebar theme. */
 @media (min-width: 768px) {
-  /* CC look only — width + position stay native (no width override) */
+  /* CC look + MODERATE width (overrides the native 40rem and the top-nav full-bar stretch) */
   html.cc-header-on:not(.Theme--sidebar) #guiSearchBox {
+    width: 22rem !important; max-width: 40vw !important;
     height: var(--cc-md-h, 30px) !important; padding: 0 14px !important;
     border: 1px solid var(--cc-accent, #2f6feb) !important; border-radius: var(--cc-b-radius, 999px) !important;
     background: rgba(18, 18, 18, .94) !important; color: #eaeaea !important; font-size: 13px !important;
     box-shadow: none !important; outline: none !important;
   }
-  /* the left tabs give way (shrink + scroll) so the native box + array-usage stay visible */
+  /* neutralise the .Theme--black/.Theme--white rule that stretches the span to width:100% */
+  html.cc-header-on:not(.Theme--sidebar) #guiSearchBoxSpan { width: auto !important; min-width: 0 !important; margin: 0 6px !important; }
+  html.cc-header-on:not(.Theme--sidebar) #guiSearchBoxSpan .awesomplete { width: auto !important; }
+  /* KEEP every util icon + the user menu visible while searching — an external !important
+     beats gui_search's normal inline display:none (importance outranks inline origin) */
+  html.cc-header-on.cc-search-open:not(.Theme--sidebar) #menu .nav-item.util { display: flex !important; }
+  html.cc-header-on.cc-search-open:not(.Theme--sidebar) #menu .nav-user.show { display: flex !important; }
+  /* the right group holds the box + all icons on one line; the left page tabs shrink/scroll aside */
   html.cc-header-on.cc-search-open:not(.Theme--sidebar) #menu .nav-tile:not(.right) { min-width: 0 !important; overflow-x: auto !important; }
-  html.cc-header-on.cc-search-open:not(.Theme--sidebar) #menu .nav-tile.right { min-width: 0 !important; }
+  html.cc-header-on.cc-search-open:not(.Theme--sidebar) #menu .nav-tile.right { min-width: 0 !important; flex-wrap: nowrap !important; }
 }

@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.2.15">
+  <!ENTITY version   "2.2.16">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,12 @@
 </ICON>
 
 <CHANGES>
+### 2.2.16
+- Fix: the search field did not appear at all in 2.2.15. The reorder moved the native
+  search box in the DOM, which blurred the focused input and made Unraid's search close
+  itself on focusout. The field is now placed directly left of the magnifier purely with
+  flex order (no DOM move, no blur), so it opens and stays open.
+
 ### 2.2.15
 - Search: the field now opens directly LEFT of the magnifier icon (header.js moves the
   native box next to the search toggle), so the icons left of it shift further left and
@@ -257,7 +263,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>ffa5ec6de1bc6521aaafad8a361370f739032e8e16fe3b9b92bda6eb71b389d3</SHA256>
+  <SHA256>355afc9cdf11e502f71a36544f3af188c162db94ad33518b5c4b3617b15b5991</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

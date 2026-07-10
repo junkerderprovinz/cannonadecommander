@@ -182,7 +182,8 @@
     // logo-background badge on: flatten every logo to one ink tone so it reads on
     // the accent box (mono filter overrides the iconcolor tint f2 when active)
     var ibgOn = document.documentElement.classList.contains("cc-plugins-iconbg");
-    var ibgMono = ibgOn ? ensureMonoFilter("cc-plug-mono-svg", "cc-plug-mono-tint", accent()) : "";
+    var ibgIcon = eff("iconcolor"); var ibgBg = (ibgIcon && /^#?[0-9a-f]{6}$/i.test(ibgIcon)) ? ibgIcon : accent();
+    var ibgMono = ibgOn ? ensureMonoFilter("cc-plug-mono-svg", "cc-plug-mono-tint", ibgBg) : "";
     Array.prototype.slice.call(tds[0].querySelectorAll("img, i")).forEach(function (el2) {
       el2.style.setProperty("width", "56px", "important");
       el2.style.setProperty("height", "56px", "important");
@@ -198,7 +199,7 @@
         el2.style.setProperty("line-height", "56px", "important");
         el2.style.setProperty("text-align", "center", "important");
         el2.style.setProperty("display", "inline-block", "important");
-        if (ibgOn) el2.style.setProperty("color", idealText(accent()), "important");
+        if (ibgOn) el2.style.setProperty("color", idealText(ibgBg), "important");
         el2.style.setProperty("filter", ibgMono || f2 || "none", "important");
       }
     });
@@ -343,6 +344,9 @@
       // logo-background badge: scope the docker.css .cc-plugico box on/off from the
       // adopt-aware key (honours "Adopt Docker style" via eff()), same as the Docker tab
       document.documentElement.classList.toggle("cc-plugins-iconbg", eff("iconbg") === "1");
+      var pIcon = eff("iconcolor");
+      if (eff("iconbg") === "1" && pIcon && /^#?[0-9a-f]{6}$/i.test(pIcon)) document.documentElement.style.setProperty("--cc-iconbg-color", pIcon);
+      else document.documentElement.style.removeProperty("--cc-iconbg-color");
       colorTabs();
       if (!window.__ccTabClick) { window.__ccTabClick = 1; document.addEventListener("click", function (e) { try { if (e.target.closest && e.target.closest("nav.tabs, div.tab, .tabbed")) setTimeout(colorTabs, 30); } catch (x) {} }, true); }
       // Install-Plugin tab: clean dark input + accent pill button + accent checkbox

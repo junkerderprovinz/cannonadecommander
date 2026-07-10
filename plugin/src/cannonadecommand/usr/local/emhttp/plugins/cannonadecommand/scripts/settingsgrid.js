@@ -117,6 +117,10 @@
         root.style.setProperty("--cc-accent", a);
         root.style.setProperty("--cc-accent-text", idealText(a));
         root.style.setProperty("--cc-b-radius", shape());
+        var sgIcon = g("ccs.iconcolor", "");
+        var sgBg = /^#[0-9a-f]{6}$/i.test(sgIcon) ? sgIcon : a;
+        root.style.setProperty("--cc-iconbg-color", sgBg);
+        root.style.setProperty("--cc-iconbg-text", idealText(sgBg));
         paintGrid();
       } else if (tint) {
         paintTint();

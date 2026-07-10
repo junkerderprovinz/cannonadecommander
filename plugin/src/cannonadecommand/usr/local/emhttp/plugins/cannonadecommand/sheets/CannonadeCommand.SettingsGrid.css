@@ -25,7 +25,7 @@ html.cc-settingsgrid-on #displaybox .Panel > a > span {
   /* cap the radius so pill-mode gives a rounded SQUARE; rounded(6px)/square(0) stay exact
      -> one shape family across all badge-form modes (same trick as the header sheet) */
   border-radius: min(var(--cc-b-radius, 14px), var(--cc-sg-rmax, 16px)) !important;
-  background: var(--cc-accent, #2f6feb) !important;
+  background: var(--cc-iconbg-color, var(--cc-accent, #2f6feb)) !important;
   transition: filter .12s;
 }
 html.cc-settingsgrid-on #displaybox .Panel > a:hover > span { filter: brightness(1.1); }
@@ -33,7 +33,7 @@ html.cc-settingsgrid-on #displaybox .Panel > a:hover > span { filter: brightness
 /* the icon-font glyph (icon-* / fa-*) inside the badge: big, contrast colour */
 html.cc-settingsgrid-on #displaybox .Panel > a > span > i.PanelIcon {
   font-size: var(--cc-sg-glyph, 32px) !important; line-height: 1 !important;
-  color: var(--cc-accent-text, #fff) !important; margin: 0 !important; padding: 0 !important;
+  color: var(--cc-iconbg-text, var(--cc-accent-text, #fff)) !important; margin: 0 !important; padding: 0 !important;
 }
 /* a raster glyph (img.PanelImg) can't be tinted -> just scale it to the badge */
 html.cc-settingsgrid-on #displaybox .Panel > a > span > img.PanelImg {

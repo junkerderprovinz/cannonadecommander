@@ -433,9 +433,11 @@
       // Logo-Hintergrund (cc.iconbg): the icon sits on an accent-coloured badge box, so
       // flatten it to mono ink (dark/white per the accent). IMGs get the filter; glyphs
       // (font-icon <i>) also take an !important text colour so the glyph itself inks.
-      var ibgAcc = localStorage.getItem("cc.accent") || "#2f6feb";
+      var ibgIcon = localStorage.getItem("cc.iconcolor");
+      var ibgAcc = (ibgIcon && /^#?[0-9a-f]{6}$/i.test(ibgIcon)) ? ibgIcon : (localStorage.getItem("cc.accent") || "#2f6feb");
       var ibgOn = localStorage.getItem("cc.iconbg") === "1";
       var ibgMono = ibgOn ? ensureMonoFilter("cc-mono-svg", "cc-mono-tint", ibgAcc) : "";
+      if (ibgOn) document.documentElement.style.setProperty("--cc-iconbg-color", ibgAcc); else document.documentElement.style.removeProperty("--cc-iconbg-color");
       for (var i = 0; i < imgs.length; i++) {
         var n = imgs[i];
         if (n.tagName === "IMG") { n.style.filter = ibgMono || f; }

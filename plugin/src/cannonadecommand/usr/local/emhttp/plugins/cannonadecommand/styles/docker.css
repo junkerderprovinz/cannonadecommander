@@ -61,7 +61,7 @@
 /* Logo-Hintergrund (cc.iconbg): the container icon sits on an accent badge, the logo
    recoloured monochrome (docker.js applies the mono filter / contrast glyph colour). */
 .cc-enh.cc-docker-iconbg #docker_list tr.sortable td.ct-name .outer > span.hand {
-  background: var(--cc-accent, #2f6feb) !important;
+  background: var(--cc-iconbg-color, var(--cc-accent, #2f6feb)) !important;
   border-radius: min(var(--cc-b-radius, 14px), 16px) !important;
   padding: 8px !important; box-sizing: border-box !important;
   display: flex !important; align-items: center !important; justify-content: center !important;
@@ -580,7 +580,7 @@ div.title span.left, div.title span.right { text-transform: uppercase; letter-sp
 /* Logo-Hintergrund (ccp.iconbg / cc.iconbg when adopting): the plugin logo sits on an
    accent badge, recoloured monochrome (plugins.js applies the mono filter / glyph colour). */
 html.cc-plugins-iconbg .cc-plugico {
-  background: var(--cc-accent, #2f6feb) !important;
+  background: var(--cc-iconbg-color, var(--cc-accent, #2f6feb)) !important;
   border-radius: min(var(--cc-b-radius, 14px), 16px) !important;
   display: inline-flex !important; align-items: center !important; justify-content: center !important;
   box-sizing: border-box !important; padding: 6px !important;

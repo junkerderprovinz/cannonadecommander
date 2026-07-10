@@ -123,7 +123,7 @@
       var f = filterVal(), c = tintColor(), imgs = vmImgs();
       // Logo-Hintergrund: badge box + monochrome ink flatten, applied INLINE (VMs.page
       // loads no stylesheet). ibgMono is "" when off, so the tint path below is unchanged.
-      var ibgOn = effK("iconbg") === "1"; var ibgAcc = ccAccent(); var ibgMono = ibgOn ? ensureMonoFilter("cc-vm-mono-svg", "cc-vm-mono-tint", ibgAcc) : "";
+      var ibgOn = effK("iconbg") === "1"; var vIcon = effK("iconcolor"); var ibgAcc = (vIcon && /^#[0-9a-f]{6}$/i.test(vIcon)) ? vIcon : ccAccent(); var ibgMono = ibgOn ? ensureMonoFilter("cc-vm-mono-svg", "cc-vm-mono-tint", ibgAcc) : "";
       for (var i = 0; i < imgs.length; i++) {
         var n = imgs[i];
         if (n.tagName === "IMG") { n.style.filter = ibgMono || f; if (ibgOn) n.style.removeProperty("color"); }

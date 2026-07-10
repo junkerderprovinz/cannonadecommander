@@ -321,8 +321,11 @@
     prev.id = "cc-set-prev"; c1.appendChild(prev);
     wrap.appendChild(c1);
 
-    // ── Container icons ──
-    var c2 = card(T("Container-Logos", "Container logos"), T("Der Schalter aktiviert die Färbung.", "The switch turns the tint on."));
+    // ── Logos (one card: tint OR background) ──
+    var c2 = card(T("Logos", "Logos"), T("Der Schalter aktiviert die Färbung.", "The switch turns the tint on."));
+    var iconbg = get("cc.iconbg", "0") === "1";
+    function applyBgMode(v) { iconbg = v; c2.classList.toggle("cc-bg-mode", v); strow.style.opacity = v ? ".4" : ""; strow.style.pointerEvents = v ? "none" : ""; tprevWrap.classList.toggle("cc-prev-bg", v); try { tintPrev(); } catch (e9) {} }
+    c2.appendChild(toggleRow(T("Hintergrund", "Background"), iconbg, function (v) { set("cc.iconbg", v ? "1" : "0"); applyBgMode(v); }));
     var ihexIn = el("input", "cc-set-hexin"); ihexIn.type = "text"; ihexIn.value = iconcolor || ""; ihexIn.placeholder = "#1f9d55"; ihexIn.maxLength = 7; ihexIn.spellcheck = false;
     var ipick = inlinePicker(/^#[0-9a-f]{6}$/i.test(iconcolor) ? iconcolor : (/^#[0-9a-f]{6}$/i.test(accent) ? accent : "#1f9d55"), function (v) { iconcolor = v; ihexIn.value = v; set("cc.iconcolor", v); syncIconTog(); });
     // A real ON/OFF toggle drives the tint (empty cc.iconcolor = off). The picker/hex
@@ -363,25 +366,19 @@
       tintPrev();
     }).catch(function () { addPrevImg("/plugins/cannonadecommand/images/cannonadecommand.png"); tintPrev(); });
     function tintPrev() {
+      if (iconbg) { var bg8 = /^#[0-9a-f]{6}$/i.test(iconcolor) ? iconcolor : accent; tprevImgs.forEach(function (im9) { im9.style.filter = "grayscale(1) brightness(0) invert(1)"; im9.style.background = bg8; im9.style.borderRadius = "8px"; im9.style.padding = "6px"; }); return; }
       var hx9 = /^#?([0-9a-f]{6})$/i.exec(iconcolor || "");
-      if (!hx9) { tprevImgs.forEach(function (im9) { im9.style.filter = "none"; }); return; }
+      if (!hx9) { tprevImgs.forEach(function (im9) { im9.style.filter = "none"; im9.style.background = ""; im9.style.padding = ""; }); return; }
       var n9 = parseInt(hx9[1], 16), r9 = (n9 >> 16 & 255) / 255, g9 = (n9 >> 8 & 255) / 255, b9 = (n9 & 255) / 255;
       var st9 = Math.max(10, iconstrength || 100) / 100, i9 = 1 - st9;
       function row9(c9, ix9) { var v9 = [0.2126 * c9 * st9, 0.7152 * c9 * st9, 0.0722 * c9 * st9, 0, 0]; v9[ix9] += i9; return v9.join(" "); }
       var host9 = document.getElementById("cc-set-tintsvg");
       if (!host9) { host9 = document.createElement("div"); host9.id = "cc-set-tintsvg"; host9.style.cssText = "position:absolute;width:0;height:0;overflow:hidden"; document.body.appendChild(host9); }
       host9.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg"><filter id="cc-set-tint" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%"><feColorMatrix type="matrix" values="' + row9(r9, 0) + " " + row9(g9, 1) + " " + row9(b9, 2) + ' 0 0 0 1 0"/></filter></svg>';
-      tprevImgs.forEach(function (im9) { im9.style.filter = "url(#cc-set-tint)"; });
+      tprevImgs.forEach(function (im9) { im9.style.filter = "url(#cc-set-tint)"; im9.style.background = ""; im9.style.padding = ""; });
     }
-    c2.appendChild(tprevWrap); tintPrev();
+    c2.appendChild(tprevWrap); tintPrev(); applyBgMode(iconbg);
     wrap.appendChild(c2);
-
-    // ── Logo-Hintergrund: its OWN card. While ON the container logos are forced
-    // monochrome on an accent tile, so colourising them makes no sense → grey c2. ──
-    var cBg = card(T("Logo-Hintergrund", "Logo background"), T("Logo auf einer Akzent-Kachel, monochrom. Solange aktiv, ist das Einfärben der Logos deaktiviert.", "The logo on an accent tile, monochrome. While on, colourising the logos is disabled."));
-    cBg.appendChild(toggleRow(T("Logo-Hintergrund", "Logo background"), get("cc.iconbg", "0") === "1", function (v) { set("cc.iconbg", v ? "1" : "0"); c2.classList.toggle("cc-set-disabled", v); }));
-    c2.classList.toggle("cc-set-disabled", get("cc.iconbg", "0") === "1");
-    wrap.appendChild(cBg);
 
     // (The CPU/RAM diagnostics card is built right before the Bandwidth card below,
     //  so it sits DIRECTLY above it — explicit user placement request.)
@@ -520,7 +517,10 @@
       var cS = card(T("Badge-Form", "Badge shape"), T("Form der Badges: Pills, abgerundet oder eckig.", "Badge shape: pills, rounded or square."));
       cS.appendChild(segRow(T("Badge-Form", "Badge shape"), [["pill", "Pills"], ["rounded", T("abgerundet", "rounded")], ["square", T("eckig", "square")]], get("cc.badgeshape", "pill"), function (v) { set("cc.badgeshape", v); applyShape(); }));
       into.appendChild(cS);
-      var cB = card(T("Logos einfärben", "Colourise logos"), T("Der Schalter aktiviert die Färbung.", "The switch turns the tint on."));
+      var cB = card(T("Logos", "Logos"), T("Der Schalter aktiviert die Färbung.", "The switch turns the tint on."));
+      var ibg = get(P + "iconbg", P === "ccs." ? "1" : "0") === "1";
+      function applyBg2(v) { ibg = v; cB.classList.toggle("cc-bg-mode", v); st2.style.opacity = v ? ".4" : ""; st2.style.pointerEvents = v ? "none" : ""; tpw.classList.toggle("cc-prev-bg", v); try { tp(); } catch (e9) {} }
+      cB.appendChild(toggleRow(T("Hintergrund", "Background"), ibg, function (v) { set(P + "iconbg", v ? "1" : "0"); applyBg2(v); }));
       var ihx = el("input", "cc-set-hexin"); ihx.type = "text"; ihx.value = icol || ""; ihx.placeholder = "#1f9d55"; ihx.maxLength = 7; ihx.spellcheck = false;
       var ipk = inlinePicker(/^#[0-9a-f]{6}$/i.test(icol) ? icol : "#1f9d55", function (v) { icol = v; ihx.value = v; set(P + "iconcolor", v); sy(); });
       function on2() { return !!icol; }
@@ -545,27 +545,19 @@
       });
       var fid = "cc-set-tint-" + P.replace(/[^a-z]/g, "");
       function tp() {
+        if (ibg) { var bg8 = /^#[0-9a-f]{6}$/i.test(icol) ? icol : acc; tpImgs.forEach(function (im9) { im9.style.filter = "grayscale(1) brightness(0) invert(1)"; im9.style.background = bg8; im9.style.borderRadius = "8px"; im9.style.padding = "6px"; }); return; }
         var hx9 = /^#?([0-9a-f]{6})$/i.exec(icol || "");
-        if (!hx9) { tpImgs.forEach(function (im9) { im9.style.filter = "none"; }); return; }
+        if (!hx9) { tpImgs.forEach(function (im9) { im9.style.filter = "none"; im9.style.background = ""; im9.style.padding = ""; }); return; }
         var n9 = parseInt(hx9[1], 16), r9 = (n9 >> 16 & 255) / 255, g9 = (n9 >> 8 & 255) / 255, b9 = (n9 & 255) / 255;
         var st9 = Math.max(10, parseInt(get(P + "iconstrength", "100"), 10) || 100) / 100, i9 = 1 - st9;
         function row9(c9, ix9) { var v9 = [0.2126 * c9 * st9, 0.7152 * c9 * st9, 0.0722 * c9 * st9, 0, 0]; v9[ix9] += i9; return v9.join(" "); }
         var host9 = document.getElementById(fid + "-svg");
         if (!host9) { host9 = document.createElement("div"); host9.id = fid + "-svg"; host9.style.cssText = "position:absolute;width:0;height:0;overflow:hidden"; document.body.appendChild(host9); }
         host9.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg"><filter id="' + fid + '" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%"><feColorMatrix type="matrix" values="' + row9(r9, 0) + " " + row9(g9, 1) + " " + row9(b9, 2) + ' 0 0 0 1 0"/></filter></svg>';
-        tpImgs.forEach(function (im9) { im9.style.filter = "url(#" + fid + ")"; });
+        tpImgs.forEach(function (im9) { im9.style.filter = "url(#" + fid + ")"; im9.style.background = ""; im9.style.padding = ""; });
       }
-      cB.appendChild(tpw); tp();
-      if (!noLogos) into.appendChild(cB); // header tab: badges only, no logo-tint card
-      // ── Logo-Hintergrund: its OWN card (same tabs as the logo-tint card). While ON
-      // the logos are forced monochrome on an accent tile, so colourising them makes
-      // no sense → grey out the "Logos einfärben" card (cB) reactively. ──
-      if (!noLogos) {
-        var cBg2 = card(T("Logo-Hintergrund", "Logo background"), T("Logo auf einer Akzent-Kachel, monochrom. Solange aktiv, ist das Einfärben der Logos deaktiviert.", "The logo on an accent tile, monochrome. While on, colourising the logos is disabled."));
-        cBg2.appendChild(toggleRow(T("Logo-Hintergrund", "Logo background"), get(P + "iconbg", P === "ccs." ? "1" : "0") === "1", function (v) { set(P + "iconbg", v ? "1" : "0"); cB.classList.toggle("cc-set-disabled", v); }));
-        cB.classList.toggle("cc-set-disabled", get(P + "iconbg", P === "ccs." ? "1" : "0") === "1");
-        into.appendChild(cBg2);
-      }
+      cB.appendChild(tpw); tp(); applyBg2(ibg);
+      if (!noLogos) into.appendChild(cB); // header tab: badges only, no logo card
     }
     // the adopt "Stil" card is the FIRST card of every section (user call), then
     // the Badges/Logos cards. Same cards for the Hauptmenueleiste as Plugins/VMs.

@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.4.1">
+  <!ENTITY version   "2.4.2">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,12 @@
 </ICON>
 
 <CHANGES>
+### 2.4.2
+- Fix: the menu-bar badges changed shape when you opened different tabs. The badge shape
+  (cc.badgeshape) is one global setting, but the menu bar and Settings page read it through
+  the adopt toggle, which fell back to an unset per-area value when adopt was off, so the
+  shape flipped between pages. Both now read the global shape directly.
+
 ### 2.4.1
 - Logo-Hintergrund (logo background) is now its own card in every area's settings, next to
   "Logos einfärben" (colourise logos). While the background is on, the colourise card is
@@ -306,7 +312,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>a62718a8f7349ad50ac97a432c3baa8cd4146ded3524017d0a81505a146eac35</SHA256>
+  <SHA256>0f8fdcdb24b70846bc123b0cfd032371f478b51a824213e4f775501da2051793</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

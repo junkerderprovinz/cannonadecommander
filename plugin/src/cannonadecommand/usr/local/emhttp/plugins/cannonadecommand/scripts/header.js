@@ -20,7 +20,11 @@
   }
   function eff(k, d) { return g("cc.styleheader", "1") !== "0" ? g("cc." + k, d) : g("cch." + k, d); }
   function accent() { var a = eff("accent", "#2f6feb"); return /^#[0-9a-f]{6}$/i.test(a) ? a : "#2f6feb"; }
-  function shape() { return ({ pill: "999px", rounded: "6px", square: "0px" })[eff("badgeshape", "pill")] || "999px"; }
+  // cc.badgeshape is a GLOBAL key (one Badge-Form control for every area), so read it
+  // DIRECTLY, not via eff(): eff() would fall back to an UNSET cch.badgeshape when the
+  // header's adopt toggle is off, so --cc-b-radius (and thus the menu-bar badge shape)
+  // would flip between pages depending on which script set it last.
+  function shape() { return ({ pill: "999px", rounded: "6px", square: "0px" })[g("cc.badgeshape", "pill")] || "999px"; }
   var RB = ["#d9433f", "#f97316", "#eab308", "#1f9d55", "#0ea5a4", "#2f6feb", "#8b5cf6", "#e05299"];
   var RB_OFF = Math.floor(Math.random() * RB.length);
   function pal() { try { var p = JSON.parse(eff("rbpal", "null")); if (p && p.length) return p; } catch (e) {} return RB; }

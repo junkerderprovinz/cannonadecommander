@@ -25,7 +25,9 @@
   function eff(k, d) { return g("cc.stylesettings", "1") !== "0" ? g("cc." + k, d) : g("ccs." + k, d); }
   function accent() { var a = eff("accent", "#2f6feb"); return /^#[0-9a-f]{6}$/i.test(a) ? a : "#2f6feb"; }
   // cc.badgeshape is SHARED across all areas; eff() returns it while the adopt toggle is on
-  function shape() { return ({ pill: "999px", rounded: "6px", square: "0px" })[eff("badgeshape", "pill")] || "999px"; }
+  // cc.badgeshape is a GLOBAL key -> read it DIRECTLY, not via eff() (see header.js): an
+  // adopt-aware read would fall back to an unset ccs.badgeshape and flip the shape per page.
+  function shape() { return ({ pill: "999px", rounded: "6px", square: "0px" })[g("cc.badgeshape", "pill")] || "999px"; }
   var RB = ["#d9433f", "#f97316", "#eab308", "#1f9d55", "#0ea5a4", "#2f6feb", "#8b5cf6", "#e05299"];
   var RB_OFF = Math.floor(Math.random() * RB.length);
   function pal() { try { var p = JSON.parse(eff("rbpal", "null")); if (p && p.length) return p; } catch (e) {} return RB; }

@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.2.4">
+  <!ENTITY version   "2.2.5">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,12 @@
 </ICON>
 
 <CHANGES>
+### 2.2.5
+- Hauptmenueleiste settings tab: dropped the logo-tint card, kept the pill/badge
+  settings.
+- Search: the "make room" now works reliably (header.js flags the open search box
+  and the tabs clear out); replaces the :has() approach.
+
 ### 2.2.4
 - Menu-bar tab badges use the same metrics as the CC settings tabs.
 - gui_search field themed in the CC style; the tabs shrink to make room for it
@@ -184,7 +190,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>0103a1710f090c00a5cd8bab676146f6a03e131c6e370d3e44bf90adaf2ec340</SHA256>
+  <SHA256>726a7f531eb1be9d2496ee0aaaaea2f7fc74f7cbc54d7b5cbeca8a693034acec</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

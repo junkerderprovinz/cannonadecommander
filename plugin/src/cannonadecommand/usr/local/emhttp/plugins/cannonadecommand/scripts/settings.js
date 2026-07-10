@@ -449,7 +449,7 @@
     // The Plugin/VM sections carry EXACTLY the Docker tab's style cards (same
     // picker, swatches, rainbow palette, tint toggle + strength) on their own
     // key prefix; they apply while "Adopt the Docker-tab style" is OFF.
-    function buildStyleCards(P, into, samples) {
+    function buildStyleCards(P, into, samples, noLogos) {
       var acc = get(P + "accent", "#2f6feb"), icol = get(P + "iconcolor", ""), istr = parseInt(get(P + "iconstrength", "100"), 10) || 100;
       var cA = card(T("Badges", "Badges"), T("Akzentfarbe und Farbmodus der Badges.", "Accent colour and colour mode of the badges."));
       var pr = el("div", "cc-set-pickrow");
@@ -538,7 +538,7 @@
         tpImgs.forEach(function (im9) { im9.style.filter = "url(#" + fid + ")"; });
       }
       cB.appendChild(tpw); tp();
-      into.appendChild(cB);
+      if (!noLogos) into.appendChild(cB); // header tab: badges only, no logo-tint card
     }
     // the adopt "Stil" card is the FIRST card of every section (user call), then
     // the Badges/Logos cards. Same cards for the Hauptmenueleiste as Plugins/VMs.
@@ -547,7 +547,7 @@
     var cH = card(T("Stil", "Style"), T("AN = die Docker-Tab-Einstellungen gelten auch hier. AUS = die eigenen Karten dieses Abschnitts gelten.", "ON = the Docker-tab settings apply here too. OFF = this section's own cards apply."));
     cH.appendChild(styleToggle("cc.styleheader", null));
     wrapHeader.appendChild(cH); wrapPlugin.appendChild(cP); wrapVms.appendChild(cV);
-    buildStyleCards("cch.", wrapHeader, ["/plugins/cannonadecommand/images/cannonadecommand.png", "/plugins/dynamix.plugin.manager/images/dynamix.plugin.manager.png"]);
+    buildStyleCards("cch.", wrapHeader, [], true); // Hauptmenueleiste: pill/badge settings only
     buildStyleCards("ccp.", wrapPlugin, ["/plugins/dynamix.plugin.manager/images/dynamix.plugin.manager.png", "/plugins/dynamix.docker.manager/images/dynamix.docker.manager.png", "/plugins/cannonadecommand/images/cannonadecommand.png"]);
     buildStyleCards("ccv.", wrapVms, ["/plugins/dynamix.vm.manager/templates/images/linux.png", "/plugins/dynamix.vm.manager/templates/images/windows.png", "/plugins/cannonadecommand/images/cannonadecommand.png"]);
     refreshTabs();

@@ -77,5 +77,10 @@ html.cc-header-on #guiSearchBox {
   background: rgba(18, 18, 18, .94) !important; color: #eaeaea !important; font-size: 13px !important;
   box-shadow: none !important; outline: none !important;
 }
-html.cc-header-on #menu:has(#guiSearchBoxSpan) .nav-tile:not(.right) { min-width: 0 !important; overflow-x: auto !important; flex: 0 1 auto !important; }
-html.cc-header-on #menu:has(#guiSearchBoxSpan) .nav-tile.right { flex: 1 1 auto !important; min-width: 0 !important; }
+/* header.js adds .cc-search-open while the search box is present: hide the left
+   tabs so the field gets the whole bar (the util icons are already hidden by
+   gui_search), and let the field grow. */
+html.cc-header-on.cc-search-open #menu .nav-tile:not(.right) { display: none !important; }
+html.cc-header-on.cc-search-open #menu .nav-tile.right { flex: 1 1 100% !important; justify-content: flex-start !important; min-width: 0 !important; }
+html.cc-header-on.cc-search-open #guiSearchBoxSpan { flex: 1 1 auto !important; }
+html.cc-header-on.cc-search-open #guiSearchBox { width: 100% !important; max-width: 60rem !important; }

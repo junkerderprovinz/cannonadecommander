@@ -33,8 +33,20 @@
       root.style.setProperty("--cc-b-radius", shape());
     } catch (e) {}
   }
+  // gui_search() prepends #guiSearchBox into the bar; flag it so the sheet can clear
+  // the tabs out of the way and give the field the full menu bar (reliable, no :has()).
+  function watchSearch() {
+    try {
+      var target = document.getElementById("menu") || document.body;
+      var mo = new MutationObserver(function () {
+        document.documentElement.classList.toggle("cc-search-open", !!document.getElementById("guiSearchBoxSpan"));
+      });
+      mo.observe(target, { childList: true, subtree: true });
+    } catch (e) {}
+  }
   function boot() {
     apply();
+    watchSearch();
     // the Settings page (or the Docker tab) writes cc.* keys from another origin/tab
     try { window.addEventListener("storage", function (e) { if (e.key && e.key.indexOf("cc.") === 0) apply(); }); } catch (e) {}
   }

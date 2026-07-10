@@ -107,6 +107,9 @@ Docker, Plugins, VMs, Settings — on or off independently, each with its own st
 - Areas: the Docker, Plugins and VM tabs, plus (opt-in) the main menu bar and the
   Settings-page category icons (large square badges) — each toggleable under
   **Bereiche** (Areas) with its own style tab.
+- Logo background (per area, in the View card): put the container / plugin / VM /
+  category logo on a coloured accent badge and recolour it monochrome black or white
+  for contrast, or leave it natural.
 
 <br>
 

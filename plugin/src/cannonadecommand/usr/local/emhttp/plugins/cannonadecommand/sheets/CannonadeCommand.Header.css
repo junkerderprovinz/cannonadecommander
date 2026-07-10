@@ -20,10 +20,11 @@
 html.cc-header-on #menu .nav-tile:not(.right) { padding-left: 12px; } /* breathing room before the first badge */
 html.cc-header-on #menu .nav-tile:not(.right) .nav-item > a {
   display: inline-flex !important; align-items: center; justify-content: center;
-  height: 28px; line-height: 1; padding: 0 13px !important; margin: 0 3px;
+  line-height: 1; padding: 8px 20px !important; margin: 0 3px; /* same metrics as the CC settings tabs */
   border-radius: var(--cc-b-radius, 999px) !important;
   background: rgba(128, 128, 128, .18) !important; color: #cfcfcf !important;
-  font-weight: 600 !important; transition: filter .12s, background .12s, color .12s;
+  font-size: 13px !important; font-weight: 600 !important; text-transform: uppercase !important; letter-spacing: 1.5px !important;
+  transition: filter .12s, background .12s, color .12s;
 }
 html.cc-header-on #menu .nav-tile:not(.right) .nav-item:hover > a { filter: brightness(1.14); }
 html.cc-header-on #menu .nav-tile:not(.right) .nav-item.active > a {
@@ -64,3 +65,17 @@ html.cc-header-on #menu .usage-bar > span {
   color: var(--cc-accent-text, #fff) !important;
   font-size: 11px !important; font-weight: 600 !important; padding-right: 8px !important; line-height: 22px !important;
 }
+
+/* ═══ gui_search field -> CC style + make room for it ═══ */
+/* gui_search() hides the util icons and prepends #guiSearchBox (40rem) into
+   .nav-tile.right. We slim + theme the field, and let everything to its left
+   shrink/scroll so the field has room (needs :has(); no-ops gracefully if absent). */
+html.cc-header-on #guiSearchBoxSpan { display: inline-flex !important; align-items: center; flex: 0 0 auto; }
+html.cc-header-on #guiSearchBox {
+  width: 30rem !important; max-width: 46vw !important; height: 28px !important; padding: 0 14px !important;
+  border: 1px solid var(--cc-accent, #2f6feb) !important; border-radius: var(--cc-b-radius, 999px) !important;
+  background: rgba(18, 18, 18, .94) !important; color: #eaeaea !important; font-size: 13px !important;
+  box-shadow: none !important; outline: none !important;
+}
+html.cc-header-on #menu:has(#guiSearchBoxSpan) .nav-tile:not(.right) { min-width: 0 !important; overflow-x: auto !important; flex: 0 1 auto !important; }
+html.cc-header-on #menu:has(#guiSearchBoxSpan) .nav-tile.right { flex: 1 1 auto !important; min-width: 0 !important; }

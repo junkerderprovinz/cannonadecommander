@@ -18,10 +18,11 @@
 
 :root {
   /* CC badge size system, md tier — MIRRORED from styles/docker.css (keep in sync).
-     The menu-bar tab badges, the right-side icon boxes, the array-usage meter and
-     the search field all share this ONE height so the whole bar lines up, and the
-     tabs match the plugin-page tabs. */
-  --cc-md-fs: 13px; --cc-md-h: 30px; --cc-md-pad: 0 20px; --cc-md-icon: 15px;
+     The menu-bar tab badges, the array-usage meter and the search field share this
+     ONE height (--cc-md-h) so the whole bar lines up and the tabs match the plugin-page
+     tabs; the right-side icon boxes use the smaller --cc-md-ibox so they read as light
+     icon chips, not heavy accent squares, while staying vertically centred in the same bar. */
+  --cc-md-fs: 13px; --cc-md-h: 30px; --cc-md-pad: 0 20px; --cc-md-icon: 14px; --cc-md-ibox: 26px;
 }
 
 /* ═══ left page tabs -> badges ═══ */
@@ -45,8 +46,10 @@ html.cc-header-on #menu .nav-item:after, html.cc-header-on #menu .nav-user.show:
 html.cc-header-on #menu .nav-tile.right .nav-item.util > a {
   display: inline-flex !important; align-items: center; justify-content: center;
   box-sizing: border-box !important; flex: 0 0 auto;
-  width: var(--cc-md-h, 30px) !important; height: var(--cc-md-h, 30px) !important; padding: 0 !important; margin: 0 3px;
-  border-radius: var(--cc-b-radius, 7px) !important;
+  width: var(--cc-md-ibox, 26px) !important; height: var(--cc-md-ibox, 26px) !important; padding: 0 !important; margin: 0 3px;
+  /* cap the radius so pill-mode gives a rounded SQUARE (like the mockup), not a full
+     circle; rounded(6px)/square(0) stay untouched -> one shape family across modes */
+  border-radius: min(var(--cc-b-radius, 8px), 8px) !important;
   background: var(--cc-accent, #2f6feb) !important;
   transition: filter .12s;
 }

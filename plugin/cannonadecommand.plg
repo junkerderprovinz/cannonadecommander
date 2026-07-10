@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.2.14">
+  <!ENTITY version   "2.2.15">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,17 @@
 </ICON>
 
 <CHANGES>
+### 2.2.15
+- Search: the field now opens directly LEFT of the magnifier icon (header.js moves the
+  native box next to the search toggle), so the icons left of it shift further left and
+  the field sits inline between them instead of at the far left of the bar.
+- Menu-bar icons: smaller and lighter (dedicated icon-box size), and their shape is
+  capped so pill mode gives a neat rounded square (like the mockup) rather than a full
+  circle; rounded and square modes stay consistent with the tabs.
+- Docker bottom bar: the action buttons move to the medium (tab) size.
+- Plugins tab: the "Check for Updates" button is no longer a few pixels taller than the
+  tabs; it uses the medium size token now.
+
 ### 2.2.14
 - Menu-bar icons are now full members of the size system: a new --cc-md-icon glyph
   token, the icon boxes get the same authority as the tab badges (fixed 30px, box-sizing,
@@ -246,7 +257,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>cd7ed66af5c28d9b46abd34d11f233297547a7f973be5a8867c2d5830664c19a</SHA256>
+  <SHA256>ffa5ec6de1bc6521aaafad8a361370f739032e8e16fe3b9b92bda6eb71b389d3</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

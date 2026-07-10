@@ -347,11 +347,11 @@
           pill(b2, colorFor(i2 + 6));
           // EXACT same box as the tab pills: fixed height + centered (pill()'s
           // line-height:1.5 had made these ~4px taller than the tabs)
-          b2.style.setProperty("height", "34px", "important");
-          b2.style.setProperty("padding", "0 20px", "important");
+          b2.style.setProperty("height", "var(--cc-md-h, 30px)", "important");
+          b2.style.setProperty("padding", "var(--cc-md-pad, 0 20px)", "important");
           b2.style.setProperty("line-height", "1", "important");
           b2.style.setProperty("box-sizing", "border-box", "important");
-          b2.style.setProperty("font-size", "13px", "important");
+          b2.style.setProperty("font-size", "var(--cc-md-fs, 13px)", "important");
           b2.style.setProperty("font-weight", "600", "important");
           b2.style.setProperty("text-transform", "uppercase", "important");
           b2.style.setProperty("letter-spacing", "1.5px", "important");

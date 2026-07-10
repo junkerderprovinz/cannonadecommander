@@ -59,10 +59,37 @@
   }
   // gui_search() prepends #guiSearchBox into the bar; flag it so the sheet can clear
   // the tabs out of the way and give the field the full menu bar (reliable, no :has()).
+  // gui_search() prepends #guiSearchBoxSpan at the FAR-LEFT of .nav-tile.right. Move it
+  // so the field sits immediately LEFT of the native search toggle (the magnifier
+  // nav-item). Robust: find the toggle by its inline onclick="gui_search()" wiring,
+  // fall back to .nav-item.gui_search (basename-derived class); if neither is found we
+  // leave the box where gui_search() put it. Idempotent + guarded so the childList
+  // observer can't loop on our own insertBefore mutation. Only when the CC header is on
+  // and on the top-nav layout (matches the sheet's :not(.Theme--sidebar) gating).
+  function reorderSearch() {
+    try {
+      var root = document.documentElement;
+      if (!root.classList.contains("cc-header-on") || root.classList.contains("Theme--sidebar")) return;
+      var span = document.getElementById("guiSearchBoxSpan");
+      if (!span) return;
+      var toggle = null;
+      var cands = document.querySelectorAll("#menu .nav-tile.right [onclick]");
+      for (var i = 0; i < cands.length; i++) {
+        if ((cands[i].getAttribute("onclick") || "").indexOf("gui_search") !== -1) {
+          toggle = cands[i].closest(".nav-item"); break;
+        }
+      }
+      if (!toggle) toggle = document.querySelector("#menu .nav-tile.right .nav-item.gui_search");
+      if (!toggle || toggle === span || span.contains(toggle)) return;
+      if (span.nextElementSibling === toggle) return; // already in place -> no-op (prevents observer loop)
+      toggle.parentNode.insertBefore(span, toggle);
+    } catch (e) {}
+  }
   function watchSearch() {
     try {
       var target = document.getElementById("menu") || document.body;
       var mo = new MutationObserver(function () {
+        reorderSearch();
         document.documentElement.classList.toggle("cc-search-open", !!document.getElementById("guiSearchBoxSpan"));
         paintNav();
       });

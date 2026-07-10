@@ -70,9 +70,9 @@ html.cc-header-on #menu .usage-bar > span {
 /* gui_search() hides the util icons and prepends #guiSearchBox (40rem) into
    .nav-tile.right. We slim + theme the field, and let everything to its left
    shrink/scroll so the field has room (needs :has(); no-ops gracefully if absent). */
-html.cc-header-on #guiSearchBoxSpan { display: inline-flex !important; align-items: center; flex: 0 0 auto; }
-html.cc-header-on #guiSearchBox {
-  width: 30rem !important; max-width: 46vw !important; height: 28px !important; padding: 0 14px !important;
+html.cc-header-on:not(.Theme--sidebar) #guiSearchBoxSpan { display: inline-flex !important; align-items: center; flex: 0 0 auto; }
+html.cc-header-on:not(.Theme--sidebar) #guiSearchBox {
+  height: 28px !important; padding: 0 14px !important;
   border: 1px solid var(--cc-accent, #2f6feb) !important; border-radius: var(--cc-b-radius, 999px) !important;
   background: rgba(18, 18, 18, .94) !important; color: #eaeaea !important; font-size: 13px !important;
   box-shadow: none !important; outline: none !important;
@@ -84,9 +84,9 @@ html.cc-header-on #guiSearchBox {
    stacked/narrow layout #menu is a single 1fr column, so touching the grid there
    squeezed everything together -> scope the whole room-making to >=768px. */
 @media (min-width: 768px) {
-  html.cc-header-on.cc-search-open #menu { grid-template-columns: 0 1fr !important; }
-  html.cc-header-on.cc-search-open #menu .nav-tile:not(.right) { display: none !important; }
-  html.cc-header-on.cc-search-open #menu .nav-tile.right { justify-content: flex-start !important; min-width: 0 !important; }
-  html.cc-header-on.cc-search-open #guiSearchBoxSpan { flex: 1 1 auto !important; min-width: 0 !important; }
-  html.cc-header-on.cc-search-open #guiSearchBox { width: 100% !important; max-width: none !important; }
+  html.cc-header-on.cc-search-open:not(.Theme--sidebar) #menu { grid-template-columns: 0 1fr !important; }
+  html.cc-header-on.cc-search-open:not(.Theme--sidebar) #menu .nav-tile:not(.right) { display: none !important; }
+  html.cc-header-on.cc-search-open:not(.Theme--sidebar) #menu .nav-tile.right { justify-content: flex-start !important; min-width: 0 !important; }
+  html.cc-header-on.cc-search-open:not(.Theme--sidebar) #guiSearchBoxSpan { flex: 1 1 auto !important; min-width: 0 !important; }
+  html.cc-header-on.cc-search-open:not(.Theme--sidebar) #guiSearchBox { width: 100% !important; max-width: none !important; }
 }

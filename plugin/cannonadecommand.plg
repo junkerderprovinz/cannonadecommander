@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.2.8">
+  <!ENTITY version   "2.2.9">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,12 @@
 </ICON>
 
 <CHANGES>
+### 2.2.9
+- Volumes marquee: finds the Volume column by its header (no more doubled copy in
+  the wrong column); only the hovered line scrolls.
+- Search: the CC restyle + make-room apply only on the horizontal top-nav layout,
+  not the sidebar/stacked theme (native search there).
+
 ### 2.2.8
 - Volumes running-text fixed: it rebuilds the mount list from CC's own data and owns
   the markup, so Unraid's readmore lib can no longer break it (it had fallen back to
@@ -206,7 +212,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>13fa00be617a0781012cb8d846319cc97caf3f737e271ebd8dc8f60d4d9b17aa</SHA256>
+  <SHA256>0d9e0cacdbc24aab953ce4d75a8a79d3e880e9a91393ee98dae657a00f666723</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

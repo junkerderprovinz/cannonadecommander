@@ -514,36 +514,37 @@
   // read the whole thing, then back, repeating while hovered — each independently.
   function setupVolMarquee(tr, c) {
     try {
-      var cell = tr.querySelector(":scope > td:nth-child(8)"); if (!cell) return;
       if (!c || !c.mounts || !c.mounts.length) return;
-      if (cell.getAttribute("data-cc-vm") === "1") return; // already rebuilt this render
+      // Find the VOLUME column by its header text (robust across hidden columns and
+      // the inserted actions column) instead of a fixed nth-child, which landed the
+      // marquee in the wrong column -> a doubled copy.
+      var tbl = tr.closest("table");
+      var ths = tbl ? tbl.querySelectorAll("thead tr:last-child > th") : [];
+      var idx = -1;
+      for (var i = 0; i < ths.length; i++) { if (/volum/i.test(ths[i].textContent || "")) { idx = i; break; } }
+      var cell = idx >= 0 ? tr.children[idx] : tr.querySelector(":scope > td:nth-child(8)");
+      if (!cell || cell.getAttribute("data-cc-vm") === "1") return;
       cell.setAttribute("data-cc-vm", "1");
-      // Build the mount list from CC's OWN data and REPLACE the cell content. Unraid's
-      // readmore lib restructures span.docker_readmore (it stops matching that
-      // selector), which is why the DOM-parsing version silently fell back to the
-      // native word-break wrap. Owning the markup sidesteps readmore entirely.
+      // Build from CC's OWN mount data and REPLACE the cell -> readmore-proof, and
+      // give EACH line its own hover so only the hovered line scrolls (user call).
       var host = el("div", "cc-volmarq");
       c.mounts.forEach(function (m) {
         var w = el("span", "cc-vline"), t = el("span", "cc-vtext");
         t.textContent = (m.source || "") + " \u2194 " + (m.dest || "") + (m.rw ? "" : " (ro)");
         w.appendChild(t); host.appendChild(w);
-      });
-      cell.innerHTML = ""; cell.appendChild(host);
-      var hov = { on: false }, ivs = [];
-      cell.addEventListener("mouseenter", function () {
-        hov.on = true;
-        Array.prototype.slice.call(host.querySelectorAll(".cc-vline")).forEach(function (w) {
-          var t = w.querySelector(".cc-vtext"); var over = t.scrollWidth - w.clientWidth; if (over <= 2) return;
+        var iv = null;
+        w.addEventListener("mouseenter", function () {
+          var over = t.scrollWidth - w.clientWidth; if (over <= 2) return;
           var dur = Math.max(1000, Math.round(over / 55 * 1000)), toEnd = true;
           t.style.transition = "transform " + (dur / 1000) + "s linear"; t.style.transform = "translateX(-" + over + "px)";
-          var iv = setInterval(function () { if (!hov.on || !t.isConnected) { clearInterval(iv); return; } toEnd = !toEnd; t.style.transform = "translateX(" + (toEnd ? -over : 0) + "px)"; }, dur + 700);
-          ivs.push(iv);
+          iv = setInterval(function () { if (!t.isConnected) { clearInterval(iv); return; } toEnd = !toEnd; t.style.transform = "translateX(" + (toEnd ? -over : 0) + "px)"; }, dur + 700);
+        });
+        w.addEventListener("mouseleave", function () {
+          if (iv) { clearInterval(iv); iv = null; }
+          t.style.transition = "transform .3s ease"; t.style.transform = "translateX(0)";
         });
       });
-      cell.addEventListener("mouseleave", function () {
-        hov.on = false; ivs.forEach(clearInterval); ivs = [];
-        Array.prototype.slice.call(host.querySelectorAll(".cc-vtext")).forEach(function (t) { t.style.transition = "transform .3s ease"; t.style.transform = "translateX(0)"; });
-      });
+      cell.innerHTML = ""; cell.appendChild(host);
     } catch (e) {}
   }
   function injectRowBadges(tr) {

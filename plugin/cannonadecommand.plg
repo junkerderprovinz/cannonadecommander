@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.5.4">
+  <!ENTITY version   "2.5.5">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,13 @@
 </ICON>
 
 <CHANGES>
+### 2.5.5
+- FIX: the start / stop / pause buttons now flip LIVE when you start or stop a container, without
+  a page refresh (the v2.5.4 fix read Unraid's status glyph, which only refreshes every 3s and is
+  stale right after the action — it now reads CannonadeCommand's own live container state first).
+- FIX: on the Settings page, plugin LOGOS (raster images) are now tinted/inked to match the badge
+  like the font glyphs already were — badge mode had no image path, so logos stayed full-colour.
+
 ### 2.5.4
 - FIX: on the Docker tab, a container's start / stop / pause buttons now follow its live run
   state — starting a container turns the start icon into a STOP icon and activates the PAUSE
@@ -347,7 +354,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>6a3cf722b278f863357ef18e15e53166dc8d34412c5862db2581ff54416de01b</SHA256>
+  <SHA256>2ab423a5983a539a390cd18d94a310a4ae2e6627451d83b5d26f07ccf25e1ae5</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

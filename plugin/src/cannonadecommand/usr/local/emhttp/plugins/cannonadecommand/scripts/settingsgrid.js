@@ -24,6 +24,24 @@
   // adopt toggle: cc.stylesettings on -> shared cc.* keys, else this area's own ccs.* keys
   function eff(k, d) { return g("cc.stylesettings", "1") !== "0" ? g("cc." + k, d) : g("ccs." + k, d); }
   function accent() { var a = eff("accent", "#2f6feb"); return /^#[0-9a-f]{6}$/i.test(a) ? a : "#2f6feb"; }
+  // accent-mode badge background: the ccs.iconcolor override if valid, else the accent
+  // (identical to what apply() writes into --cc-iconbg-color).
+  function badgeBg() { var sg = g("ccs.iconcolor", ""); return /^#[0-9a-f]{6}$/i.test(sg) ? sg : accent(); }
+  // BADGE mode: flatten a raster logo (img.PanelImg) to the badge's ink tone so it reads on
+  // the accent/rainbow box — the SAME trick docker.js/plugins.js use. idealText() yields only
+  // #161616 or #fff, so at most two filters ever coexist (rainbow tiles can need both); each
+  // is built once (id-guarded), on a body host the #displaybox observer never sees.
+  function ensureMonoFilter(ink) {
+    var host = document.getElementById("cc-sg-mono-svg");
+    if (!host) { host = document.createElement("div"); host.id = "cc-sg-mono-svg"; host.setAttribute("aria-hidden", "true"); host.style.cssText = "position:absolute;width:0;height:0;overflow:hidden"; document.body.appendChild(host); }
+    var light = ink === "#fff", filtId = "cc-sg-mono-" + (light ? "l" : "d");
+    if (!host.querySelector("#" + filtId)) {
+      var c = (light ? 1 : parseInt("16", 16) / 255).toFixed(4); // #fff -> 1.0000, #161616 -> 0.0863
+      var vals = "0 0 0 0 " + c + " 0 0 0 0 " + c + " 0 0 0 0 " + c + " 0 0 0 1 0";
+      host.insertAdjacentHTML("beforeend", '<svg xmlns="http://www.w3.org/2000/svg"><filter id="' + filtId + '" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%"><feColorMatrix type="matrix" values="' + vals + '"/></filter></svg>');
+    }
+    return "url(#" + filtId + ")";
+  }
   // cc.badgeshape is SHARED across all areas; eff() returns it while the adopt toggle is on
   // cc.badgeshape is a GLOBAL key -> read it DIRECTLY, not via eff() (see header.js): an
   // adopt-aware read would fall back to an unset ccs.badgeshape and flip the shape per page.
@@ -42,16 +60,19 @@
   function paintGrid() {
     try {
       var rb = rbOn(), spans = document.querySelectorAll("#displaybox .Panel > a > span");
+      var accBg = badgeBg();
       for (var i = 0; i < spans.length; i++) {
-        var s = spans[i], gl = s.querySelector("i.PanelIcon");
+        var s = spans[i], gl = s.querySelector("i.PanelIcon"), im = s.querySelector("img.PanelImg");
+        var c = rb ? rbColor(i) : accBg;                // this tile's badge background
         if (rb) {
-          var c = rbColor(i);
           s.style.setProperty("background", c, "important");
           if (gl) gl.style.setProperty("color", idealText(c), "important");
         } else {
           s.style.removeProperty("background");
-          if (gl) gl.style.removeProperty("color");
+          if (gl) gl.style.removeProperty("color");     // glyph colour comes from CSS --cc-iconbg-text
         }
+        // raster logo: flatten to the badge's ink tone so it reads on the box (docker/plugins parity)
+        if (im) im.style.setProperty("filter", ensureMonoFilter(idealText(c)), "important");
       }
     } catch (e) {}
   }
@@ -100,6 +121,7 @@
         if (im) im.style.filter = "";
       }
       var host = document.getElementById("cc-sg-tint-svg"); if (host) host.remove();
+      var mono = document.getElementById("cc-sg-mono-svg"); if (mono) mono.remove();
     } catch (e) {}
   }
   function apply() {

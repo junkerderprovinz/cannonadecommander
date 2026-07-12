@@ -292,11 +292,12 @@
   // (injectActionCell) and its rebuild guard (ccSig = webui|xml|tswebui|links) is
   // state-INDEPENDENT, so on a plain start/stop the icons froze: the start glyph never
   // became a stop glyph and the pause button stayed a dead placeholder ("neither
-  // happens"). Unraid pushes the new state via nchan straight onto the row's status
-  // glyph (i[id^='load-']) WITHOUT replacing the <tr>, so our childList observer
-  // (subtree:false) never wakes for it — we must re-derive here. Authoritative source:
-  // the live glyph, with c.state as the fallback (exactly what injectRowBadges trusts
-  // when it first builds the state pill).
+  // happens"). We re-derive here on every load()/observer cycle. AUTHORITATIVE source is
+  // CC's OWN c.state (a fresh, uncached `docker ps` on each /api/state), NOT Unraid's status
+  // glyph: nchan (/sub/dockerload) only updates CPU/RAM, and the glyph's fa-play/pause/square
+  // is refreshed solely by Unraid's 3-s loadlist() — so it is STALE in the sub-second window
+  // right after a CC start/stop. c.state wins; the glyph is only a fallback for rows CC hasn't
+  // indexed. (v2.5.4 had these backwards — glyph-first — so the buttons never flipped live.)
   function syncActionBars() {
     try {
       findRows().forEach(function (tr) {
@@ -306,7 +307,7 @@
         if (pendingAction[name]) return; // action in flight — leave the transient look alone
         var glyph = tr.querySelector("td.ct-name .inner i[id^='load-']");
         var c = containerByName(name);
-        var st = glyphState(glyph) || (c && c.state) || "unknown";
+        var st = (c && c.state) || glyphState(glyph) || "unknown";
         if (bar.dataset.ccState === st) return; // unchanged — no DOM churn
         bar.dataset.ccState = st;
         var running = st === "running", paused = st === "paused";
@@ -641,7 +642,7 @@
       // ── NAME cell (col 1): start/stop badge, and BENEATH it Container-ID / Von ──
       if (nameCell) {
         var glyph = nameCell.querySelector(".inner i[id^='load-']");
-        var st = glyphState(glyph) || (c && c.state) || "unknown";
+        var st = (c && c.state) || glyphState(glyph) || "unknown";
         var meta = el("div", "cc-namemeta"); meta.setAttribute(MARK, "1");
         var sb = stateToggle(name, st); if (showUnhealthy(c)) { sb.classList.add("cc-badge-alert"); sb.textContent = stateLabel(st) + " ✕"; sb.title = unhealthyTip(); }
         meta.appendChild(sb);

@@ -12,12 +12,20 @@
  *   - a single-tab (redundant) bar is hidden; the /Shares page keeps its one tab
  *     (excluded via the .cc-on-shares class shares.js adds only on /Shares).
  *   - a tasteful polish on the shares tables (rounded container + a subtle header row).
- * Colours come from --cc-accent / --cc-accent-text / --cc-b-radius (set by shares.js).
+ * Colours come from --cc-shr-accent / --cc-shr-accent-text (this area's OWN isolated vars,
+ * set by shares.js — NOT the shared --cc-accent, which every global enhancer would clobber)
+ * plus --cc-b-radius (the one global Badge-Form).
  *
  * Unraid's own tab CSS (styles/default-base.css) is `.tabs button[role="tab"]`
  * (specificity 0,3,1); prefixing every rule with `#displaybox` (0,3,2 / 1,3,2) beats
  * it WITHOUT !important, so idle/active/hover all win cleanly.
  */
+
+/* CC badge size system — MIRRORED from styles/docker.css (keep in sync). This sheet
+   is standalone (docker.css never loads here), so the sm tier (list-cell badges) + md
+   tier (tab pills, bottom action buttons) need their own copy of the tokens, or they
+   render too small (the ad-hoc padding this replaces was the root cause). */
+:root { --cc-sm-fs: 11px; --cc-sm-pad: 3px 11px; --cc-md-fs: 13px; --cc-md-h: 30px; --cc-md-pad: 0 20px; }
 
 /* ═══ sub-page tabs -> badges ═══ */
 html.cc-shares-on #displaybox nav.tabs .tabs-container { gap: 6px; }
@@ -27,14 +35,25 @@ html.cc-shares-on #displaybox nav.tabs button[role="tab"] {
   border: none;
   border-radius: var(--cc-b-radius, 999px);
   opacity: 1;
-  padding: .55rem 1.1rem;
+  /* md tab-badge metrics: identical height/font/padding to the menu-bar + plugin-page tabs */
+  height: var(--cc-md-h, 30px);
+  padding: var(--cc-md-pad, 0 20px);
+  font-size: var(--cc-md-fs, 13px);
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  line-height: 1;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   transition: filter .12s, background .12s, color .12s;
 }
 html.cc-shares-on #displaybox nav.tabs button[role="tab"]:hover { filter: brightness(1.14); }
 html.cc-shares-on #displaybox nav.tabs button[role="tab"][aria-selected="true"] {
-  background: var(--cc-accent, #2f6feb);
-  color: var(--cc-accent-text, #fff);
+  background: var(--cc-shr-accent, #2f6feb);
+  color: var(--cc-shr-accent-text, #fff);
 }
 /* the FA glyph (i.title) inside the tab inherits the button's text colour */
 html.cc-shares-on #displaybox nav.tabs button[role="tab"] i.title { color: inherit; }
@@ -57,3 +76,55 @@ html.cc-shares-on #displaybox table.unraid.share_status thead th {
   background: rgba(128, 128, 128, .14);
   font-weight: 600;
 }
+
+/* ═══ list-cell values -> CC badges ═══
+   shares.js wraps each SMB/NFS/Storage/Size/Free value in .cc-b>.cc-b-v. docker.css
+   isn't loaded here, so mirror its .cc-b shape (sm tier) + solid-accent look, exactly
+   like the standalone .cc-plug variant. "-" / empty values stay un-badged (JS skips). */
+html.cc-shares-on #displaybox table.unraid.share_status .cc-b {
+  display: inline-flex; align-items: center; gap: 5px; border: none;
+  border-radius: var(--cc-b-radius, 999px); padding: var(--cc-sm-pad, 3px 11px);
+  font-size: var(--cc-sm-fs, 11px); font-weight: 600; line-height: 1.35;
+  white-space: nowrap; text-decoration: none; vertical-align: middle;
+  background: var(--cc-shr-accent, #2f6feb); color: var(--cc-shr-accent-text, #fff);
+}
+html.cc-shares-on #displaybox table.unraid.share_status .cc-b .cc-b-v { font-family: inherit; }
+/* the wrapped value keeps its own links/icons/orbs working, just recoloured to fit */
+html.cc-shares-on #displaybox table.unraid.share_status .cc-b a,
+html.cc-shares-on #displaybox table.unraid.share_status .cc-b i { color: inherit; }
+html.cc-shares-on #displaybox table.unraid.share_status .cc-b em { font-style: italic; opacity: .82; }
+
+/* ═══ browse column -> a Browse badge ═══
+   shares.js lifts the a.view (icon-u-tab browse link) out of the Name cell into its
+   own cell and tags it .cc-b-browse; render it as a grey pill (neutral action). */
+html.cc-shares-on #displaybox table.unraid.share_status td.cc-browse-col { white-space: nowrap; }
+html.cc-shares-on #displaybox table.unraid.share_status a.cc-b-browse {
+  display: inline-flex; align-items: center; gap: 5px;
+  border-radius: var(--cc-b-radius, 999px); padding: var(--cc-sm-pad, 3px 11px);
+  font-size: var(--cc-sm-fs, 11px); font-weight: 600; line-height: 1.35;
+  white-space: nowrap; text-decoration: none; vertical-align: middle;
+  background: rgba(128, 128, 128, .18); color: #cfcfcf;
+  transition: filter .12s;
+}
+html.cc-shares-on #displaybox table.unraid.share_status a.cc-b-browse:hover { filter: brightness(1.14); }
+html.cc-shares-on #displaybox table.unraid.share_status a.cc-b-browse i { color: inherit; }
+
+/* ═══ bottom action buttons -> CC action buttons ═══
+   Mirror the Docker footer bar (div.js-actions input[type=button]) — accent bg, md
+   size, uppercase, radius. Scoped to #displaybox so nothing leaks off the Shares area. */
+html.cc-shares-on #displaybox #compute-shares,
+html.cc-shares-on #displaybox #compute-disks,
+html.cc-shares-on #displaybox #cleanup-button,
+html.cc-shares-on #displaybox form[name="share_form"] input[type="submit"] {
+  background: var(--cc-shr-accent, #2f6feb) !important; color: var(--cc-shr-accent-text, #fff) !important;
+  border: none !important; box-shadow: none !important;
+  padding: 0 12px !important; font-size: var(--cc-md-fs, 13px) !important;
+  height: var(--cc-md-h, 30px) !important; box-sizing: border-box !important;
+  font-weight: 600 !important; text-transform: uppercase !important; letter-spacing: 0.6px !important;
+  font-family: inherit !important; border-radius: var(--cc-b-radius, 999px) !important;
+  cursor: pointer; transition: filter .12s;
+}
+html.cc-shares-on #displaybox #compute-shares:hover,
+html.cc-shares-on #displaybox #compute-disks:hover,
+html.cc-shares-on #displaybox #cleanup-button:hover,
+html.cc-shares-on #displaybox form[name="share_form"] input[type="submit"]:hover { filter: brightness(1.14); }

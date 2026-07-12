@@ -54,8 +54,12 @@
       root.classList.toggle("cc-header-on", on);
       if (!on) return;
       var a = accent();
-      root.style.setProperty("--cc-accent", a);
-      root.style.setProperty("--cc-accent-text", idealText(a));
+      // ISOLATED accent var — NOT the shared --cc-accent. Other global enhancers (shares.js,
+      // the page-specific docker/plugins/vms) also write --cc-accent on documentElement and
+      // would clobber the menu-bar colour (and vice-versa); each area now owns its var and the
+      // sheet reads --cc-hdr-accent. (--cc-b-radius stays shared: one global Badge-Form.)
+      root.style.setProperty("--cc-hdr-accent", a);
+      root.style.setProperty("--cc-hdr-accent-text", idealText(a));
       root.style.setProperty("--cc-b-radius", shape());
       root.classList.toggle("cc-header-rb", rbOn());
       paintNav();

@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.6.0">
+  <!ENTITY version   "2.6.1">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,16 @@
 </ICON>
 
 <CHANGES>
+### 2.6.1
+- FIX: per-area accent colours no longer bleed into each other. Every area used to write ONE
+  shared CSS accent variable, so setting the Freigaben colour tinted the main menu bar (and the
+  menu bar's own colour wouldn't stick). Each area now owns its accent variable — set a colour
+  for the menu bar, the Freigaben tabs, etc. and it stays put.
+- Freigaben polish: the sub-page tab buttons now use the standardised badge size (matching the
+  menu-bar / plugin-tab badges — they were too small); the Shares list values (SMB/NFS/Storage/
+  Size/Free) render as CC badges; the browse control moves into its own "Browse" column as a
+  badge; and the bottom buttons (Compute all / Add share / Clean up) get the CC action-button style.
+
 ### 2.6.0
 - NEW: a "Freigaben" (Shares) area. Enable it under Settings > CannonadeCommand > Areas and the
   Shares page's sub-tabs (User Shares / Disk Shares) — and every page's sub-tabs — get the CC
@@ -362,7 +372,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>439142854b743f95993dd86ad936a9362e9dc9015a81a85149b429cd85639806</SHA256>
+  <SHA256>ac06b2cf2089612a408cb5b17d9194233debd1f0a2c6134352e5d2f8296ad90e</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

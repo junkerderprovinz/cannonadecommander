@@ -40,6 +40,11 @@
   // /Shares editor is /Shares/Share?name=... -> a strict, trailing-slash-normalised
   // pathname check keeps us on the LANDING pages only (see settingsgrid.onSettings).
   function pn() { try { return location.pathname.replace(/\/+$/, ""); } catch (e) { return ""; } }
+  // tiny i18n (same shape as docker.js): en fallback, de when the page lang is German.
+  var LANG = (document.documentElement.lang || navigator.language || "en").slice(0, 2).toLowerCase();
+  var T = { de: { browse: "Durchsuchen" }, en: { browse: "Browse" } };
+  function t(k) { return (T[LANG] || T.en)[k] || T.en[k]; }
+  function el(tag, cls, txt) { var n = document.createElement(tag); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; }
   // rainbow: paint the ACTIVE tab button a rotated palette colour; accent mode = clear
   // our overrides so the sheet's --cc-accent shows through. Inline style writes are
   // attribute changes, so they never re-trigger the childList observer.
@@ -97,6 +102,57 @@
       }
     } catch (e) {}
   }
+  // /Shares list polish: wrap each SMB/NFS/Storage/Size/Free value in a CC badge and lift
+  // the browse link (a.view) into its own "Browse" column. Unraid replaces the whole tbody
+  // innerHTML on every Compute/refill, wiping our work AND any marker, so this re-runs from
+  // the MutationObserver; a per-row data-cc-sh set-and-bail guard makes each pass idempotent
+  // (no double-wrap, no observer loop — a marked row emits no mutations). The browse <td>
+  // shifts nth-child, so we snapshot the cells BEFORE inserting it.
+  function badgeCell(td) {
+    if (!td || td.querySelector(":scope > .cc-b")) return; // already wrapped
+    var txt = (td.textContent || "").trim();
+    if (txt === "" || txt === "-") return; // leave empty / "-" un-badged
+    var b = el("span", "cc-b"), v = el("span", "cc-b-v");
+    while (td.firstChild) v.appendChild(td.firstChild); // keep links/icons/orbs working
+    b.appendChild(v); td.appendChild(b);
+  }
+  function enhanceRow(tr) {
+    if (tr.getAttribute("data-cc-sh")) return; // set-and-bail idempotency
+    tr.setAttribute("data-cc-sh", "1");
+    var empty = tr.querySelector(":scope > td.empty");
+    if (empty) { empty.colSpan = (empty.colSpan || 1) + 1; return; } // no-shares placeholder: just widen
+    var tds = Array.prototype.slice.call(tr.children); // snapshot BEFORE inserting the browse cell
+    var name = tds[0]; if (!name) return;
+    var bt = el("td", "cc-browse-col"); // new Browse cell, always inserted (keeps column alignment)
+    var view = name.querySelector("a.view");
+    if (view && view.getAttribute("href")) { // real browse link (disk sub-rows carry an empty a.view)
+      view.classList.add("cc-b-browse");
+      if (!view.querySelector(".cc-b-lab")) view.appendChild(el("span", "cc-b-lab", t("browse")));
+      bt.appendChild(view); // moves it OUT of the Name cell, href/onclick intact
+    }
+    name.parentNode.insertBefore(bt, name.nextSibling);
+    for (var i = 2; i < tds.length; i++) badgeCell(tds[i]); // SMB, NFS, Storage, Size, Free (skip Name+Comment)
+  }
+  function enhanceHead(table) {
+    var head = table && table.querySelector("thead tr");
+    if (!head || head.getAttribute("data-cc-sh")) return;
+    head.setAttribute("data-cc-sh", "1");
+    var first = head.children[0]; if (!first) return;
+    head.insertBefore(el("td", "cc-browse-col", t("browse")), first.nextSibling);
+  }
+  function enhanceShares() {
+    try {
+      if (g("cc.enable.shares", "0") === "0") return; // area disabled -> don't touch the DOM
+      if (pn() !== "/Shares") return; // only the Freigaben landing page
+      var ids = ["shareslist", "disk_list"]; // User Shares + Disk Shares tables
+      for (var j = 0; j < ids.length; j++) {
+        var tb = document.getElementById(ids[j]); if (!tb) continue;
+        var table = tb.closest ? tb.closest("table") : null; if (table) enhanceHead(table);
+        var rows = tb.children;
+        for (var r = 0; r < rows.length; r++) if (rows[r].tagName === "TR") enhanceRow(rows[r]);
+      }
+    } catch (e) {}
+  }
   function apply() {
     try {
       var root = document.documentElement;
@@ -106,13 +162,19 @@
       root.classList.toggle("cc-on-shares", on && pn() === "/Shares");
       if (!on) return;
       var a = accent();
-      root.style.setProperty("--cc-accent", a);
-      root.style.setProperty("--cc-accent-text", idealText(a));
+      // ISOLATED accent var — NOT the shared --cc-accent. Every global enhancer (header.js,
+      // shares.js) writes --cc-accent on documentElement, so they clobber each other: the
+      // Freigaben colour bled onto the menu bar and the header colour got overwritten. Each
+      // area now owns its var; Shares.css reads --cc-shr-accent only. (--cc-b-radius stays
+      // shared: it's the one global Badge-Form, identical for every area.)
+      root.style.setProperty("--cc-shr-accent", a);
+      root.style.setProperty("--cc-shr-accent-text", idealText(a));
       root.style.setProperty("--cc-b-radius", shape());
       root.classList.toggle("cc-shares-rb", rbOn());
       ensureTabbed();
       hideRedundantTabs();
       paintTabs();
+      enhanceShares();
     } catch (e) {}
   }
   // Observe the content container ONLY (never body). apply()'s follow-ups make no
@@ -124,7 +186,7 @@
       if (!host) return;
       mo = new MutationObserver(function () {
         if (moPending) return; moPending = true;
-        setTimeout(function () { moPending = false; hideRedundantTabs(); paintTabs(); }, 150);
+        setTimeout(function () { moPending = false; hideRedundantTabs(); paintTabs(); enhanceShares(); }, 150);
       });
       mo.observe(host, { childList: true, subtree: true });
     } catch (e) {}

@@ -11,8 +11,9 @@
  *   - the right-side utility icons become accent-FILLED boxes with a black/white
  *     glyph (like the Docker-tab action icons), following --cc-b-radius.
  *   - the array-usage meter becomes a clean, thin accent pill.
- * Colours come from --cc-accent / --cc-accent-text / --cc-b-radius (set by
- * header.js). The top-header Connect icons (bell/avatar/power) are Shadow-DOM web
+ * Colours come from --cc-hdr-accent / --cc-hdr-accent-text (this bar's OWN isolated vars,
+ * set by header.js — NOT the shared --cc-accent, which shares.js / the tab enhancers would
+ * clobber) plus --cc-b-radius. The top-header Connect icons (bell/avatar/power) are Shadow-DOM web
  * components and cannot be restyled by plugin CSS - left untouched on purpose.
  */
 
@@ -37,7 +38,7 @@ html.cc-header-on #menu .nav-tile:not(.right) .nav-item > a {
 }
 html.cc-header-on #menu .nav-tile:not(.right) .nav-item:hover > a { filter: brightness(1.14); }
 html.cc-header-on #menu .nav-tile:not(.right) .nav-item.active > a {
-  background: var(--cc-accent, #2f6feb) !important; color: var(--cc-accent-text, #fff) !important;
+  background: var(--cc-hdr-accent, #2f6feb) !important; color: var(--cc-hdr-accent-text, #fff) !important;
 }
 /* the underline accent is redundant now that the tab itself is a badge */
 html.cc-header-on #menu .nav-item:after, html.cc-header-on #menu .nav-user.show:after { display: none !important; }
@@ -50,7 +51,7 @@ html.cc-header-on #menu .nav-tile.right .nav-item.util > a {
   /* cap the radius so pill-mode gives a rounded SQUARE (like the mockup), not a full
      circle; rounded(6px)/square(0) stay untouched -> one shape family across modes */
   border-radius: min(var(--cc-b-radius, 8px), 8px) !important;
-  background: var(--cc-accent, #2f6feb) !important;
+  background: var(--cc-hdr-accent, #2f6feb) !important;
   transition: filter .12s;
 }
 html.cc-header-on #menu .nav-tile.right .nav-item.util > a:hover { filter: brightness(1.14); }
@@ -58,7 +59,7 @@ html.cc-header-on #menu .nav-tile.right .nav-item.util > a span { display: none 
 html.cc-header-on #menu .nav-tile.right .nav-item.util b.system,
 html.cc-header-on #menu .nav-tile.right .nav-item.util img.system {
   font-size: var(--cc-md-icon, 15px) !important; line-height: 1 !important;
-  padding: 0 !important; margin: 0 !important; color: var(--cc-accent-text, #fff) !important;
+  padding: 0 !important; margin: 0 !important; color: var(--cc-hdr-accent-text, #fff) !important;
 }
 /* raster glyphs (img.system) ignore font-size — pin them to the icon token so they
    scale to the box exactly like the icon-font glyphs, instead of rendering natural size */
@@ -90,9 +91,9 @@ html.cc-header-on #menu .usage-bar {
 }
 html.cc-header-on #menu .usage-bar > span {
   border-radius: var(--cc-b-radius, 999px) !important;
-  background: var(--cc-accent, #2f6feb) !important;
+  background: var(--cc-hdr-accent, #2f6feb) !important;
   box-shadow: none !important;
-  color: var(--cc-accent-text, #fff) !important;
+  color: var(--cc-hdr-accent-text, #fff) !important;
   font-size: 11px !important; font-weight: 600 !important; padding-right: 8px !important; line-height: 24px !important;
 }
 
@@ -108,7 +109,7 @@ html.cc-header-on #menu .usage-bar > span {
   html.cc-header-on:not(.Theme--sidebar) #guiSearchBox {
     width: 22rem !important; max-width: 40vw !important;
     height: var(--cc-md-h, 30px) !important; padding: 0 14px !important;
-    border: 1px solid var(--cc-accent, #2f6feb) !important; border-radius: var(--cc-b-radius, 999px) !important;
+    border: 1px solid var(--cc-hdr-accent, #2f6feb) !important; border-radius: var(--cc-b-radius, 999px) !important;
     background: rgba(18, 18, 18, .94) !important; color: #eaeaea !important; font-size: 13px !important;
     box-shadow: none !important; outline: none !important;
   }

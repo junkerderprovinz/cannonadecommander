@@ -209,13 +209,13 @@
     // three sections: Docker Tab | Plugin Tab | VM Tab (minimal tab row)
     var tabRow = el("div", "cc-set-tabs");
     var wrap = el("div", "cc-set-wrap");
-    var wrapPlugin = el("div", "cc-set-wrap"), wrapVms = el("div", "cc-set-wrap"), wrapHeader = el("div", "cc-set-wrap");
+    var wrapPlugin = el("div", "cc-set-wrap"), wrapVms = el("div", "cc-set-wrap"), wrapHeader = el("div", "cc-set-wrap"), wrapShares = el("div", "cc-set-wrap");
     var wrapSettings = el("div", "cc-set-wrap");
     var wrapMain = el("div", "cc-set-wrap");
     // Bereiche: enable/disable each area CannonadeCommand enhances
     (function () {
       var c = card(T("Bereiche", "Areas"), T("Aktiviere, welche Bereiche CannonadeCommand verschönert. Ein deaktivierter Bereich blendet seinen Tab hier sofort aus.", "Choose which areas CannonadeCommand enhances. Disabling an area hides its tab here immediately."));
-      [["cc.enable.header", T("Hauptmenüleiste", "Main menu bar"), "0"], ["cc.enable.docker", T("Docker-Tab", "Docker tab"), "1"], ["cc.enable.plugins", T("Plugin-Tab", "Plugins tab"), "1"], ["cc.enable.vms", T("VM-Tab", "VMs tab"), "1"], ["cc.enable.settings", T("Einstellungs-Tab", "Settings tab"), "1"]].forEach(function (a) {
+      [["cc.enable.header", T("Hauptmenüleiste", "Main menu bar"), "0"], ["cc.enable.shares", T("Freigaben", "Shares"), "0"], ["cc.enable.docker", T("Docker-Tab", "Docker tab"), "1"], ["cc.enable.plugins", T("Plugin-Tab", "Plugins tab"), "1"], ["cc.enable.vms", T("VM-Tab", "VMs tab"), "1"], ["cc.enable.settings", T("Einstellungs-Tab", "Settings tab"), "1"]].forEach(function (a) {
         var row = el("div", "cc-set-row cc-set-inline");
         row.appendChild(el("span", null, a[1]));
         var cur = localStorage.getItem(a[0]);
@@ -227,6 +227,7 @@
     var SECS = [
       { t: T("Bereiche", "Areas"), w: wrapMain, key: null },
       { t: T("Hauptmenüleiste", "Main menu bar"), w: wrapHeader, key: "cc.enable.header" },
+      { t: T("Freigaben", "Shares"), w: wrapShares, key: "cc.enable.shares" },
       { t: T("Docker-Tab", "Docker tab"), w: wrap, key: "cc.enable.docker" },
       { t: T("Plugin-Tab", "Plugins tab"), w: wrapPlugin, key: "cc.enable.plugins" },
       { t: T("VM-Tab", "VMs tab"), w: wrapVms, key: "cc.enable.vms" },
@@ -257,7 +258,7 @@
       tabBtns.push(b); tabRow.appendChild(b);
     });
     root.appendChild(tabRow);
-    root.appendChild(wrapMain); root.appendChild(wrapHeader); root.appendChild(wrap); root.appendChild(wrapPlugin); root.appendChild(wrapVms); root.appendChild(wrapSettings);
+    root.appendChild(wrapMain); root.appendChild(wrapHeader); root.appendChild(wrapShares); root.appendChild(wrap); root.appendChild(wrapPlugin); root.appendChild(wrapVms); root.appendChild(wrapSettings);
 
     // ── Badges ──
     var c1 = card(T("Badges", "Badges"), T("Akzentfarbe und Farbmodus der Badges.", "Accent colour and colour mode of the badges."));
@@ -468,11 +469,13 @@
     // Push the header area's live state onto the real top bar on THIS page (browsers don't
     // fire 'storage' in the originating document, so header.js won't hear a same-page change).
     function syncHeaderBar() { try { if (typeof window.ccHeaderApply === "function") window.ccHeaderApply(); } catch (e) {} }
+    // same live push for the Freigaben tabs (no 'storage' event fires in this document)
+    function syncSharesBar() { try { if (typeof window.ccSharesApply === "function") window.ccSharesApply(); } catch (e) {} }
     function styleToggle(key, onChange, lbl) {
       // the SAME knob switch as everywhere else (the text-in-pill variant looked wrong)
       var row = el("div", "cc-set-row cc-set-inline");
       row.appendChild(el("span", null, lbl || T("Docker-Tab-Stil übernehmen", "Adopt the Docker-tab style")));
-      var tg = toggle(localStorage.getItem(key) !== "0", function (v) { localStorage.setItem(key, v ? "1" : "0"); if (onChange) onChange(); syncHeaderBar(); });
+      var tg = toggle(localStorage.getItem(key) !== "0", function (v) { localStorage.setItem(key, v ? "1" : "0"); if (onChange) onChange(); syncHeaderBar(); syncSharesBar(); });
       adoptToggles[key] = tg; row.appendChild(tg);
       return row;
     }
@@ -489,14 +492,14 @@
       // adopt toggle OFF (else eff() keeps reading the global cc.* accent and the pick is
       // ignored, the "colour not applied to the menu" bug). Reflected live on the toggle +
       // the real header bar. Turn adopt back ON to re-follow the global Docker accent.
-      var ADOPT = { "ccp.": "cc.styleplugin", "ccv.": "cc.stylevms", "cch.": "cc.styleheader", "ccs.": "cc.stylesettings" };
+      var ADOPT = { "ccp.": "cc.styleplugin", "ccv.": "cc.stylevms", "cch.": "cc.styleheader", "ccs.": "cc.stylesettings", "ccsh.": "cc.styleshares" };
       var adoptKey = ADOPT[P];
       function useOwn() {
         if (adoptKey && localStorage.getItem(adoptKey) !== "0") {
           localStorage.setItem(adoptKey, "0");
           if (adoptToggles[adoptKey] && adoptToggles[adoptKey]._setOn) adoptToggles[adoptKey]._setOn(false);
         }
-        syncHeaderBar();
+        syncHeaderBar(); syncSharesBar();
       }
       var cA = card(T("Badges", "Badges"), T("Akzentfarbe und Farbmodus der Badges.", "Accent colour and colour mode of the badges."));
       var pr = el("div", "cc-set-pickrow");
@@ -535,13 +538,17 @@
       // live preview — the Hauptmenueleiste (cch.) previews the MENU TABS (idle grey pill +
       // one accent-filled active pill, mirroring CannonadeCommand.Header.css); every other
       // area previews the Docker badges.
-      var isHeader = P === "cch.";
+      // both the Hauptmenueleiste (cch.) and Freigaben (ccsh.) restyle Unraid TAB bars ->
+      // preview tab pills (menu tabs vs the two Shares sub-tabs); every other area = badges.
+      var isTabs = P === "cch." || P === "ccsh.";
       cA.appendChild(el("div", "cc-set-lbl", T("Vorschau", "Preview")));
-      var pv = el("div", "cc-set-prev" + (isHeader ? " cc-set-navprev" : ""));
-      var activeIx = 2; // one active tab, like the real bar
+      var pv = el("div", "cc-set-prev" + (isTabs ? " cc-set-navprev" : ""));
+      var activeIx = P === "ccsh." ? 0 : 2; // one active tab, like the real bar
       var pvBadges;
-      if (isHeader) {
-        var TABS = [T("Übersicht", "Main"), "Shares", "Docker", "VMs", T("Einstellungen", "Settings"), "Tools"];
+      if (isTabs) {
+        var TABS = P === "ccsh."
+          ? [T("Benutzer-Freigaben", "User Shares"), T("Laufwerks-Freigaben", "Disk Shares")]
+          : [T("Übersicht", "Main"), "Shares", "Docker", "VMs", T("Einstellungen", "Settings"), "Tools"];
         pvBadges = TABS.map(function (nm9, i9) {
           var t9 = el("span", "cc-navtab" + (i9 === activeIx ? " cc-navtab-on" : ""), nm9); pv.appendChild(t9); return t9;
         });
@@ -553,8 +560,8 @@
       function paintPv() {
         var rbOn9 = get(P + "rainbow", "0") === "1";
         pvBadges.forEach(function (b9, i9) {
-          if (isHeader && i9 !== activeIx) { b9.style.removeProperty("background"); b9.style.removeProperty("color"); return; } // idle tab keeps its grey CSS pill
-          var col9 = rbOn9 ? pal2[(isHeader ? activeIx : i9) % pal2.length] : acc;
+          if (isTabs && i9 !== activeIx) { b9.style.removeProperty("background"); b9.style.removeProperty("color"); return; } // idle tab keeps its grey CSS pill
+          var col9 = rbOn9 ? pal2[(isTabs ? activeIx : i9) % pal2.length] : acc;
           b9.style.setProperty("background", col9, "important");
           b9.style.setProperty("color", idealText(col9), "important");
         });
@@ -626,10 +633,13 @@
     cV.appendChild(styleToggle("cc.stylevms", null));
     var cH = card(T("Stil", "Style"), T("AN = die Docker-Tab-Einstellungen gelten auch hier. AUS = die eigenen Karten dieses Abschnitts gelten.", "ON = the Docker-tab settings apply here too. OFF = this section's own cards apply."));
     cH.appendChild(styleToggle("cc.styleheader", null));
+    var cSh = card(T("Stil", "Style"), T("AN = die Docker-Tab-Einstellungen gelten auch hier. AUS = die eigenen Karten dieses Abschnitts gelten.", "ON = the Docker-tab settings apply here too. OFF = this section's own cards apply."));
+    cSh.appendChild(styleToggle("cc.styleshares", null));
     var cSet = card(T("Stil", "Style"), T("AN = die Docker-Tab-Einstellungen gelten auch hier. AUS = die eigenen Karten dieses Abschnitts gelten.", "ON = the Docker-tab settings apply here too. OFF = this section's own cards apply."));
     cSet.appendChild(styleToggle("cc.stylesettings", null));
-    wrapHeader.appendChild(cH); wrapPlugin.appendChild(cP); wrapVms.appendChild(cV); wrapSettings.appendChild(cSet);
+    wrapHeader.appendChild(cH); wrapShares.appendChild(cSh); wrapPlugin.appendChild(cP); wrapVms.appendChild(cV); wrapSettings.appendChild(cSet);
     buildStyleCards("cch.", wrapHeader, [], true); // Hauptmenueleiste: pill/badge settings only
+    buildStyleCards("ccsh.", wrapShares, [], true); // Freigaben: tab pills use FA glyphs -> badges only, no logo card
     buildStyleCards("ccs.", wrapSettings, [], false); // Einstellungs-Tab: badges + shape + logo-tint + Logo-Hintergrund cards (font-glyph icons → empty preview)
     buildStyleCards("ccp.", wrapPlugin, ["/plugins/dynamix.plugin.manager/images/dynamix.plugin.manager.png", "/plugins/dynamix.docker.manager/images/dynamix.docker.manager.png", "/plugins/cannonadecommand/images/cannonadecommand.png"]);
     buildStyleCards("ccv.", wrapVms, ["/plugins/dynamix.vm.manager/templates/images/linux.png", "/plugins/dynamix.vm.manager/templates/images/windows.png", "/plugins/cannonadecommand/images/cannonadecommand.png"]);

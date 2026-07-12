@@ -1,0 +1,59 @@
+/* CannonadeCommand - GLOBAL sub-page-tab restyle (Shares/Docker).
+ *
+ * Auto-<link>-injected into <head> on EVERY Unraid page (Buttons .page hook). To
+ * make that safe, EVERY rule is scoped to `html.cc-shares-on`, a class shares.js
+ * only adds when the "Freigaben" area is enabled. Disabled => class absent => this
+ * sheet has ZERO effect anywhere.
+ *
+ * The CC design language, applied to the tabbed sub-page nav (#displaybox nav.tabs,
+ * present in [display] tabs=0 Tabbed mode):
+ *   - each tab button becomes a BADGE (grey pill when idle, accent pill when active,
+ *     with black/white contrast text), following --cc-b-radius.
+ *   - a single-tab (redundant) bar is hidden; the /Shares page keeps its one tab
+ *     (excluded via the .cc-on-shares class shares.js adds only on /Shares).
+ *   - a tasteful polish on the shares tables (rounded container + a subtle header row).
+ * Colours come from --cc-accent / --cc-accent-text / --cc-b-radius (set by shares.js).
+ *
+ * Unraid's own tab CSS (styles/default-base.css) is `.tabs button[role="tab"]`
+ * (specificity 0,3,1); prefixing every rule with `#displaybox` (0,3,2 / 1,3,2) beats
+ * it WITHOUT !important, so idle/active/hover all win cleanly.
+ */
+
+/* ═══ sub-page tabs -> badges ═══ */
+html.cc-shares-on #displaybox nav.tabs .tabs-container { gap: 6px; }
+html.cc-shares-on #displaybox nav.tabs button[role="tab"] {
+  background: rgba(128, 128, 128, .18);
+  color: #cfcfcf;
+  border: none;
+  border-radius: var(--cc-b-radius, 999px);
+  opacity: 1;
+  padding: .55rem 1.1rem;
+  font-weight: 600;
+  transition: filter .12s, background .12s, color .12s;
+}
+html.cc-shares-on #displaybox nav.tabs button[role="tab"]:hover { filter: brightness(1.14); }
+html.cc-shares-on #displaybox nav.tabs button[role="tab"][aria-selected="true"] {
+  background: var(--cc-accent, #2f6feb);
+  color: var(--cc-accent-text, #fff);
+}
+/* the FA glyph (i.title) inside the tab inherits the button's text colour */
+html.cc-shares-on #displaybox nav.tabs button[role="tab"] i.title { color: inherit; }
+
+/* ═══ single-tab (redundant) bar hide ═══
+   :has() lets us hide a nav whose ONLY tab is redundant (e.g. /Docker's lone tab).
+   The /Shares page legitimately shows one User-Shares tab -> shares.js adds
+   html.cc-on-shares there so this rule (…:not(.cc-on-shares)…) skips it. shares.js
+   also does this in JS for browsers without :has(). */
+html.cc-shares-on:not(.cc-on-shares) #displaybox > nav.tabs:has(> .tabs-container > button[role="tab"]:only-child) { display: none; }
+
+/* ═══ shares tables -> a light CC polish (kept clean + readable) ═══ */
+html.cc-shares-on #displaybox .TableContainer,
+html.cc-shares-on #displaybox table.unraid.share_status {
+  border-radius: 8px;
+  overflow: hidden;
+}
+html.cc-shares-on #displaybox table.unraid.share_status thead td,
+html.cc-shares-on #displaybox table.unraid.share_status thead th {
+  background: rgba(128, 128, 128, .14);
+  font-weight: 600;
+}

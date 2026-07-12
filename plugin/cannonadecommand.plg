@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.5.5">
+  <!ENTITY version   "2.6.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,14 @@
 </ICON>
 
 <CHANGES>
+### 2.6.0
+- NEW: a "Freigaben" (Shares) area. Enable it under Settings > CannonadeCommand > Areas and the
+  Shares page's sub-tabs (User Shares / Disk Shares) — and every page's sub-tabs — get the CC
+  pill look (grey when idle, accent when active), with its own colour/adopt cards like the other
+  areas. It also turns on Unraid's Tabbed page view for you (a one-time flip of the global
+  Display Setting) and hides redundant single-tab bars (e.g. the lone Docker tab) so only real
+  multi-tab pages keep their bar. Off by default; enabling it changes the global page-view setting.
+
 ### 2.5.5
 - FIX: the start / stop / pause buttons now flip LIVE when you start or stop a container, without
   a page refresh (the v2.5.4 fix read Unraid's status glyph, which only refreshes every 3s and is
@@ -354,7 +362,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>2ab423a5983a539a390cd18d94a310a4ae2e6627451d83b5d26f07ccf25e1ae5</SHA256>
+  <SHA256>439142854b743f95993dd86ad936a9362e9dc9015a81a85149b429cd85639806</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

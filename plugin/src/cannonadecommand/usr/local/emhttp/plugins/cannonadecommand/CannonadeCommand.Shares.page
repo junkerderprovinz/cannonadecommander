@@ -1,0 +1,16 @@
+Menu="Buttons:97"
+Title="CannonadeCommand"
+Icon="cannonadecommand.png"
+Link="cc-shares-hook"
+---
+<?php
+/* CannonadeCommand GLOBAL hook. Registered under Menu="Buttons" so Unraid loads
+   this page's assets into the <head> of EVERY page: sheets/CannonadeCommand.Shares.css
+   (auto-injected because the basename matches this .page) restyles the tabbed
+   sub-page nav on /Shares and /Docker, and the script below loads the tiny shares
+   enhancer. Link="cc-shares-hook" makes Navigation render a bare <div> instead of
+   adding a visible CC icon to the bar - we only want to RESTYLE the existing tabs,
+   not add one. All styling is gated behind html.cc-shares-on, which the enhancer only
+   sets when the user enables the "Freigaben" area in CC settings. */
+?>
+<script defer src="<?autov('/plugins/cannonadecommand/scripts/shares.js')?>"></script>

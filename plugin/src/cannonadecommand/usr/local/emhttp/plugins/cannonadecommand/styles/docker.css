@@ -674,6 +674,11 @@ html.cc-plugins-iconbg .cc-plugico {
 #cc-settings .cc-set-hexin { flex: none; width: 104px; font-family: ui-monospace, "Cascadia Code", monospace; text-transform: uppercase; letter-spacing: .5px; background: #1e1e1e !important; color: var(--txt); border: 1px solid var(--line2) !important; border-radius: 6px !important; padding: 8px 10px !important; font-size: 13px; box-sizing: border-box; }
 #cc-settings .cc-set-hexin:focus { outline: none; border-color: var(--cc-accent, #2f6feb) !important; }
 .cc-set-prev { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+/* Hauptmenueleiste preview: mock of the top nav TABS (idle grey pill + one accent-filled
+   active pill, mirroring CannonadeCommand.Header.css). The active tab's colour is set inline
+   by settings.js paintPv(); idle tabs keep the grey pill below. */
+.cc-set-navprev { gap: 6px; align-items: center; }
+.cc-navtab { display: inline-flex; align-items: center; justify-content: center; height: 30px; padding: 0 16px; line-height: 1; border-radius: var(--cc-b-radius, 999px); background: rgba(128,128,128,.18); color: #cfcfcf; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; white-space: nowrap; }
 .cc-set-mini { background: transparent; color: var(--dim); border: 1px solid var(--line2); border-radius: 7px; padding: 5px 12px; font-size: 12.5px; cursor: pointer; }
 .cc-set-mini-on { color: #fff; border-color: var(--cc-accent, #2f6feb); background: rgba(255,255,255,.05); }
 /* limit-diagnostics card: monospace log lines, red on a docker rejection */

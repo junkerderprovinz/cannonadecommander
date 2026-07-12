@@ -284,6 +284,43 @@
         // re-derives its action at click time).
         if (isToggle) b.title = t(s === "running" ? "stop" : s === "paused" ? "resume" : "start");
       });
+      syncActionBars(); // the action bar's start/stop/pause icons need the SAME live sync
+    } catch (e) {}
+  }
+  // Live-sync each row's ACTION BAR to the current run state — the sibling of
+  // syncStateBadges for the start/stop/pause ICONS. The bar is built ONCE per row
+  // (injectActionCell) and its rebuild guard (ccSig = webui|xml|tswebui|links) is
+  // state-INDEPENDENT, so on a plain start/stop the icons froze: the start glyph never
+  // became a stop glyph and the pause button stayed a dead placeholder ("neither
+  // happens"). Unraid pushes the new state via nchan straight onto the row's status
+  // glyph (i[id^='load-']) WITHOUT replacing the <tr>, so our childList observer
+  // (subtree:false) never wakes for it — we must re-derive here. Authoritative source:
+  // the live glyph, with c.state as the fallback (exactly what injectRowBadges trusts
+  // when it first builds the state pill).
+  function syncActionBars() {
+    try {
+      findRows().forEach(function (tr) {
+        var bar = tr.querySelector(".cc-actbar"); if (!bar) return;
+        var r2 = bar.querySelectorAll(".cc-actrow")[1]; if (!r2 || r2.children.length < 3) return;
+        var name = rowName(tr);
+        if (pendingAction[name]) return; // action in flight — leave the transient look alone
+        var glyph = tr.querySelector("td.ct-name .inner i[id^='load-']");
+        var c = containerByName(name);
+        var st = glyphState(glyph) || (c && c.state) || "unknown";
+        if (bar.dataset.ccState === st) return; // unchanged — no DOM churn
+        bar.dataset.ccState = st;
+        var running = st === "running", paused = st === "paused";
+        // pause / resume slot (index 1): a LIVE button while running/paused, a dead
+        // placeholder while stopped — REPLACED so a stopped→running row gains a working pause.
+        var pauseNew = paused ? actBtn("fa-play", t("resume"), function () { doAction(name, "unpause"); })
+          : (running ? actBtn("fa-pause", t("pause"), function () { doAction(name, "pause"); }) : actBtnOff("fa-pause", t("pause")));
+        // stop / start slot (index 2): the ACTION is already re-derived at click time; here we
+        // swap the ICON/label so a running container shows a STOP glyph, not a START glyph.
+        var toggleNew = actBtn(running || paused ? "fa-stop" : "fa-play", running || paused ? t("stop") : t("start"), function () { var cc2 = containerByName(name); doAction(name, cc2 && (cc2.state === "running" || cc2.state === "paused") ? "stop" : "start"); });
+        r2.replaceChild(pauseNew, r2.children[1]);
+        r2.replaceChild(toggleNew, r2.children[2]);
+        tintAct(bar);
+      });
     } catch (e) {}
   }
   function badgeInfo(label, value, kind) {

@@ -119,11 +119,14 @@
     }, true);
   }
   function boot() {
+    try { window.ccHeaderApply = apply; } catch (e) {} // let the Settings page live-update this bar same-page
     apply();
     watchSearch();
     wireSearchToggle();
-    // the Settings page (or the Docker tab) writes cc.* keys from another origin/tab
-    try { window.addEventListener("storage", function (e) { if (e.key && e.key.indexOf("cc.") === 0) apply(); }); } catch (e) {}
+    // the Settings page (or the Docker tab) writes cc.* AND section-specific keys (cch./ccs./
+    // ccp./ccv.) from another origin/tab — re-apply on any of them. NB: "cch.accent" does NOT
+    // contain the substring "cc." so the old indexOf("cc.")===0 check silently missed it.
+    try { window.addEventListener("storage", function (e) { if (e.key && /^cc[a-z]?\./.test(e.key)) apply(); }); } catch (e) {}
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
 })();

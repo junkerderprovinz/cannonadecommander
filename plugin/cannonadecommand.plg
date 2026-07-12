@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.5.3">
+  <!ENTITY version   "2.5.4">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,18 @@
 </ICON>
 
 <CHANGES>
+### 2.5.4
+- FIX: on the Docker tab, a container's start / stop / pause buttons now follow its live run
+  state — starting a container turns the start icon into a STOP icon and activates the PAUSE
+  button (they used to stay frozen until a page reload).
+- FIX: the Main-menu-bar settings preview now mocks the actual nav TABS instead of showing the
+  Docker-tab data badges.
+- FIX: the colour set for the Main menu bar now actually applies to it. Picking a colour in an
+  area's card turns that area's "Adopt the Docker-tab style" off, so your colour drives the bar
+  instead of the global Docker accent — and it updates live.
+- FIX: the Logos-card background preview now shows the badge colour with the logo on top of it
+  (it rendered as a blank white square before).
+
 ### 2.5.3
 - FIX: the fixed Docker bottom action bar can no longer physically swallow a click. The bar
   itself is now click-through (pointer-events) while its own buttons stay live, so a container
@@ -335,7 +347,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>e9f07c1cb1b852723c5b86237a6160a6d2ed827964454fdeff69096bc6179900</SHA256>
+  <SHA256>6a3cf722b278f863357ef18e15e53166dc8d34412c5862db2581ff54416de01b</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

@@ -48,9 +48,12 @@
   function shape() { return ({ pill: "999px", rounded: "6px", square: "0px" })[g("cc.badgeshape", "pill")] || "999px"; }
   var RB = ["#d9433f", "#f97316", "#eab308", "#1f9d55", "#0ea5a4", "#2f6feb", "#8b5cf6", "#e05299"];
   var RB_OFF = Math.floor(Math.random() * RB.length);
-  function pal() { try { var p = JSON.parse(eff("rbpal", "null")); if (p && p.length) return p; } catch (e) {} return RB; }
-  function rbOn() { return eff("rainbow", "0") === "1"; }
-  function rbColor(i) { if (!rbOn()) return accent(); var off = eff("rainbowrot", "0") === "0" ? 0 : RB_OFF; var p = pal(); return p[(i + off) % p.length]; }
+  // Rainbow is a GLOBAL mode: read cc.rainbow / cc.rbpal / cc.rainbowrot DIRECTLY (not the
+  // adopt-gated eff()), like docker.js — one global Rainbow switch colours every enabled area.
+  // The per-area accent (eff("accent")) stays adopt-gated for the non-rainbow single colour.
+  function pal() { try { var p = JSON.parse(g("cc.rbpal", "null")); if (p && p.length) return p; } catch (e) {} return RB; }
+  function rbOn() { return g("cc.rainbow", "0") === "1"; }
+  function rbColor(i) { if (!rbOn()) return accent(); var off = g("cc.rainbowrot", "0") === "0" ? 0 : RB_OFF; var p = pal(); return p[(i + off) % p.length]; }
   // Settings LANDING page only. A Settings sub-page is /Settings/<Name>; /Tools has the
   // SAME .Panel markup, so a strict pathname check is what keeps us off both.
   function onSettings() { try { return location.pathname.replace(/\/+$/, "") === "/Settings"; } catch (e) { return false; } }

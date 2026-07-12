@@ -165,11 +165,11 @@
       window.__ccLS = orig;
       localStorage.setItem = function (k, v) {
         orig(k, v);
-        try { if (/^cc[pv]?\./.test(String(k)) && k !== "cc.stateCache") { uiPending[k] = 1; clearTimeout(uiSyncT); uiSyncT = setTimeout(pushUISettings, 800); } } catch (e) {}
+        try { if (/^cc[a-z]*\./.test(String(k)) && k !== "cc.stateCache") { uiPending[k] = 1; clearTimeout(uiSyncT); uiSyncT = setTimeout(pushUISettings, 800); } } catch (e) {}
       };
     } catch (e) {}
   })();
-  function collectUISettings() { var o = {}; for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && /^cc[pv]?\./.test(k) && k !== "cc.stateCache") o[k] = localStorage.getItem(k); } return o; }
+  function collectUISettings() { var o = {}; for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && /^cc[a-z]*\./.test(k) && k !== "cc.stateCache") o[k] = localStorage.getItem(k); } return o; }
   // merge ONLY the changed keys into the server map (never replace it wholesale)
   function pushUISettings() {
     var keys = Object.keys(uiPending); if (!keys.length) return;
@@ -183,7 +183,7 @@
   }
   function adoptUISettings(u) {
     var changed = false;
-    try { Object.keys(u || {}).forEach(function (k) { if (/^cc[pv]?\./.test(k) && localStorage.getItem(k) !== u[k]) { (window.__ccLS || localStorage.setItem.bind(localStorage))(k, u[k]); changed = true; } }); } catch (e) {}
+    try { Object.keys(u || {}).forEach(function (k) { if (/^cc[a-z]*\./.test(k) && k !== "cc.stateCache" && localStorage.getItem(k) !== u[k]) { (window.__ccLS || localStorage.setItem.bind(localStorage))(k, u[k]); changed = true; } }); } catch (e) {}
     return changed;
   }
   function loadConfig() {

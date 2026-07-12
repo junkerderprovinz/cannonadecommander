@@ -27,9 +27,13 @@
   function shape() { return ({ pill: "999px", rounded: "6px", square: "0px" })[g("cc.badgeshape", "pill")] || "999px"; }
   var RB = ["#d9433f", "#f97316", "#eab308", "#1f9d55", "#0ea5a4", "#2f6feb", "#8b5cf6", "#e05299"];
   var RB_OFF = Math.floor(Math.random() * RB.length);
-  function pal() { try { var p = JSON.parse(eff("rbpal", "null")); if (p && p.length) return p; } catch (e) {} return RB; }
-  function rbOn() { return eff("rainbow", "0") === "1"; }
-  function rbColor(i) { if (!rbOn()) return accent(); var off = eff("rainbowrot", "0") === "0" ? 0 : RB_OFF; var p = pal(); return p[(i + off) % p.length]; }
+  // Rainbow is a GLOBAL mode: read cc.rainbow / cc.rbpal / cc.rainbowrot DIRECTLY (not the
+  // adopt-gated eff()), exactly like docker.js — so ONE global Rainbow switch colours EVERY
+  // enabled area (the menu bar too), regardless of this bar's adopt state. The per-area accent
+  // (eff("accent")) stays adopt-gated for the non-rainbow single-colour look.
+  function pal() { try { var p = JSON.parse(g("cc.rbpal", "null")); if (p && p.length) return p; } catch (e) {} return RB; }
+  function rbOn() { return g("cc.rainbow", "0") === "1"; }
+  function rbColor(i) { if (!rbOn()) return accent(); var off = g("cc.rainbowrot", "0") === "0" ? 0 : RB_OFF; var p = pal(); return p[(i + off) % p.length]; }
   // rainbow: colour the active tab, each utility icon box and the usage fill with a
   // rotated palette colour (in accent mode the CSS handles it via --cc-accent, so we
   // just clear our overrides). childList observer only, so these style writes can't loop.

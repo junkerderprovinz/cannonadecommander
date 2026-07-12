@@ -34,15 +34,18 @@
   function shape() { return ({ pill: "999px", rounded: "6px", square: "0px" })[g("cc.badgeshape", "pill")] || "999px"; }
   var RB = ["#d9433f", "#f97316", "#eab308", "#1f9d55", "#0ea5a4", "#2f6feb", "#8b5cf6", "#e05299"];
   var RB_OFF = Math.floor(Math.random() * RB.length);
-  function pal() { try { var p = JSON.parse(eff("rbpal", "null")); if (p && p.length) return p; } catch (e) {} return RB; }
-  function rbOn() { return eff("rainbow", "0") === "1"; }
-  function rbColor(i) { if (!rbOn()) return accent(); var off = eff("rainbowrot", "0") === "0" ? 0 : RB_OFF; var p = pal(); return p[(i + off) % p.length]; }
+  // Rainbow is a GLOBAL mode: read cc.rainbow / cc.rbpal / cc.rainbowrot DIRECTLY (not the
+  // adopt-gated eff()), like docker.js — one global Rainbow switch colours every enabled area.
+  // The per-area accent (eff("accent")) stays adopt-gated for the non-rainbow single colour.
+  function pal() { try { var p = JSON.parse(g("cc.rbpal", "null")); if (p && p.length) return p; } catch (e) {} return RB; }
+  function rbOn() { return g("cc.rainbow", "0") === "1"; }
+  function rbColor(i) { if (!rbOn()) return accent(); var off = g("cc.rainbowrot", "0") === "0" ? 0 : RB_OFF; var p = pal(); return p[(i + off) % p.length]; }
   // /Shares editor is /Shares/Share?name=... -> a strict, trailing-slash-normalised
   // pathname check keeps us on the LANDING pages only (see settingsgrid.onSettings).
   function pn() { try { return location.pathname.replace(/\/+$/, ""); } catch (e) { return ""; } }
   // tiny i18n (same shape as docker.js): en fallback, de when the page lang is German.
   var LANG = (document.documentElement.lang || navigator.language || "en").slice(0, 2).toLowerCase();
-  var T = { de: { browse: "Durchsuchen", protected: "Geschützt", unprotected: "Ungeschützt" }, en: { browse: "Browse", protected: "Protected", unprotected: "Unprotected" } };
+  var T = { de: { browse: "Durchsuchen", protected: "Geschützt", unprotected: "Ungeschützt", protection: "Schutz" }, en: { browse: "Browse", protected: "Protected", unprotected: "Unprotected", protection: "Protection" } };
   function t(k) { return (T[LANG] || T.en)[k] || T.en[k]; }
   function el(tag, cls, txt) { var n = document.createElement(tag); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; }
   // rainbow: paint the ACTIVE tab button a rotated palette colour; accent mode = clear
@@ -116,52 +119,60 @@
     while (td.firstChild) v.appendChild(td.firstChild); // keep links/icons/orbs working
     b.appendChild(v); td.appendChild(b);
   }
-  // Name cell -> [status][name]: convert the protected-status orb (i.orb.green-orb =
-  // protected, i.orb.yellow-orb/fa-warning = unprotected) into a small SEMANTIC pill placed
-  // before the name, and turn the share-name link into a LARGE (lg) badge. Both idempotent
-  // (a set-once .cc-b-status check + a class guard) so a tbody refill never double-wraps;
-  // called only from the guarded enhanceRow, so it runs once per row lifecycle.
+  // Protected-status orb (i.orb.green-orb = protected, i.orb.yellow-orb/fa-warning =
+  // unprotected) -> a small SEMANTIC pill for the OWN Status column. Hides the bare orb but
+  // keeps its tooltip on the pill. Returns the pill, or null when there's no status orb (e.g.
+  // disk sub-rows), so enhanceRow can drop it into the leading Status <td>.
+  function statusPill(name) {
+    var orb = name.querySelector("i.orb, i.green-orb, i.yellow-orb");
+    if (!orb) return null;
+    var cn = orb.className || "", green = /green-orb/.test(cn), yellow = /yellow-orb|fa-warning/.test(cn);
+    if (!green && !yellow) return null;
+    var sb = el("span", "cc-b-status " + (green ? "cc-b-prot" : "cc-b-unprot"), t(green ? "protected" : "unprotected"));
+    var infoA = orb.closest("a"); // a.info.nohand — hide the bare orb, keep its tooltip on the pill
+    if (infoA) { var ti = infoA.getAttribute("title"); if (ti) sb.title = ti; infoA.style.setProperty("display", "none", "important"); }
+    else orb.style.setProperty("display", "none", "important");
+    return sb;
+  }
+  // Turn the share-name link into a LARGE (lg) badge (href/onclick intact). Idempotent via the
+  // class guard so a tbody refill never double-wraps; called only from the guarded enhanceRow.
   function enhanceName(name) {
     var nl = name.querySelector('a[href*="/Share?name="]'); // the share-name link
-    if (!name.querySelector(":scope > .cc-b-status")) { // status pill from the orb
-      var orb = name.querySelector("i.orb, i.green-orb, i.yellow-orb");
-      if (orb) {
-        var cn = orb.className || "", green = /green-orb/.test(cn), yellow = /yellow-orb|fa-warning/.test(cn);
-        if (green || yellow) {
-          var sb = el("span", "cc-b-status " + (green ? "cc-b-prot" : "cc-b-unprot"), t(green ? "protected" : "unprotected"));
-          var infoA = orb.closest("a"); // a.info.nohand — hide the bare orb, keep its tooltip on the pill
-          if (infoA) { var ti = infoA.getAttribute("title"); if (ti) sb.title = ti; infoA.style.setProperty("display", "none", "important"); }
-          else orb.style.setProperty("display", "none", "important");
-          name.insertBefore(sb, nl || name.firstChild); // before the name badge -> row reads [status] [name]
-        }
-      }
-    }
-    if (nl && !nl.classList.contains("cc-b-name")) { nl.classList.add("cc-b"); nl.classList.add("cc-b-name"); } // lg badge, href/onclick intact
+    if (nl && !nl.classList.contains("cc-b-name")) { nl.classList.add("cc-b"); nl.classList.add("cc-b-name"); }
   }
+  // Row -> [Status] [Name] [Browse] [Comment] [values…]. The Status pill and the Browse control
+  // each get their OWN column (user request); both cells are ALWAYS inserted so the body column
+  // count matches the head. Snapshot the original cells BEFORE inserting, since the two new
+  // <td>s shift nth-child. Idempotent via data-cc-sh set-and-bail on the <tr>.
   function enhanceRow(tr) {
     if (tr.getAttribute("data-cc-sh")) return; // set-and-bail idempotency
     tr.setAttribute("data-cc-sh", "1");
     var empty = tr.querySelector(":scope > td.empty");
-    if (empty) { empty.colSpan = (empty.colSpan || 1) + 1; return; } // no-shares placeholder: just widen
-    var tds = Array.prototype.slice.call(tr.children); // snapshot BEFORE inserting the browse cell
+    if (empty) { empty.colSpan = (empty.colSpan || 1) + 2; return; } // no-shares placeholder: widen by the 2 new cols
+    var tds = Array.prototype.slice.call(tr.children); // snapshot BEFORE inserting the Status+Browse cells
     var name = tds[0]; if (!name) return;
-    var bt = el("td", "cc-browse-col"); // new Browse cell, always inserted (keeps column alignment)
+    var st = el("td", "cc-status-col"); // Status cell, inserted BEFORE the Name cell
+    var pill = statusPill(name); if (pill) st.appendChild(pill);
+    name.parentNode.insertBefore(st, name);
+    var bt = el("td", "cc-browse-col"); // Browse cell, inserted AFTER the Name cell
     var view = name.querySelector("a.view");
     if (view && view.getAttribute("href")) { // real browse link (disk sub-rows carry an empty a.view)
       view.classList.add("cc-b-browse");
+      var ic = view.querySelector("i"); if (ic) ic.parentNode.removeChild(ic); // drop the folder glyph -> text-only badge
       if (!view.querySelector(".cc-b-lab")) view.appendChild(el("span", "cc-b-lab", t("browse")));
       bt.appendChild(view); // moves it OUT of the Name cell, href/onclick intact
     }
     name.parentNode.insertBefore(bt, name.nextSibling);
-    enhanceName(name); // [status][name] badges in the Name cell (after the browse link left it)
+    enhanceName(name); // name link -> lg badge (status + browse have already left this cell)
     for (var i = 2; i < tds.length; i++) badgeCell(tds[i]); // SMB, NFS, Storage, Size, Free (skip Name+Comment)
   }
   function enhanceHead(table) {
     var head = table && table.querySelector("thead tr");
     if (!head || head.getAttribute("data-cc-sh")) return;
     head.setAttribute("data-cc-sh", "1");
-    var first = head.children[0]; if (!first) return;
-    head.insertBefore(el("td", "cc-browse-col", t("browse")), first.nextSibling);
+    var name = head.children[0]; if (!name) return;
+    head.insertBefore(el("td", "cc-status-col", t("protection")), name); // Status header BEFORE Name
+    head.insertBefore(el("td", "cc-browse-col", t("browse")), name.nextSibling); // Browse header AFTER Name
   }
   function enhanceShares() {
     try {

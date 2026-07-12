@@ -19,12 +19,15 @@
 
   var RB_PAL = ["#d9433f", "#f97316", "#eab308", "#1f9d55", "#0ea5a4", "#2f6feb", "#8b5cf6", "#e05299"];
   var RB_OFFSET = Math.floor(Math.random() * RB_PAL.length); // fresh deal per reload, like the Docker tab
-  function pal() { try { var jp = JSON.parse(eff("rbpal") || "null"); if (jp && jp.length) return jp; } catch (e) {} return RB_PAL; }
+  // Rainbow is a GLOBAL mode: read cc.rainbow / cc.rbpal / cc.rainbowrot DIRECTLY (not the
+  // adopt-gated eff()), like docker.js — one global Rainbow switch colours every enabled area.
+  // accent() stays adopt-gated (eff) for the non-rainbow single colour.
+  function pal() { try { var jp = JSON.parse(ls("cc.rbpal") || "null"); if (jp && jp.length) return jp; } catch (e) {} return RB_PAL; }
   function idealText(bg) { var n = parseInt(String(bg).replace("#", ""), 16), L = 0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255); return L > 150 ? "#161616" : "#fff"; }
   function accent() { return eff("accent") || "#2f6feb"; }
   function colorFor(i) {
-    if (eff("rainbow") !== "1") return accent();
-    var off = eff("rainbowrot") === "0" ? 0 : RB_OFFSET;
+    if (ls("cc.rainbow") !== "1") return accent();
+    var off = ls("cc.rainbowrot") === "0" ? 0 : RB_OFFSET;
     return pal()[(i + off) % pal().length];
   }
 
@@ -401,7 +404,7 @@
     fetch(PROXY + "?path=config", { headers: { Accept: "application/json" } })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (c) {
-        try { var u = c && c.ui_settings; if (u) Object.keys(u).forEach(function (k) { if (/^cc[pv]?\./.test(k) && ls(k) !== u[k]) localStorage.setItem(k, u[k]); }); } catch (e) {}
+        try { var u = c && c.ui_settings; if (u) Object.keys(u).forEach(function (k) { if (/^cc[a-z]*\./.test(k) && k !== "cc.stateCache" && ls(k) !== u[k]) localStorage.setItem(k, u[k]); }); } catch (e) {}
         done();
       })
       .catch(function () { done(); });

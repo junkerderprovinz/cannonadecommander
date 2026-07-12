@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.6.2">
+  <!ENTITY version   "2.6.3">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,18 @@
 </ICON>
 
 <CHANGES>
+### 2.6.3
+- Freigaben: the protected-status badge (Protected / Unprotected) now sits in its OWN leading column,
+  and the Browse control is a text-only badge (no folder icon) in its own column.
+- Freigaben: the sub-page tabs, the list (header + rows) and the bottom buttons are now left-flush with
+  the main menu bar's badges (they used to sit a few pixels off).
+- Rainbow is now a single GLOBAL mode. One Rainbow switch + one palette (in the top Badges card) colour
+  EVERY enabled area — the menu bar, Freigaben, Docker, Plugins, Settings. Turn it on and everything
+  rainbows; turn it off and each area shows its own accent colour. The redundant per-area Rainbow
+  switches were removed. This fixes the menu bar not following the Rainbow toggle.
+- Fix: per-area colour settings (menu bar / Settings / Freigaben) now sync across origins (http vs https,
+  IP vs hostname) like the other areas already did.
+
 ### 2.6.2
 - Freigaben polish: rainbow mode now works on the Shares list and colours PER ROW — each row's
   share-name headline and its value badges share one rotated palette colour (the neutral Browse
@@ -384,7 +396,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>38c3aef6c3efd127bb84cda8084c7c3b67daff04160ee856cc36ca593bf3ff4e</SHA256>
+  <SHA256>7b19150d044cda143dbf17f8dec91102ba149495c1d23e2ac7ddf74607880a29</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

@@ -61,11 +61,11 @@
       window.__ccLS = orig;
       localStorage.setItem = function (k, v) {
         orig(k, v);
-        try { if (/^cc[pv]?\./.test(String(k)) && k !== "cc.stateCache") { uiPending[k] = 1; clearTimeout(uiSyncT); uiSyncT = setTimeout(pushUISettings, 800); } } catch (e) {}
+        try { if (/^cc[a-z]*\./.test(String(k)) && k !== "cc.stateCache") { uiPending[k] = 1; clearTimeout(uiSyncT); uiSyncT = setTimeout(pushUISettings, 800); } } catch (e) {}
       };
     } catch (e) {}
   })();
-  function collectUISettings() { var o = {}; for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && /^cc[pv]?\./.test(k) && k !== "cc.stateCache") o[k] = localStorage.getItem(k); } return o; }
+  function collectUISettings() { var o = {}; for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && /^cc[a-z]*\./.test(k) && k !== "cc.stateCache") o[k] = localStorage.getItem(k); } return o; }
   // merge ONLY the changed keys into the server map (never replace it wholesale)
   function pushUISettings() {
     var keys = Object.keys(uiPending); if (!keys.length) return;
@@ -80,7 +80,7 @@
   }
   function adoptUISettings(u) {
     var changed = false;
-    try { Object.keys(u || {}).forEach(function (k) { if (/^cc[pv]?\./.test(k) && localStorage.getItem(k) !== u[k]) { (window.__ccLS || localStorage.setItem.bind(localStorage))(k, u[k]); changed = true; } }); } catch (e) {}
+    try { Object.keys(u || {}).forEach(function (k) { if (/^cc[a-z]*\./.test(k) && k !== "cc.stateCache" && localStorage.getItem(k) !== u[k]) { (window.__ccLS || localStorage.setItem.bind(localStorage))(k, u[k]); changed = true; } }); } catch (e) {}
     return changed;
   }
   function api(method, path, body) {
@@ -287,12 +287,12 @@
     // rainbow toggle: label + switch adjacent (no parenthetical, no far-right spacer)
     var rr = el("div", "cc-set-row cc-set-inline");
     rr.appendChild(el("span", null, T("Regenbogen-Modus", "Rainbow mode")));
-    rr.appendChild(toggle(rainbow, function (v) { rainbow = v; set("cc.rainbow", v ? "1" : "0"); if (!v) set("cc.rainbowrot", "0"); render(); }));
+    rr.appendChild(toggle(rainbow, function (v) { rainbow = v; set("cc.rainbow", v ? "1" : "0"); if (!v) set("cc.rainbowrot", "0"); render(); syncHeaderBar(); syncSharesBar(); }));
     c1.appendChild(rr);
     // rotation toggle: on = every tab reload deals a fresh colour mapping; off = stable colours
     var rrot = el("div", "cc-set-row cc-set-inline");
     rrot.appendChild(el("span", null, T("Automatische Farbenrotation", "Automatic colour rotation")));
-    rrot.appendChild(toggle(get("cc.rainbowrot", "1") !== "0", function (v) { set("cc.rainbowrot", v ? "1" : "0"); }));
+    rrot.appendChild(toggle(get("cc.rainbowrot", "1") !== "0", function (v) { set("cc.rainbowrot", v ? "1" : "0"); syncHeaderBar(); syncSharesBar(); }));
     if (!rainbow) { rrot.style.opacity = ".4"; rrot.style.pointerEvents = "none"; } // only makes sense WITH rainbow
     c1.appendChild(rrot);
     // EVERY rainbow palette colour is editable: click a swatch, adjust it in the
@@ -308,14 +308,14 @@
       sw.addEventListener("click", function () {
         rbIdx = ix; rbPickWrap.style.display = "";
         if (!rbPick) {
-          rbPick = inlinePicker(rbpal[ix], function (v) { if (rbIdx >= 0) { rbpal[rbIdx] = v; rbrow.children[rbIdx].style.background = v; rbrow.children[rbIdx].title = v; set("cc.rbpal", JSON.stringify(rbpal)); } });
+          rbPick = inlinePicker(rbpal[ix], function (v) { if (rbIdx >= 0) { rbpal[rbIdx] = v; rbrow.children[rbIdx].style.background = v; rbrow.children[rbIdx].title = v; set("cc.rbpal", JSON.stringify(rbpal)); syncHeaderBar(); syncSharesBar(); } });
           rbPickWrap.appendChild(rbPick);
         } else rbPick._set(rbpal[ix]);
       });
       rbrow.appendChild(sw);
     });
     var rbReset = el("span", "cc-btn cc-btn-sm", T("Farben zurücksetzen", "Reset colours"));
-    rbReset.addEventListener("click", function () { del("cc.rbpal"); render(); });
+    rbReset.addEventListener("click", function () { del("cc.rbpal"); render(); syncHeaderBar(); syncSharesBar(); });
     c1.appendChild(rbrow); c1.appendChild(rbPickWrap); c1.appendChild(rbReset);
     c1.appendChild(el("div", "cc-set-lbl", T("Vorschau", "Preview")));
     var prev = el("div", "cc-set-prev");
@@ -514,27 +514,11 @@
         sr.appendChild(sw);
       });
       cA.appendChild(sr);
-      var rr2 = el("div", "cc-set-row cc-set-inline");
-      rr2.appendChild(el("span", null, T("Regenbogen-Modus", "Rainbow mode")));
-      rr2.appendChild(toggle(get(P + "rainbow", "0") === "1", function (v) { set(P + "rainbow", v ? "1" : "0"); useOwn(); paintPv(); }));
-      cA.appendChild(rr2);
+      // Rainbow is a GLOBAL mode now (one switch + one palette in the top Badges card): when it's
+      // on, EVERY enabled area rainbows, so there is NO per-area rainbow toggle/palette here — just
+      // this area's single accent colour above. The preview below still reflects the global rainbow.
       var RB2 = ["#d9433f", "#f97316", "#eab308", "#1f9d55", "#0ea5a4", "#2f6feb", "#8b5cf6", "#e05299"];
-      var pal2 = null; try { pal2 = JSON.parse(get(P + "rbpal", "null")); } catch (e2) { pal2 = null; }
-      if (!pal2 || pal2.length !== RB2.length) pal2 = RB2.slice();
-      cA.appendChild(el("div", "cc-set-lbl", T("Rainbow-Farben (Feld anklicken zum Anpassen)", "Rainbow colours (click a field to adjust)")));
-      var rw = el("div", "cc-set-swatches"), rp = null, ri = -1, rpw = el("div", "cc-set-pickrow"); rpw.style.display = "none";
-      pal2.forEach(function (cx2, ix2) {
-        var sw2 = el("span", "cc-set-sw"); sw2.style.background = cx2; sw2.title = cx2;
-        sw2.addEventListener("click", function () {
-          ri = ix2; rpw.style.display = "";
-          if (!rp) { rp = inlinePicker(pal2[ix2], function (v) { if (ri >= 0) { pal2[ri] = v; rw.children[ri].style.background = v; rw.children[ri].title = v; set(P + "rbpal", JSON.stringify(pal2)); useOwn(); paintPv(); } }); rpw.appendChild(rp); }
-          else rp._set(pal2[ix2]);
-        });
-        rw.appendChild(sw2);
-      });
-      var rs = el("span", "cc-btn cc-btn-sm", T("Farben zurücksetzen", "Reset colours"));
-      rs.addEventListener("click", function () { del(P + "rbpal"); render(); });
-      cA.appendChild(rw); cA.appendChild(rpw); cA.appendChild(rs);
+      function palG() { try { var pj = JSON.parse(get("cc.rbpal", "null")); if (pj && pj.length) return pj; } catch (e2) {} return RB2; }
       // live preview — the Hauptmenueleiste (cch.) previews the MENU TABS (idle grey pill +
       // one accent-filled active pill, mirroring CannonadeCommand.Header.css); every other
       // area previews the Docker badges.
@@ -558,10 +542,10 @@
         });
       }
       function paintPv() {
-        var rbOn9 = get(P + "rainbow", "0") === "1";
+        var rbOn9 = get("cc.rainbow", "0") === "1", p9 = palG();
         pvBadges.forEach(function (b9, i9) {
           if (isTabs && i9 !== activeIx) { b9.style.removeProperty("background"); b9.style.removeProperty("color"); return; } // idle tab keeps its grey CSS pill
-          var col9 = rbOn9 ? pal2[(isTabs ? activeIx : i9) % pal2.length] : acc;
+          var col9 = rbOn9 ? p9[(isTabs ? activeIx : i9) % p9.length] : acc;
           b9.style.setProperty("background", col9, "important");
           b9.style.setProperty("color", idealText(col9), "important");
         });

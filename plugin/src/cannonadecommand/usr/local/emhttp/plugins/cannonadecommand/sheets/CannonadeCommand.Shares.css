@@ -79,6 +79,22 @@ html.cc-shares-on #displaybox table.unraid.share_status thead th {
   font-weight: 600;
 }
 
+/* ═══ left-flush the Shares content with the CC menu-bar badges ═══
+   Reference edge = the main-menu badges' left = 15px (Header.css: .nav-tile padding-left 12px +
+   .nav-item>a margin-left 3px). Unraid's html font-size is 62.5% (1rem = 10px), so #displaybox's
+   native padding-left:1rem puts the sub-page tab pills, the table grid and the bottom button bar at
+   only 10px — 5px left of the menu badges — while the leading table cell adds a further 8px pad
+   (table.share_status tr>td), landing the header label + leading badge at 18px. Bump ONLY the left
+   inset to a fixed 15px (px, so it stays locked to the menu's px insets at any font size) and zero
+   the FIRST column's cell pad so tabs, table (header + leading Status/Name badge) and buttons all
+   share the SAME 15px edge as the menu badges. Right stays 1rem (already flush with the menu's right
+   group). Scoped to .cc-on-shares (shares.js adds it only on /Shares) so /Docker is untouched;
+   sidebar theme excluded (its #displaybox uses padding-left:8rem), matching Header.css's own guard.
+   NB: after v2.6.3 the leading cell (td:first-child) is the new Status column, so zeroing its left
+   pad flushes the Status badge at 15px and Name follows. */
+html.cc-shares-on.cc-on-shares:not(.Theme--sidebar) #displaybox { padding-left: 15px; }
+html.cc-shares-on #displaybox table.unraid.share_status tr > td:first-child { padding-left: 0; }
+
 /* ═══ list-cell values -> CC badges ═══
    shares.js wraps each SMB/NFS/Storage/Size/Free value in .cc-b>.cc-b-v. docker.css
    isn't loaded here, so mirror its .cc-b shape (sm tier) + solid-accent look, exactly
@@ -110,34 +126,37 @@ html.cc-shares-on #displaybox table.unraid.share_status .cc-b.cc-b-name:hover { 
 html.cc-shares-on #displaybox table.unraid.share_status a.cc-b-name,
 html.cc-shares-on #displaybox table.unraid.share_status a.cc-b-name:hover { text-decoration: none; }
 
-/* ═══ protected-status badge ═══
-   shares.js converts the Name-cell status orb (i.orb.green-orb = protected,
-   i.orb.yellow-orb/fa-warning = unprotected) into a small SEMANTIC pill placed before the
-   name badge. Colours are semantic (green = protected, orange = unprotected), NEVER the
-   accent and NEVER rainbow — the pill has no .cc-b class, so paintRows leaves it alone. */
+/* ═══ protected-status badge -> its OWN leading column ═══
+   shares.js lifts the Name-cell status orb (i.orb.green-orb = protected, i.orb.yellow-orb/
+   fa-warning = unprotected) into a small SEMANTIC pill in a dedicated leading Status column
+   (td.cc-status-col). Colours are semantic (green = protected, orange = unprotected), NEVER
+   the accent and NEVER rainbow — the pill has no .cc-b class, so paintRows leaves it alone.
+   width:1% + nowrap shrinks the column to its content so Name keeps the slack. */
+html.cc-shares-on #displaybox table.unraid.share_status td.cc-status-col { white-space: nowrap; width: 1%; }
 html.cc-shares-on #displaybox table.unraid.share_status .cc-b-status {
   display: inline-flex; align-items: center; gap: 5px; border: none;
   border-radius: var(--cc-b-radius, 999px); padding: var(--cc-sm-pad, 3px 11px);
   font-size: var(--cc-sm-fs, 11px); font-weight: 600; line-height: 1.35;
-  white-space: nowrap; vertical-align: middle; margin-right: 6px;
+  white-space: nowrap; vertical-align: middle;
 }
 html.cc-shares-on #displaybox table.unraid.share_status .cc-b-prot { background: #3fae6a; color: #08240f; }
 html.cc-shares-on #displaybox table.unraid.share_status .cc-b-unprot { background: #d6a243; color: #241a04; }
 
-/* ═══ browse column -> a Browse badge ═══
-   shares.js lifts the a.view (icon-u-tab browse link) out of the Name cell into its
-   own cell and tags it .cc-b-browse; render it as a grey pill (neutral action). */
-html.cc-shares-on #displaybox table.unraid.share_status td.cc-browse-col { white-space: nowrap; }
+/* ═══ browse column -> a text-only Browse badge ═══
+   shares.js lifts the a.view browse link out of the Name cell into its own column, STRIPS its
+   folder glyph (user: "Durchsuchen ohne Symbol") and tags it .cc-b-browse. Render it as a solid
+   neutral-grey pill — a proper badge (a distinct action, so it stays out of the accent/rainbow
+   that colours the data badges). No .cc-b class -> paintRows leaves it alone. */
+html.cc-shares-on #displaybox table.unraid.share_status td.cc-browse-col { white-space: nowrap; width: 1%; }
 html.cc-shares-on #displaybox table.unraid.share_status a.cc-b-browse {
-  display: inline-flex; align-items: center; gap: 5px;
+  display: inline-flex; align-items: center; justify-content: center;
   border-radius: var(--cc-b-radius, 999px); padding: var(--cc-sm-pad, 3px 11px);
   font-size: var(--cc-sm-fs, 11px); font-weight: 600; line-height: 1.35;
   white-space: nowrap; text-decoration: none; vertical-align: middle;
-  background: rgba(128, 128, 128, .18); color: #cfcfcf;
+  background: rgba(128, 128, 128, .30); color: #e6e6e6;
   transition: filter .12s;
 }
 html.cc-shares-on #displaybox table.unraid.share_status a.cc-b-browse:hover { filter: brightness(1.14); }
-html.cc-shares-on #displaybox table.unraid.share_status a.cc-b-browse i { color: inherit; }
 
 /* ═══ bottom action buttons -> CC action buttons ═══
    Mirror the Docker footer bar (div.js-actions input[type=button]) — accent bg, md

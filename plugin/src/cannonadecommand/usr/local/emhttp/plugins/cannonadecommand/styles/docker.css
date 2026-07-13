@@ -568,7 +568,7 @@ div.tab input[type=radio]:checked + label,
 /* ── minimal, clean page chrome on OUR pages (this stylesheet only loads there):
    Unraid's title bars / tab strips go flat — no background block, a thin base
    line, spaced uppercase labels. ── */
-div.title { background: transparent !important; border-bottom: 1px solid #2f2f2f !important; box-shadow: none !important; }
+div.title { background: transparent !important; border-bottom: 1px solid #2f2f2f !important; box-shadow: none !important; padding-left: 0 !important; }
 div.title span.left, div.title span.right { text-transform: uppercase; letter-spacing: 2px; font-size: 12px; }
 .tabs, #tabs { background: transparent !important; border: 0 !important; }
 .tabs .tab, #tabs .tab { background: transparent !important; border: 0 !important; text-transform: uppercase; letter-spacing: 1.5px; }

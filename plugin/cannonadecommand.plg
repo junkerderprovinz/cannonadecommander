@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.9.3">
+  <!ENTITY version   "2.10.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,17 @@
 </ICON>
 
 <CHANGES>
+### 2.10.0
+- Freigaben: the share detail sub-pages are now shown as stacked CARDS on one page instead of tabs, so
+  everything is visible at once (the prev/next share arrows stay). This is CC's new canonical layout for
+  Unraid sub-tabbed views.
+- Alignment: the share detail tabs, section titles and content now line up on the left with the main
+  menu bar, and the plugin-page section titles line up too.
+- Freigaben: the disk dropdowns list vertically now, a single click selects a disk (it used to take
+  several), and the unselected entries are easier to read.
+- Freigaben: the "Löschen" badge is greyed out and inert until you tick the confirm checkbox — then it
+  turns red and performs the delete.
+
 ### 2.9.3
 - Freigaben: the "Löschen" badge no longer stretches across the whole row — it hugs its text, and the
   confirm checkbox now sits BESIDE the badge instead of inside it (matching the plugin list); clicking
@@ -460,7 +471,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>8f49b80a4d3c905981db60c239b010996d2fca207a0c4ac9059fc6a297907581</SHA256>
+  <SHA256>8d453b9c5f639910770d5b6622fbbe0f85a33a037ae6e460cd9a66475c156445</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

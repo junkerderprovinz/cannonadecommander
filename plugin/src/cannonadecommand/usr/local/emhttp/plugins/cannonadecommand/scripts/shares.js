@@ -243,13 +243,34 @@
           wrap.appendChild(label);       // label is text-only now -> hugs "Löschen"
           cb.classList.add("cc-cb-del");
           label.classList.add("cc-b-del");
-          // Keep the label a working toggle for the (now un-nested) checkbox: a for=/id pairing
-          // works regardless of DOM position, so clicking the red "Löschen" badge still ticks
-          // confirmDelete (fires its onchange -> chkDelete arms the Apply/Delete submit). Unraid
-          // finds the checkbox by name, so assigning it an id is safe.
-          if (!cb.id) cb.id = "cc-confirm-delete";
-          label.setAttribute("for", cb.id);
+          // Delete gate (user: "der löschen button muss deaktiviert sein bis man die checkbox aktiviert").
+          // The CHECKBOX arms (its native onchange -> chkDelete arms Unraid's real delete submit
+          // #cmdEditShare); CSS greys the badge + makes it inert until the checkbox is checked. The red
+          // (armed) badge is the delete trigger: clicking it forwards the user's click to #cmdEditShare.
+          // No for= — we don't want the badge to un-tick the checkbox. This is a user-initiated forward,
+          // NOT an auto-click. Runs once per wrap creation, so no extra guard needed.
+          label.addEventListener("click", function () {
+            if (cb.checked && !cb.disabled) { var sub = document.getElementById("cmdEditShare"); if (sub) sub.click(); }
+          });
         }
+      }
+      // Flatten the sub-tabs to CARDS: the CSS reveals every <section role=tabpanel> and hides the tab
+      // buttons; here we prepend a header (the now-hidden tab button's icon + label) to each panel so
+      // each card is titled. Set-and-bail (data-cc-card) so the MutationObserver re-run is a no-op.
+      var panels = box.querySelectorAll('section[role="tabpanel"]:not([data-cc-card])');
+      for (var i = 0; i < panels.length; i++) {
+        var section = panels[i];
+        section.setAttribute("data-cc-card", "1");   // set FIRST -> a re-fire finds nothing to do
+        var head = document.createElement("div");
+        head.className = "cc-card-head";
+        var tabBtn = document.getElementById(section.getAttribute("aria-labelledby") || "");
+        if (tabBtn) {
+          var kids = tabBtn.childNodes;
+          for (var k = 0; k < kids.length; k++) head.appendChild(kids[k].cloneNode(true));
+        } else {
+          head.textContent = section.getAttribute("id") || "";
+        }
+        section.insertBefore(head, section.firstChild);   // PREPEND only — never move the forms
       }
     } catch (e) {}
   }
@@ -264,7 +285,18 @@
       // single-tab-hide rule skips it (else the prev/next arrows, which live in the tab bar, vanish)
       // and so its own CC theming (buttons/inputs/title) applies.
       root.classList.toggle("cc-on-share-detail", on && pn() === "/Shares/Share");
-      if (!on) return;
+      if (!on) {
+        // area disabled at runtime: removing the class reverts every CSS rule (cards collapse back to
+        // tab-switching), but the JS-injected card headers would linger as stray unstyled divs -> pull
+        // them out and clear their markers so the page is clean without a reload.
+        try {
+          var stray = document.querySelectorAll("#displaybox .cc-card-head");
+          for (var s = 0; s < stray.length; s++) stray[s].parentNode.removeChild(stray[s]);
+          var marked = document.querySelectorAll("#displaybox [data-cc-card]");
+          for (var m = 0; m < marked.length; m++) marked[m].removeAttribute("data-cc-card");
+        } catch (e) {}
+        return;
+      }
       var a = accent();
       // ISOLATED accent var — NOT the shared --cc-accent. Every global enhancer (header.js,
       // shares.js) writes --cc-accent on documentElement, so they clobber each other: the

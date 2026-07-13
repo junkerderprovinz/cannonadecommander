@@ -271,8 +271,12 @@
     // PERMANENTLY EMBEDDED picker (an <input type=color> opens the OS colour dialog in
     // its own window — "ich will das Farbwählfeld fest integriert").
     var hexIn = el("input", "cc-set-hexin"); hexIn.type = "text"; hexIn.value = accent; hexIn.placeholder = "#2f6feb"; hexIn.maxLength = 7; hexIn.spellcheck = false;
-    var pick = inlinePicker(/^#[0-9a-f]{6}$/i.test(accent) ? accent : "#2f6feb", function (v) { accent = v; hexIn.value = v; set("cc.accent", v); root.style.setProperty("--cc-accent", v); root.style.setProperty("--cc-accent-text", idealText(v)); paintPrev(); syncSwOn(); });
-    function setAccent(v) { accent = v; pick._set(v); hexIn.value = v; set("cc.accent", accent); root.style.setProperty("--cc-accent", accent); root.style.setProperty("--cc-accent-text", idealText(accent)); paintPrev(); syncSwOn(); }
+    // the global accent handlers must ALSO push the new colour onto the live bars (header + shares
+    // use their OWN isolated vars, so setting --cc-accent here alone doesn't reach them) — this is
+    // why "the global colour didn't apply everywhere": the menu bar / Freigaben only updated on
+    // reload. syncHeaderBar/syncSharesBar re-run their apply() so every enabled area follows live.
+    var pick = inlinePicker(/^#[0-9a-f]{6}$/i.test(accent) ? accent : "#2f6feb", function (v) { accent = v; hexIn.value = v; set("cc.accent", v); root.style.setProperty("--cc-accent", v); root.style.setProperty("--cc-accent-text", idealText(v)); paintPrev(); syncSwOn(); syncHeaderBar(); syncSharesBar(); });
+    function setAccent(v) { accent = v; pick._set(v); hexIn.value = v; set("cc.accent", accent); root.style.setProperty("--cc-accent", accent); root.style.setProperty("--cc-accent-text", idealText(accent)); paintPrev(); syncSwOn(); syncHeaderBar(); syncSharesBar(); }
     hexIn.addEventListener("input", function () { var v = normHex(hexIn.value); if (v) setAccent(v); });
     prow.appendChild(pick); prow.appendChild(hexIn); c1.appendChild(prow);
     // ...and the preset swatches sit BELOW it.
@@ -281,10 +285,13 @@
       // a <span>, NOT a <button>: Unraid's global button CSS was bloating these into
       // big bordered rectangles. dataset.c lets syncSwOn highlight the active one.
       var sw = el("span", "cc-set-sw" + (c === accent ? " cc-set-sw-on" : "")); sw.title = c; sw.style.background = c; sw.dataset.c = c;
-      sw.addEventListener("click", function () { accent = c; set("cc.accent", accent); render(); });
+      sw.addEventListener("click", function () { accent = c; set("cc.accent", accent); render(); syncHeaderBar(); syncSharesBar(); });
       srow.appendChild(sw);
     });
     c1.appendChild(srow);
+    // GLOBAL badge SHAPE (Form) — one control for every area, exactly like the global colour above
+    // (writes the shared cc.badgeshape). The per-area cards no longer repeat it.
+    c1.appendChild(segRow(T("Badge-Form", "Badge shape"), [["pill", "Pills"], ["rounded", T("abgerundet", "rounded")], ["square", T("eckig", "square")]], get("cc.badgeshape", "pill"), function (v) { set("cc.badgeshape", v); applyShape(); syncHeaderBar(); syncSharesBar(); }));
     // rainbow toggle: label + switch adjacent (no parenthetical, no far-right spacer)
     var rr = el("div", "cc-set-row cc-set-inline");
     rr.appendChild(el("span", null, T("Regenbogen-Modus", "Rainbow mode")));
@@ -427,9 +434,9 @@
     c4.appendChild(segRow(T("Zeilenhöhe", "Row density"), [["compact", T("kompakt", "compact")], ["normal", "normal"], ["airy", T("luftig", "airy")]], density, function (v) { density = v; set("cc.density", v); }));
     function applyShape() { var m9 = { pill: "999px", rounded: "6px", square: "0px" }; var r9 = m9[get("cc.badgeshape", "pill")] || "999px"; root.style.setProperty("--cc-b-radius", r9); document.documentElement.style.setProperty("--cc-b-radius", r9); }
     wrap.appendChild(c4);
-    // Badge-Form is now provided per-section by buildStyleCards (incl. the Docker "ccd." card), so
-    // the Docker tab no longer needs its OWN inline Badge-Form card — that would render it twice.
-    // Keep the initial applyShape() so the settings page's --cc-b-radius is set on first render.
+    // Badge-Form (shape) is a single GLOBAL control in the Allgemein "Badges" card now — not per
+    // area — so the Docker tab has no inline Badge-Form card either. Keep the initial applyShape()
+    // so the settings page's --cc-b-radius is set on first render.
     applyShape();
 
     // ── Notifications (engine-side; saved to the flash) ──
@@ -559,10 +566,8 @@
       paintPv();
       cA.appendChild(pv);
       into.appendChild(cA);
-      // Badge-Form as its own card (same as the Docker section, for consistency)
-      var cS = card(T("Badge-Form", "Badge shape"), T("Form der Badges: Pills, abgerundet oder eckig.", "Badge shape: pills, rounded or square."));
-      cS.appendChild(segRow(T("Badge-Form", "Badge shape"), [["pill", "Pills"], ["rounded", T("abgerundet", "rounded")], ["square", T("eckig", "square")]], get("cc.badgeshape", "pill"), function (v) { set("cc.badgeshape", v); applyShape(); }));
-      into.appendChild(cS);
+      // Badge-Form (shape) is now a single GLOBAL control in the Allgemein "Badges" card, so it is
+      // no longer repeated per area here.
       var cB = card(T("Logos", "Logos"), T("Der Schalter aktiviert die Färbung.", "The switch turns the tint on."));
       var ibg = get(P + "iconbg", P === "ccs." ? "1" : "0") === "1";
       function applyBg2(v) { ibg = v; cB.classList.toggle("cc-bg-mode", v); st2.style.opacity = v ? ".4" : ""; st2.style.pointerEvents = v ? "none" : ""; tpw.classList.toggle("cc-prev-bg", v); try { tp(); } catch (e9) {} }
@@ -630,7 +635,7 @@
     wrapHeader.appendChild(cH); wrapShares.appendChild(cSh); wrapPlugin.appendChild(cP); wrapVms.appendChild(cV); wrapSettings.appendChild(cSet);
     buildStyleCards("cch.", wrapHeader, [], true); // Hauptmenueleiste: pill/badge settings only
     buildStyleCards("ccsh.", wrapShares, [], true); // Freigaben: tab pills use FA glyphs -> badges only, no logo card
-    buildStyleCards("ccs.", wrapSettings, [], false); // Einstellungs-Tab: badges + shape + logo-tint + Logo-Hintergrund cards (font-glyph icons → empty preview)
+    buildStyleCards("ccs.", wrapSettings, [], false); // Einstellungs-Tab: badges + logo-tint + Logo-Hintergrund cards (shape is global now; font-glyph icons → empty preview)
     buildStyleCards("ccp.", wrapPlugin, ["/plugins/dynamix.plugin.manager/images/dynamix.plugin.manager.png", "/plugins/dynamix.docker.manager/images/dynamix.docker.manager.png", "/plugins/cannonadecommand/images/cannonadecommand.png"]);
     buildStyleCards("ccv.", wrapVms, ["/plugins/dynamix.vm.manager/templates/images/linux.png", "/plugins/dynamix.vm.manager/templates/images/windows.png", "/plugins/cannonadecommand/images/cannonadecommand.png"]);
     refreshTabs();

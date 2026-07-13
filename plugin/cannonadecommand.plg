@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.7.0">
+  <!ENTITY version   "2.8.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,17 @@
 </ICON>
 
 <CHANGES>
+### 2.8.0
+- Freigaben: the two share sub-pages (Freigabeeinstellungen + SMB-Sicherheitseinstellungen) now
+  follow the CC look — the buttons, the prev/next arrows and the section headers are themed, and CC
+  adds a share-name heading at the top of the page (Unraid renders none there).
+- Freigaben: fixed the "Durchsuchen" badge being clipped on the left (Unraid pins the browse link to
+  a 20px box; the pill now sizes to its text). The status column also stayed put.
+- Settings: badge SHAPE is now a single GLOBAL control in the Allgemein tab (like the colour),
+  instead of being repeated in every area.
+- Settings: the global badge colour now applies to every area LIVE — the menu bar and Freigaben used
+  to update only on reload.
+
 ### 2.7.0
 - Settings reorganised. CannonadeCommand's settings now open with an "Allgemein" (General) tab that
   holds BOTH the area enable/disable card AND the global badge-colour + rainbow card (this used to live
@@ -411,7 +422,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>b0b2364d753bd0c488c94759df0c91e410330d0a004e8497068835bd66db2265</SHA256>
+  <SHA256>c048eefabf4c63d7dc239f2e86173f72b0e1283e1d7a6398b88fe737b410f853</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

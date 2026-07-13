@@ -64,8 +64,10 @@ html.cc-shares-on #displaybox nav.tabs button[role="tab"] i.title { color: inher
    :has() lets us hide a nav whose ONLY tab is redundant (e.g. /Docker's lone tab).
    The /Shares page legitimately shows one User-Shares tab -> shares.js adds
    html.cc-on-shares there so this rule (…:not(.cc-on-shares)…) skips it. shares.js
-   also does this in JS for browsers without :has(). */
-html.cc-shares-on:not(.cc-on-shares) #displaybox > nav.tabs:has(> .tabs-container > button[role="tab"]:only-child) { display: none; }
+   also does this in JS for browsers without :has(). The share DETAIL page (/Shares/Share)
+   is excluded too (cc-on-share-detail): a share with only one tab must KEEP its tab bar,
+   because the prev/next nav arrows live inside it. */
+html.cc-shares-on:not(.cc-on-shares):not(.cc-on-share-detail) #displaybox > nav.tabs:has(> .tabs-container > button[role="tab"]:only-child) { display: none; }
 
 /* ═══ shares tables -> a light CC polish (kept clean + readable) ═══ */
 html.cc-shares-on #displaybox .TableContainer,
@@ -148,12 +150,14 @@ html.cc-shares-on #displaybox table.unraid.share_status .cc-b-unprot { backgroun
    folder glyph (user: "Durchsuchen ohne Symbol") and tags it .cc-b-browse. Render it as a solid
    neutral-grey pill — a proper badge (a distinct action, so it stays out of the accent/rainbow
    that colours the data badges). No .cc-b class -> paintRows leaves it alone. */
-html.cc-shares-on #displaybox table.unraid.share_status td.cc-browse-col { white-space: nowrap; }
+html.cc-shares-on #displaybox table.unraid.share_status td.cc-browse-col { white-space: nowrap; overflow: visible; }
 /* SOLID opaque pill + !important so it reads unmistakably as a badge and beats Unraid's own a.view
-   link styling (which otherwise left it looking like plain text); font-family:inherit drops any
-   icon-font the a.view carried. No width:1% — that clipped the pill in the fixed-layout share table. */
+   link styling. THE clip fix: Unraid's `a.view { width: 20px }` locked the pill to a 20px content box,
+   so the centred "Durchsuchen" spilled both sides and the fixed-layout cell's overflow:hidden cut the
+   LEFT ("urchsuchen") — width:auto lets the pill size to its text. font-family:inherit drops any
+   icon-font the a.view carried; the td's overflow:visible is belt-and-suspenders for the 10% column. */
 html.cc-shares-on #displaybox table.unraid.share_status a.cc-b-browse {
-  display: inline-flex !important; align-items: center; justify-content: center;
+  display: inline-flex !important; width: auto !important; align-items: center; justify-content: center;
   border-radius: var(--cc-b-radius, 999px) !important; padding: var(--cc-sm-pad, 3px 11px) !important;
   font-family: inherit !important; font-size: var(--cc-sm-fs, 11px) !important; font-weight: 600 !important;
   line-height: 1.35; white-space: nowrap; text-decoration: none !important; vertical-align: middle;
@@ -181,3 +185,64 @@ html.cc-shares-on #displaybox #compute-shares:hover,
 html.cc-shares-on #displaybox #compute-disks:hover,
 html.cc-shares-on #displaybox #cleanup-button:hover,
 html.cc-shares-on #displaybox form[name="share_form"] input[type="submit"]:hover { filter: brightness(1.14); }
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════════
+   SHARE DETAIL PAGE (/Shares/Share?name=X) — the two sub-pages (Freigabeeinstellungen +
+   SMB-Sicherheitseinstellungen) in the CC look. shares.js marks the page html.cc-on-share-detail
+   and injects a .cc-share-title (the share name — Unraid renders none there). The sub-tabs are the
+   same nav.tabs already themed above; here we restyle the ORANGE buttons + the nav arrows + the
+   section-header bars + the injected title. Scoped tightly to the detail page and its unique form
+   names (share_edit / smb_edit / smb_user_edit) so nothing leaks onto other settings pages. NB the
+   list page's bottom-button rule uses form[name=share_form], which does NOT exist here — that's why
+   these forms need their own rules. ═══════════════════════════════════════════════════════════ */
+
+/* injected share-name title (was missing entirely) */
+html.cc-shares-on.cc-on-share-detail #displaybox > .cc-share-title {
+  font-size: 17px; font-weight: 700; letter-spacing: .3px;
+  color: var(--cc-shr-accent, #2f6feb); padding: 10px 6px 6px; margin: 0;
+}
+
+/* prev/next nav arrows (were orange a.button) -> CC accent pills */
+html.cc-shares-on.cc-on-share-detail #displaybox .menuNavButtonsTabbed a.button {
+  background: var(--cc-shr-accent, #2f6feb) !important; color: var(--cc-shr-accent-text, #fff) !important;
+  border: none !important; box-shadow: none !important; border-radius: var(--cc-b-radius, 999px) !important;
+  min-width: 0 !important; padding: 0 12px !important; height: var(--cc-md-h, 30px) !important;
+  display: inline-flex !important; align-items: center; justify-content: center;
+  cursor: pointer; transition: filter .12s;
+}
+html.cc-shares-on.cc-on-share-detail #displaybox .menuNavButtonsTabbed a.button:hover { filter: brightness(1.14); }
+html.cc-shares-on.cc-on-share-detail #displaybox .menuNavButtonsTabbed a.button i { color: inherit !important; }
+
+/* action buttons: shared pill shape for Apply/Done, SMB apply, and the Read/Write clone buttons */
+html.cc-shares-on.cc-on-share-detail #displaybox form[name="share_edit"] input[type="submit"],
+html.cc-shares-on.cc-on-share-detail #displaybox form[name="share_edit"] input[type="button"],
+html.cc-shares-on.cc-on-share-detail #displaybox form[name="smb_edit"] input[type="submit"],
+html.cc-shares-on.cc-on-share-detail #displaybox form[name="smb_edit"] input[type="button"],
+html.cc-shares-on.cc-on-share-detail #displaybox form[name="smb_user_edit"] input[type="submit"],
+html.cc-shares-on.cc-on-share-detail #displaybox form[name="smb_user_edit"] input[type="button"],
+html.cc-shares-on.cc-on-share-detail #displaybox .clone-settings input[type="button"] {
+  border: none !important; box-shadow: none !important;
+  padding: 0 14px !important; height: var(--cc-md-h, 30px) !important; box-sizing: border-box !important;
+  font-size: var(--cc-md-fs, 13px) !important; font-weight: 600 !important;
+  text-transform: uppercase !important; letter-spacing: 0.6px !important; font-family: inherit !important;
+  border-radius: var(--cc-b-radius, 999px) !important; cursor: pointer; transition: filter .12s;
+}
+/* submit = primary (accent fill); button/clone = secondary (neutral grey) -> clear hierarchy */
+html.cc-shares-on.cc-on-share-detail #displaybox form[name="share_edit"] input[type="submit"],
+html.cc-shares-on.cc-on-share-detail #displaybox form[name="smb_edit"] input[type="submit"],
+html.cc-shares-on.cc-on-share-detail #displaybox form[name="smb_user_edit"] input[type="submit"] {
+  background: var(--cc-shr-accent, #2f6feb) !important; color: var(--cc-shr-accent-text, #fff) !important;
+}
+html.cc-shares-on.cc-on-share-detail #displaybox form[name="share_edit"] input[type="button"],
+html.cc-shares-on.cc-on-share-detail #displaybox form[name="smb_edit"] input[type="button"],
+html.cc-shares-on.cc-on-share-detail #displaybox form[name="smb_user_edit"] input[type="button"],
+html.cc-shares-on.cc-on-share-detail #displaybox .clone-settings input[type="button"] {
+  background: #4a4a4a !important; color: #f0f0f0 !important;
+}
+html.cc-shares-on.cc-on-share-detail #displaybox input[type="submit"]:hover,
+html.cc-shares-on.cc-on-share-detail #displaybox input[type="button"]:hover { filter: brightness(1.14); }
+
+/* section-header bars (div.title.nocontrol, e.g. "SMB Benutzerzugriff") -> a subtle CC tint */
+html.cc-shares-on.cc-on-share-detail #displaybox div.title.nocontrol {
+  border-radius: 8px; background: rgba(128, 128, 128, .14) !important;
+}

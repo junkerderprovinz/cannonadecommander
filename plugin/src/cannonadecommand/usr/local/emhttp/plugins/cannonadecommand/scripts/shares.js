@@ -101,7 +101,7 @@
       var navs = document.querySelectorAll("#displaybox nav.tabs");
       for (var i = 0; i < navs.length; i++) {
         var nav = navs[i], btns = nav.querySelectorAll('button[role="tab"]');
-        if (btns.length <= 1 && pn() !== "/Shares") nav.style.display = "none";
+        if (btns.length <= 1 && pn() !== "/Shares" && pn() !== "/Shares/Share") nav.style.display = "none"; // keep the detail page's bar (holds the nav arrows)
       }
     } catch (e) {}
   }
@@ -215,6 +215,25 @@
       }
     } catch (e) {}
   }
+  // Share DETAIL page (/Shares/Share?name=X): Unraid renders NO share-name heading there (the xmenu
+  // parent has no Title), only the two sub-tab labels. Inject a CC title with the share name (from
+  // the ?name= query, falling back to the ShareName field) as the first child of #displaybox.
+  // Idempotent: reuse + retext the existing node, so the prev/next arrows (which navigate to another
+  // share) just update it instead of stacking a second title.
+  function enhanceShareDetail() {
+    try {
+      if (g("cc.enable.shares", "0") === "0") return;
+      if (pn() !== "/Shares/Share") return;
+      var box = document.getElementById("displaybox"); if (!box) return;
+      var name = "";
+      try { name = decodeURIComponent(((location.search.match(/[?&]name=([^&]+)/) || [])[1] || "").replace(/\+/g, " ")); } catch (e) {}
+      if (!name) { var inp = box.querySelector('input#shareName, input[name="shareName"]'); if (inp) name = inp.value || ""; }
+      if (!name) return;
+      var ttl = box.querySelector(":scope > .cc-share-title"); // NB: not the i18n t()
+      if (ttl) { if (ttl.textContent !== name) ttl.textContent = name; return; }
+      box.insertBefore(el("div", "cc-share-title", name), box.firstChild);
+    } catch (e) {}
+  }
   function apply() {
     try {
       var root = document.documentElement;
@@ -222,6 +241,10 @@
       root.classList.toggle("cc-shares-on", on);
       // /Shares legitimately shows one tab family -> mark it so the CSS single-tab-hide excludes it
       root.classList.toggle("cc-on-shares", on && pn() === "/Shares");
+      // the share DETAIL page (/Shares/Share) is a legit single-family tab page too -> mark it so the
+      // single-tab-hide rule skips it (else the prev/next arrows, which live in the tab bar, vanish)
+      // and so its own CC theming (buttons/inputs/title) applies.
+      root.classList.toggle("cc-on-share-detail", on && pn() === "/Shares/Share");
       if (!on) return;
       var a = accent();
       // ISOLATED accent var — NOT the shared --cc-accent. Every global enhancer (header.js,
@@ -238,6 +261,7 @@
       paintTabs();
       enhanceShares();
       paintRows(); // per-row rainbow AFTER the badges exist (re-applies when rbOn toggles via storage)
+      enhanceShareDetail(); // inject the share-name title on /Shares/Share
     } catch (e) {}
   }
   // Observe the content container ONLY (never body). apply()'s follow-ups make no
@@ -249,7 +273,7 @@
       if (!host) return;
       mo = new MutationObserver(function () {
         if (moPending) return; moPending = true;
-        setTimeout(function () { moPending = false; hideRedundantTabs(); paintTabs(); enhanceShares(); paintRows(); }, 150);
+        setTimeout(function () { moPending = false; hideRedundantTabs(); paintTabs(); enhanceShares(); paintRows(); enhanceShareDetail(); }, 150);
       });
       mo.observe(host, { childList: true, subtree: true });
     } catch (e) {}

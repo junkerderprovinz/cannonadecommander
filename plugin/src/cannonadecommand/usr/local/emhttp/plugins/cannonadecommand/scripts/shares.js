@@ -222,7 +222,35 @@
   function enhanceShareDetail() {
     try {
       var box = document.getElementById("displaybox"); if (!box) return;
+      if (pn() !== "/Shares/Share") return;   // only the share detail page (match the sibling enhancers' pn() gating; keeps the DOM-move off any other #displaybox form)
       var ttl = box.querySelector(":scope > .cc-share-title"); if (ttl) ttl.parentNode.removeChild(ttl);
+      // Standardize the delete control to match the plugin list (user: badge must hug its text,
+      // and the checkbox must NOT sit inside the badge). Unraid nests input[name=confirmDelete]
+      // INSIDE label#deleteLabel, and the label is a <dl> grid item (justify-self:stretch -> full
+      // width). So wrap both in one grid-item span, MOVE the checkbox out to a preceding sibling,
+      // and tag both with the canonical classes. MOVE (never clone): chkDelete()/handleDeleteClick()
+      // find the input by name/id (position-independent), so it stays functional; a clone would
+      // duplicate name=confirmDelete and corrupt the POST. Idempotent: bail once .cc-del-wrap exists.
+      var label = box.querySelector("dl > #deleteLabel");
+      if (label && !box.querySelector(".cc-del-wrap")) {
+        var cb = label.querySelector('input[type="checkbox"][name="confirmDelete"]');
+        var dl = label.parentNode;
+        if (cb && dl) {
+          var wrap = document.createElement("span");
+          wrap.className = "cc-del-wrap"; wrap.setAttribute("data-cc", "1");
+          dl.insertBefore(wrap, label);
+          wrap.appendChild(cb);          // checkbox first -> now a sibling OUTSIDE the pill
+          wrap.appendChild(label);       // label is text-only now -> hugs "Löschen"
+          cb.classList.add("cc-cb-del");
+          label.classList.add("cc-b-del");
+          // Keep the label a working toggle for the (now un-nested) checkbox: a for=/id pairing
+          // works regardless of DOM position, so clicking the red "Löschen" badge still ticks
+          // confirmDelete (fires its onchange -> chkDelete arms the Apply/Delete submit). Unraid
+          // finds the checkbox by name, so assigning it an id is safe.
+          if (!cb.id) cb.id = "cc-confirm-delete";
+          label.setAttribute("for", cb.id);
+        }
+      }
     } catch (e) {}
   }
   function apply() {

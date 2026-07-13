@@ -157,6 +157,20 @@ a.sl-updall { display: none !important; }
 .cc-b-k { opacity: .72; font-weight: 500; }
 .cc-b-v { font-family: Consolas, "SFMono-Regular", monospace; }
 .cc-b-von .cc-b-v { font-family: inherit; }
+/* ── canonical DELETE control, standardized systemwide (plugin list + Shares detail): the badge
+   hugs its own text and is ALWAYS danger-red; the confirm checkbox is a SEPARATE accent-tinted
+   sibling BESIDE it, never inside the pill. Same visual in CannonadeCommand.Shares.css (there the
+   copy is detail-page-scoped, and .cc-cb-del uses --cc-shr-accent). Semantic red — never accent/rainbow. */
+.cc-b-del {
+  display: inline-flex !important; align-items: center; justify-content: center;
+  background: #d9433f !important; color: #fff !important; border: none !important; box-shadow: none !important;
+  border-radius: var(--cc-b-radius, 999px) !important; padding: 4px 13px !important;
+  font-size: var(--cc-md-fs, 13px) !important; font-weight: 600 !important; line-height: 1.5;
+  text-transform: uppercase; letter-spacing: .6px; cursor: pointer; text-decoration: none;
+  vertical-align: middle; transition: filter .12s;
+}
+.cc-b-del:hover { filter: brightness(1.12); }
+.cc-cb-del { accent-color: var(--cc-accent, #2f6feb); width: 16px; height: 16px; margin: 0 8px 0 0; cursor: pointer; vertical-align: middle; }
 /* "is a value configured here?" dot on a badge: filled green = set, hollow = default */
 .cc-cfg { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-left: 6px; vertical-align: middle; box-sizing: border-box; }
 .cc-cfg-on { background: #35d07f; box-shadow: 0 0 0 1px rgba(0, 0, 0, .28); }

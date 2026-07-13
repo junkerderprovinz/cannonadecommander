@@ -268,17 +268,16 @@
       else if (/update|aktualis|install/.test(t2) && !/checking|prüf/.test(t2)) { pill(stEl, "#e0912a", "#161616"); stEl.setAttribute(MARK, "1"); }
     }
     var lnk = sid.querySelector("a"); if (lnk) lnk.style.setProperty("color", "inherit", "important");
-    // ── col 6: the remove action as a red badge
+    // ── col 6: the remove action — the CANONICAL delete control (standardized systemwide,
+    // see the Shares detail page). The confirm checkbox stays a SEPARATE accent-tinted sibling
+    // (.cc-cb-del, never inside the badge) and the button is the always-red badge (.cc-b-del);
+    // both classes live in styles/docker.css (loaded on the Plugins tab) so the two areas match.
     var cb = tds[5].querySelector("input[type=checkbox]");
-    if (cb && !cb.getAttribute(MARK)) { cb.setAttribute(MARK, "1"); cb.style.setProperty("accent-color", accent(), "important"); cb.style.setProperty("width", "17px", "important"); cb.style.setProperty("height", "17px", "important"); cb.style.setProperty("cursor", "pointer", "important"); }
+    if (cb && !cb.getAttribute(MARK)) { cb.setAttribute(MARK, "1"); cb.classList.add("cc-cb-del"); }
     var rm = tds[5].querySelector("a, input[type=button], input[type=submit], button");
     if (rm && !rm.getAttribute(MARK)) {
       rm.setAttribute(MARK, "1");
-      pill(rm, "#d9433f", "#fff");
-      rm.style.setProperty("cursor", "pointer", "important");
-      rm.style.setProperty("letter-spacing", "0", "important");
-      rm.style.setProperty("text-transform", "none", "important");
-      rm.style.setProperty("font-weight", "600", "important");
+      rm.classList.add("cc-b-del");
       // Relabel the per-row uninstall control to "Löschen"/"Delete" so it matches the
       // Shares delete badge. Locale-independent gate: the native button carries class="remove"
       // (PHP class='$method'); its onclick holds the untranslated shell command "plugin remove <file>".

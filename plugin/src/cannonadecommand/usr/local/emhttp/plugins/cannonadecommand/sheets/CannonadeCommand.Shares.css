@@ -264,8 +264,28 @@ html.cc-shares-on.cc-on-share-detail #displaybox input[type="button"]:hover { fi
    .shade section backgrounds and the section-header tint so the page reads flat/dark; keep a thin
    separator line under the section header instead of a fill. */
 html.cc-shares-on.cc-on-share-detail #displaybox .shade { background: transparent !important; }
+/* section / user-access header bar (div.title.nocontrol) -> flat with a thin ACCENT separator,
+   and the SMB/NFS "Benutzerzugriff" bar (which alone carries span.left/span.right) gets a real
+   CC treatment: accent uppercase title on the left, muted note pill on the right. */
 html.cc-shares-on.cc-on-share-detail #displaybox div.title.nocontrol {
-  background: transparent !important; border-bottom: 1px solid rgba(128, 128, 128, .18);
+  background: transparent !important; border-bottom: 1px solid var(--cc-shr-accent, #2f6feb) !important;
+  margin: 18px 0 10px !important; padding: 7px 12px !important; gap: 12px;
+  letter-spacing: normal !important; justify-content: flex-start !important;
+}
+html.cc-shares-on.cc-on-share-detail #displaybox div.title.nocontrol span.left {
+  color: var(--cc-shr-accent, #2f6feb) !important; font-weight: 700 !important;
+  text-transform: uppercase; letter-spacing: .6px; font-size: 13px !important;
+}
+html.cc-shares-on.cc-on-share-detail #displaybox div.title.nocontrol span.right {
+  padding-right: 0 !important; font-size: 12px !important;
+}
+html.cc-shares-on.cc-on-share-detail #displaybox div.title.nocontrol span.right i {
+  font-style: normal; color: #9a9a9a; background: rgba(255, 255, 255, .06);
+  padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+}
+html.cc-shares-on.cc-on-share-detail #displaybox div.title.nocontrol span.right i strong,
+html.cc-shares-on.cc-on-share-detail #displaybox div.title.nocontrol span.right i b {
+  color: #eaeaea; font-weight: 700;
 }
 
 /* input fields as filled light boxes (user: "keine Linien sondern einen hellen Hintergrund") — swap
@@ -285,12 +305,63 @@ html.cc-shares-on.cc-on-share-detail #displaybox select:focus {
   outline: 1px solid var(--cc-shr-accent, #2f6feb) !important;
 }
 
-/* the "Löschen" control -> a CC badge (user: "auch Löschen soll ein Badge sein"). label#deleteLabel
-   wraps the checkbox + the word; render it as a neutral pill that turns danger-red on hover. */
-html.cc-shares-on.cc-on-share-detail #displaybox label#deleteLabel {
-  display: inline-flex !important; align-items: center; gap: 7px;
-  background: #4a4a4a; color: #f0f0f0; border-radius: var(--cc-b-radius, 999px);
-  padding: 5px 14px; font-size: var(--cc-md-fs, 13px); font-weight: 600;
-  text-transform: uppercase; letter-spacing: .6px; cursor: pointer; transition: filter .12s, background .12s, color .12s;
+/* ═══ canonical DELETE control (standardized systemwide: shares detail + plugin list). Badge hugs
+   its own text, ALWAYS danger-red; the confirm checkbox is a SEPARATE accent-tinted sibling BESIDE
+   it, never inside the pill (shares.js moves it out of label#deleteLabel and tags both). Same visual
+   as styles/docker.css's .cc-b-del/.cc-cb-del, but SCOPED to the detail page here so this globally
+   injected sheet stays inert elsewhere and never competes with docker.css on the Plugins tab. */
+html.cc-shares-on.cc-on-share-detail #displaybox .cc-b-del {
+  display: inline-flex !important; align-items: center; justify-content: center;
+  background: #d9433f !important; color: #fff !important; border: none !important; box-shadow: none !important;
+  border-radius: var(--cc-b-radius, 999px) !important; padding: 4px 13px !important;
+  font-size: var(--cc-md-fs, 13px) !important; font-weight: 600 !important; line-height: 1.5;
+  text-transform: uppercase; letter-spacing: .6px; cursor: pointer; text-decoration: none;
+  vertical-align: middle; transition: filter .12s;
 }
-html.cc-shares-on.cc-on-share-detail #displaybox label#deleteLabel:hover { background: #c0392b; color: #fff; }
+html.cc-shares-on.cc-on-share-detail #displaybox .cc-b-del:hover { filter: brightness(1.12); }
+html.cc-shares-on.cc-on-share-detail #displaybox .cc-cb-del {
+  accent-color: var(--cc-shr-accent, #2f6feb); width: 16px; height: 16px; margin: 0 8px 0 0; cursor: pointer; vertical-align: middle;
+}
+/* label#deleteLabel is a <dl> grid item (justify-self:stretch -> full width = the "too wide" pill).
+   The wrap takes its grid slot and hugs content; the label inside becomes a flex child of the wrap. */
+html.cc-shares-on.cc-on-share-detail #displaybox dl > .cc-del-wrap {
+  display: inline-flex; align-items: center; gap: 8px; justify-self: end; align-self: center;
+}
+/* the exposed checkbox is disabled until Unraid confirms the share is empty -> show why it's inert */
+html.cc-shares-on.cc-on-share-detail #displaybox .cc-cb-del:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ═══ the disk Include/Exclude controls are jQuery-UI dropdownchecklist WIDGETS, not <select> — so
+   CC's select{} never reached them; their line/caret live on .ui-dropdownchecklist*. Flatten the
+   closed control to a CC filled box (kill the border-bottom AND the gradient caret). */
+html.cc-shares-on.cc-on-share-detail #displaybox .ui-dropdownchecklist,
+html.cc-shares-on.cc-on-share-detail #displaybox .ui-dropdownchecklist-selector-wrapper,
+html.cc-shares-on.cc-on-share-detail #displaybox .ui-dropdownchecklist-selector {
+  border: none !important; background-image: none !important; box-shadow: none !important;
+}
+html.cc-shares-on.cc-on-share-detail #displaybox .ui-dropdownchecklist {
+  background-color: rgba(255, 255, 255, .07) !important; border-radius: 6px !important; padding: 0 10px !important;
+}
+html.cc-shares-on.cc-on-share-detail #displaybox .ui-dropdownchecklist-text { color: #eaeaea !important; }
+
+/* ═══ disks in the OPEN dropdown -> CC badges (user: "die disks im dropdown sollen badges sein").
+   Each disk row is real DOM (div.ui-dropdownchecklist-item > input + label). Restyle only the INNER
+   list — never the dropcontainer-WRAPPER (its position is widget-managed). */
+html.cc-shares-on.cc-on-share-detail #displaybox .ui-dropdownchecklist-dropcontainer {
+  display: flex !important; flex-wrap: wrap !important; gap: 6px !important;
+  height: auto !important; overflow: visible !important; padding: 8px !important;
+  background: #2b2b2b !important; border: none !important;
+}
+html.cc-shares-on.cc-on-share-detail #displaybox .ui-dropdownchecklist-item {
+  display: inline-flex !important; align-items: center; gap: 6px;
+  height: auto !important; line-height: 1 !important; margin: 0 !important;
+  padding: 4px 12px; cursor: pointer;
+  background: rgba(255, 255, 255, .08); border: 1px solid #555; border-radius: var(--cc-b-radius, 999px);
+}
+html.cc-shares-on.cc-on-share-detail #displaybox .ui-dropdownchecklist-item:has(input:checked) {
+  background: var(--cc-shr-accent, #2f6feb) !important; border-color: var(--cc-shr-accent, #2f6feb) !important; color: #fff !important;
+}
+html.cc-shares-on.cc-on-share-detail #displaybox .ui-dropdownchecklist-item input[type="checkbox"] { display: none !important; }
+html.cc-shares-on.cc-on-share-detail #displaybox .ui-dropdownchecklist-item label,
+html.cc-shares-on.cc-on-share-detail #displaybox .ui-dropdownchecklist-item .ui-dropdownchecklist-text {
+  color: inherit !important; font-size: var(--cc-md-fs, 13px) !important; padding: 0 !important; white-space: nowrap;
+}

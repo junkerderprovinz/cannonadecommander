@@ -30,6 +30,11 @@
   var MARK = "data-cc", ROWMARK = "data-cc-row";
   var PROBES = ["health", "running", "tcp", "http", "exec", "log"], POLICIES = ["abort", "continue", "degrade"];
   var SCHED_ACTIONS = ["start", "stop", "restart"];
+  // Docker's badge ACCENT is now adopt-gated like every other area: follow the GLOBAL cc.accent
+  // while the "Adopt the global badge colour" toggle is on (cc.styledocker, default on = no visible
+  // change for existing installs), else use the Docker tab's OWN ccd.accent. Rainbow stays global
+  // (cc.rainbow), and the icon-tint / density stay Docker-owned (cc.iconcolor / cc.density) as before.
+  function effc(k) { return localStorage.getItem("cc.styledocker") !== "0" ? localStorage.getItem("cc." + k) : localStorage.getItem("ccd." + k); }
   // The FRONTEND version, stamped by pkg_build.sh at package time. Shown next to the
   // engine version so a stale browser/plugin frontend is instantly distinguishable from
   // a stale daemon (repeated "it still doesn't work" turned out to be old UIs under test).
@@ -472,7 +477,7 @@
       // flatten it to mono ink (dark/white per the accent). IMGs get the filter; glyphs
       // (font-icon <i>) also take an !important text colour so the glyph itself inks.
       var ibgIcon = localStorage.getItem("cc.iconcolor");
-      var ibgAcc = (ibgIcon && /^#?[0-9a-f]{6}$/i.test(ibgIcon)) ? ibgIcon : (localStorage.getItem("cc.accent") || "#2f6feb");
+      var ibgAcc = (ibgIcon && /^#?[0-9a-f]{6}$/i.test(ibgIcon)) ? ibgIcon : (effc("accent") || "#2f6feb");
       var ibgOn = localStorage.getItem("cc.iconbg") === "1";
       var ibgMono = ibgOn ? ensureMonoFilter("cc-mono-svg", "cc-mono-tint", ibgAcc) : "";
       if (ibgOn) document.documentElement.style.setProperty("--cc-iconbg-color", ibgAcc); else document.documentElement.style.removeProperty("--cc-iconbg-color");
@@ -519,7 +524,7 @@
     applyRainbowPalette();
     try {
       var root = document.documentElement.style;
-      var accent = localStorage.getItem("cc.accent"); if (accent) { root.setProperty("--cc-accent", accent); root.setProperty("--cc-accent-text", idealText(accent)); }
+      var accent = effc("accent"); if (accent) { root.setProperty("--cc-accent", accent); root.setProperty("--cc-accent-text", idealText(accent)); }
       root.setProperty("--cc-b-radius", ({ pill: "999px", rounded: "6px", square: "0px" })[localStorage.getItem("cc.badgeshape") || "pill"] || "999px");
       var dens = localStorage.getItem("cc.density"); root.setProperty("--cc-density", { compact: "5px", normal: "9px", airy: "14px" }[dens] || "9px");
       // Colour for ShipLog's "update all" button (which we restyle to match our badges,
@@ -821,7 +826,7 @@
       if (!b2.classList.contains("cc-actoff")) {
         tx = "#e9e9e9";
         if (colorsOn) {
-          bg = rb ? pal[(i2 + off) % pal.length] : (localStorage.getItem("cc.accent") || "#2f6feb");
+          bg = rb ? pal[(i2 + off) % pal.length] : (effc("accent") || "#2f6feb");
           var n2 = parseInt(String(bg).replace("#", ""), 16), L2 = 0.299 * (n2 >> 16 & 255) + 0.587 * (n2 >> 8 & 255) + 0.114 * (n2 & 255);
           tx = L2 > 150 ? "#161616" : "#fff";
         }
@@ -1535,7 +1540,7 @@
   // the fill is enforced INLINE with priority: Unraid's theme CSS beats the
   // stylesheet (the gears looked hollow again on the box)
   function gearFill(lb, set) {
-    var bg = set ? (localStorage.getItem("cc.accent") || "#2f6feb") : "#4a4a4a"; // active = badge accent (user call)
+    var bg = set ? (effc("accent") || "#2f6feb") : "#4a4a4a"; // active = badge accent (user call)
     var tx = "#f2f2f2";
     if (set) { var n2 = parseInt(String(bg).replace("#", ""), 16), L2 = 0.299 * (n2 >> 16 & 255) + 0.587 * (n2 >> 8 & 255) + 0.114 * (n2 & 255); tx = L2 > 150 ? "#161616" : "#fff"; }
     lb.style.setProperty("background", bg, "important");
@@ -2030,7 +2035,7 @@
       // the Settings page (separate tab) writes cc.* keys → re-apply live here
       window.addEventListener("storage", function (e) {
         try {
-          if (dead || !e.key || e.key.indexOf("cc.") !== 0) return;
+          if (dead || !e.key || !/^ccd?\./.test(e.key)) return; // react to global cc.* AND Docker-own ccd.* keys
           if (e.key === "cc.view") { setMode(localStorage.getItem("cc.view") === "grid" ? "grid" : "list"); return; }
           applySettings();
           if (mode === "list") { applyEnhanceClasses(); reinjectRowBadges(); }

@@ -212,6 +212,7 @@
     var wrapPlugin = el("div", "cc-set-wrap"), wrapVms = el("div", "cc-set-wrap"), wrapHeader = el("div", "cc-set-wrap"), wrapShares = el("div", "cc-set-wrap");
     var wrapSettings = el("div", "cc-set-wrap");
     var wrapMain = el("div", "cc-set-wrap");
+    var adoptToggles = {}; // adopt-key → its toggle element (a colour pick flips it live); declared UP here (not further down) because the Docker area's styleToggle now runs early, with the moved global Badges card
     // Bereiche: enable/disable each area CannonadeCommand enhances
     (function () {
       var c = card(T("Bereiche", "Areas"), T("Aktiviere, welche Bereiche CannonadeCommand verschönert. Ein deaktivierter Bereich blendet seinen Tab hier sofort aus.", "Choose which areas CannonadeCommand enhances. Disabling an area hides its tab here immediately."));
@@ -225,7 +226,7 @@
       wrapMain.appendChild(c);
     })();
     var SECS = [
-      { t: T("Bereiche", "Areas"), w: wrapMain, key: null },
+      { t: T("Allgemein", "General"), w: wrapMain, key: null },
       { t: T("Hauptmenüleiste", "Main menu bar"), w: wrapHeader, key: "cc.enable.header" },
       { t: T("Freigaben", "Shares"), w: wrapShares, key: "cc.enable.shares" },
       { t: T("Docker-Tab", "Docker tab"), w: wrap, key: "cc.enable.docker" },
@@ -322,7 +323,14 @@
     var pvKinds = { net: ["Netzwerk", "br0.20"], ip: ["IP", "192.168.20.11"], lan: ["LAN", "192.168.20.11"], port: ["Port", "all"], cpu: ["CPU", "2/8"], ram: ["RAM", "4G"], bw: ["BW", "10 MB/s"], plan: ["Start", "#3"] };
     Object.keys(pvKinds).forEach(function (k) { var b = el("span", "cc-b cc-b-" + k); b.appendChild(elk(pvKinds[k][0])); b.appendChild(elv(pvKinds[k][1])); prev.appendChild(b); });
     prev.id = "cc-set-prev"; c1.appendChild(prev);
-    wrap.appendChild(c1);
+    wrapMain.appendChild(c1); // GLOBAL badge colour + rainbow -> the "Allgemein" tab (was the Docker tab)
+    // Docker is now a normal area like the others: a "Stil" adopt card + its OWN Badges (accent)
+    // card at the TOP of the Docker tab. buildStyleCards writes ccd.accent; docker.js reads it via
+    // effc() (adopt on = follow global cc.accent, the default -> no change for existing installs).
+    var cD = card(T("Stil", "Style"), T("AN = die globale Badge-Farbe (Allgemein) gilt auch hier. AUS = die eigene Farbe dieses Abschnitts gilt.", "ON = the global badge colour (General) applies here too. OFF = this section's own colour applies."));
+    cD.appendChild(styleToggle("cc.styledocker", null));
+    wrap.appendChild(cD);
+    buildStyleCards("ccd.", wrap, [], true);
 
     // ── Logos (one card: tint OR background) ──
     var c2 = card(T("Logos", "Logos"), T("Der Schalter aktiviert die Färbung.", "The switch turns the tint on."));
@@ -419,11 +427,10 @@
     c4.appendChild(segRow(T("Zeilenhöhe", "Row density"), [["compact", T("kompakt", "compact")], ["normal", "normal"], ["airy", T("luftig", "airy")]], density, function (v) { density = v; set("cc.density", v); }));
     function applyShape() { var m9 = { pill: "999px", rounded: "6px", square: "0px" }; var r9 = m9[get("cc.badgeshape", "pill")] || "999px"; root.style.setProperty("--cc-b-radius", r9); document.documentElement.style.setProperty("--cc-b-radius", r9); }
     wrap.appendChild(c4);
-    // Badge-Form as its OWN card (kept identical across every section)
-    var c4b = card(T("Badge-Form", "Badge shape"), T("Form der Badges: Pills, abgerundet oder eckig.", "Badge shape: pills, rounded or square."));
-    c4b.appendChild(segRow(T("Badge-Form", "Badge shape"), [["pill", "Pills"], ["rounded", T("abgerundet", "rounded")], ["square", T("eckig", "square")]], get("cc.badgeshape", "pill"), function (v) { set("cc.badgeshape", v); applyShape(); }));
+    // Badge-Form is now provided per-section by buildStyleCards (incl. the Docker "ccd." card), so
+    // the Docker tab no longer needs its OWN inline Badge-Form card — that would render it twice.
+    // Keep the initial applyShape() so the settings page's --cc-b-radius is set on first render.
     applyShape();
-    wrap.appendChild(c4b);
 
     // ── Notifications (engine-side; saved to the flash) ──
     var c5 = card(T("Benachrichtigungen", "Notifications"), T("Warnungen bei Watchdog-Neustarts, fehlgeschlagenen Starts und Zeitplan-Fehlern.", "Alerts on watchdog restarts, failed starts and schedule errors."));
@@ -464,8 +471,7 @@
     save6.addEventListener("click", function () { if (configLoaded && !save6.classList.contains("cc-set-disabled")) saveShape(save6); }); c6.appendChild(save6);
     wrap.appendChild(c6);
 
-    // ── Plugin-Tab / VM-Tab sections: adopt the Docker-tab style there too? ──
-    var adoptToggles = {}; // adopt-key → its toggle element, so a colour pick can flip it live
+    // ── Plugin-Tab / VM-Tab sections: adopt the global badge colour there too? ──
     // Push the header area's live state onto the real top bar on THIS page (browsers don't
     // fire 'storage' in the originating document, so header.js won't hear a same-page change).
     function syncHeaderBar() { try { if (typeof window.ccHeaderApply === "function") window.ccHeaderApply(); } catch (e) {} }
@@ -474,12 +480,12 @@
     function styleToggle(key, onChange, lbl) {
       // the SAME knob switch as everywhere else (the text-in-pill variant looked wrong)
       var row = el("div", "cc-set-row cc-set-inline");
-      row.appendChild(el("span", null, lbl || T("Docker-Tab-Stil übernehmen", "Adopt the Docker-tab style")));
+      row.appendChild(el("span", null, lbl || T("Globale Badge-Farbe übernehmen", "Adopt the global badge colour")));
       var tg = toggle(localStorage.getItem(key) !== "0", function (v) { localStorage.setItem(key, v ? "1" : "0"); if (onChange) onChange(); syncHeaderBar(); syncSharesBar(); });
       adoptToggles[key] = tg; row.appendChild(tg);
       return row;
     }
-    var cP = card(T("Stil", "Style"), T("AN = die Docker-Tab-Einstellungen gelten auch hier. AUS = die eigenen Karten dieses Abschnitts gelten.", "ON = the Docker-tab settings apply here too. OFF = this section's own cards apply."));
+    var cP = card(T("Stil", "Style"), T("AN = die globale Badge-Farbe (Allgemein) gilt auch hier. AUS = die eigene Farbe dieses Abschnitts gilt.", "ON = the global badge colour (General) applies here too. OFF = this section's own colour applies."));
     cP.appendChild(styleToggle("cc.styleplugin", null));
     // per-tab style controls — the SAME set as the Docker tab, active while the
     // adopt-toggle above is OFF (own key prefix per tab)
@@ -492,7 +498,7 @@
       // adopt toggle OFF (else eff() keeps reading the global cc.* accent and the pick is
       // ignored, the "colour not applied to the menu" bug). Reflected live on the toggle +
       // the real header bar. Turn adopt back ON to re-follow the global Docker accent.
-      var ADOPT = { "ccp.": "cc.styleplugin", "ccv.": "cc.stylevms", "cch.": "cc.styleheader", "ccs.": "cc.stylesettings", "ccsh.": "cc.styleshares" };
+      var ADOPT = { "ccd.": "cc.styledocker", "ccp.": "cc.styleplugin", "ccv.": "cc.stylevms", "cch.": "cc.styleheader", "ccs.": "cc.stylesettings", "ccsh.": "cc.styleshares" };
       var adoptKey = ADOPT[P];
       function useOwn() {
         if (adoptKey && localStorage.getItem(adoptKey) !== "0") {
@@ -613,13 +619,13 @@
     }
     // the adopt "Stil" card is the FIRST card of every section (user call), then
     // the Badges/Logos cards. Same cards for the Hauptmenueleiste as Plugins/VMs.
-    var cV = card(T("Stil", "Style"), T("AN = die Docker-Tab-Einstellungen gelten auch hier. AUS = die eigenen Karten dieses Abschnitts gelten.", "ON = the Docker-tab settings apply here too. OFF = this section's own cards apply."));
+    var cV = card(T("Stil", "Style"), T("AN = die globale Badge-Farbe (Allgemein) gilt auch hier. AUS = die eigene Farbe dieses Abschnitts gilt.", "ON = the global badge colour (General) applies here too. OFF = this section's own colour applies."));
     cV.appendChild(styleToggle("cc.stylevms", null));
-    var cH = card(T("Stil", "Style"), T("AN = die Docker-Tab-Einstellungen gelten auch hier. AUS = die eigenen Karten dieses Abschnitts gelten.", "ON = the Docker-tab settings apply here too. OFF = this section's own cards apply."));
+    var cH = card(T("Stil", "Style"), T("AN = die globale Badge-Farbe (Allgemein) gilt auch hier. AUS = die eigene Farbe dieses Abschnitts gilt.", "ON = the global badge colour (General) applies here too. OFF = this section's own colour applies."));
     cH.appendChild(styleToggle("cc.styleheader", null));
-    var cSh = card(T("Stil", "Style"), T("AN = die Docker-Tab-Einstellungen gelten auch hier. AUS = die eigenen Karten dieses Abschnitts gelten.", "ON = the Docker-tab settings apply here too. OFF = this section's own cards apply."));
+    var cSh = card(T("Stil", "Style"), T("AN = die globale Badge-Farbe (Allgemein) gilt auch hier. AUS = die eigene Farbe dieses Abschnitts gilt.", "ON = the global badge colour (General) applies here too. OFF = this section's own colour applies."));
     cSh.appendChild(styleToggle("cc.styleshares", null));
-    var cSet = card(T("Stil", "Style"), T("AN = die Docker-Tab-Einstellungen gelten auch hier. AUS = die eigenen Karten dieses Abschnitts gelten.", "ON = the Docker-tab settings apply here too. OFF = this section's own cards apply."));
+    var cSet = card(T("Stil", "Style"), T("AN = die globale Badge-Farbe (Allgemein) gilt auch hier. AUS = die eigene Farbe dieses Abschnitts gilt.", "ON = the global badge colour (General) applies here too. OFF = this section's own colour applies."));
     cSet.appendChild(styleToggle("cc.stylesettings", null));
     wrapHeader.appendChild(cH); wrapShares.appendChild(cSh); wrapPlugin.appendChild(cP); wrapVms.appendChild(cV); wrapSettings.appendChild(cSet);
     buildStyleCards("cch.", wrapHeader, [], true); // Hauptmenueleiste: pill/badge settings only

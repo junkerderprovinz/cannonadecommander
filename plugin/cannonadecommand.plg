@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.6.4">
+  <!ENTITY version   "2.7.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,15 @@
 </ICON>
 
 <CHANGES>
+### 2.7.0
+- Settings reorganised. CannonadeCommand's settings now open with an "Allgemein" (General) tab that
+  holds BOTH the area enable/disable card AND the global badge-colour + rainbow card (this used to live
+  in the Docker tab). The Docker tab is now a normal area like the others: it has its own "Adopt the
+  global badge colour" toggle and its own accent, so you can colour the Docker badges separately from
+  the global colour (it follows the global colour by default, so nothing changes unless you opt out).
+  Rainbow stays a single global mode. The per-area style toggles are relabelled to say "Adopt the
+  global badge colour".
+
 ### 2.6.4
 - Freigaben: the protected-status badge (Protected / Unprotected) now sits in its own column to the
   RIGHT of the share name, and the Browse control is a solid, clearly-visible badge. (The previous
@@ -402,7 +411,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>238ad7058f0417c494b22e460709941874691f6c12c4b065555986ab674f5563</SHA256>
+  <SHA256>b0b2364d753bd0c488c94759df0c91e410330d0a004e8497068835bd66db2265</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

@@ -46,6 +46,14 @@ type Notifier interface {
 	Notify(ctx context.Context, cfg model.Notify, subject, desc, importance string)
 }
 
+// Statter samples a container's LIVE (instantaneous) resource usage — the CPU%
+// the idle-stop watcher uses as its liveness signal. It must be a real delta
+// sample (two reads), not a one-shot lifetime average. Optional: without it the
+// idle-stop feature is inert (like Pidder/Shaper for bandwidth).
+type Statter interface {
+	StatsLive(ctx context.Context, name string) (model.Stats, error)
+}
+
 // Monitor runs the schedule + watchdog loop.
 type Monitor struct {
 	Docker   Docker
@@ -53,6 +61,7 @@ type Monitor struct {
 	Notifier Notifier
 	Pidder   Pidder           // optional: container PID for bandwidth shaping
 	Shaper   Shaper           // optional: applies the egress rate limit
+	Statter  Statter          // optional: live CPU sampling for idle-stop
 	Interval time.Duration    // default 30s
 	Now      func() time.Time // injectable clock (tests)
 
@@ -62,7 +71,18 @@ type Monitor struct {
 	notifiedAt map[string]time.Time   // notify-throttle key → last time it was sent
 	shaped     map[string]string      // container name → the iface we shaped it on (clear on removal / iface change)
 	bwLast     map[string]string      // last shaping attempt per container (formatted), surfaced by /api/bwstatus
+	idle       map[string]*idleTrack  // idle-stop: per-container idle clock + last network sample
 	kickCh     chan struct{}          // nudge from the API: run a tick NOW (config just changed)
+}
+
+// idleTrack is the idle-stop watcher's per-container memory: when the container
+// last looked busy (the idle clock), and its last cumulative network byte count
+// (so a low-CPU but network-active container is kept alive).
+type idleTrack struct {
+	busyAt   time.Time // last time it looked busy, or when first observed (idle measured from here)
+	netBytes uint64    // cumulative RX+TX at netAt
+	netAt    time.Time
+	hasNet   bool
 }
 
 // notifyThrottle is how long the monitor waits before re-sending the same kind of
@@ -124,6 +144,170 @@ func (m *Monitor) Tick(ctx context.Context) {
 	m.tickSchedules(ctx, cfg)
 	m.tickWatchdogs(ctx, cfg)
 	m.tickBandwidths(ctx, cfg)
+	m.tickIdleStop(ctx, cfg)
+}
+
+// defaultIdleCPUPct is the "idle" threshold used when an IdleStop leaves
+// CPUThresholdPct at 0 — a container drawing at or below this much CPU counts as idle.
+const defaultIdleCPUPct = 5.0
+
+// idleNetFloorBytesPerSec is the network-activity floor: a container moving more
+// than this many bytes/second (RX+TX) is treated as ACTIVE even at low CPU, so a
+// low-CPU-but-serving container (a running download, a streaming session) is not
+// idle-stopped mid-transfer. Below it is negligible chatter (heartbeats, DNS).
+const idleNetFloorBytesPerSec = 8 * 1024 // 8 KiB/s
+
+// tickIdleStop stops each configured container that has stayed idle for its whole
+// IdleMinutes window — CC's take on ContainerNursery's sleep-on-idle, gated on
+// LIVENESS. "Idle" means BOTH low CPU (live delta sample, via Statter) AND low
+// network throughput (RX+TX rate below the floor). It samples only the ENABLED,
+// RUNNING containers. Safety rails: a busy sample (CPU high, network active, or
+// an unreadable sample) resets the idle clock so an active container is never
+// stopped; a container's first observation starts its clock at "now" so a fresh
+// supervisor never stops one it has not yet watched for the full window; a
+// non-running container is forgotten so a later restart gets a fresh window.
+func (m *Monitor) tickIdleStop(ctx context.Context, cfg model.Config) {
+	if m.Statter == nil {
+		return
+	}
+	desired := make(map[string]model.IdleStop, len(cfg.IdleStops))
+	for _, is := range cfg.IdleStops {
+		if is.Enabled && is.IdleMinutes > 0 {
+			desired[is.Name] = is
+		}
+	}
+	if len(desired) == 0 {
+		m.mu.Lock()
+		m.idle = nil // nothing configured → drop stale tracking
+		m.mu.Unlock()
+		return
+	}
+	list, err := m.Docker.List(ctx)
+	if err != nil {
+		return
+	}
+	byName := make(map[string]model.Container, len(list))
+	for _, c := range list {
+		byName[c.Name] = c
+	}
+	now := m.Now()
+	// Prune the idle clock of every container no longer in the desired set (disabled,
+	// removed, or its minutes zeroed). Otherwise a stale, hours-old busyAt would survive a
+	// disable and idle-stop the container the instant it is re-enabled, instead of granting
+	// a fresh full-window observation.
+	m.mu.Lock()
+	for n := range m.idle {
+		if _, ok := desired[n]; !ok {
+			delete(m.idle, n)
+		}
+	}
+	m.mu.Unlock()
+	// Collect the containers eligible to sample: running, own network namespace. A
+	// host/container-networked container has NO per-container network counters (docker
+	// stats reports 0B I/O), so its network-idle can't be measured — and CPU alone can't
+	// tell a truly-idle container from a low-CPU one serving a large transfer. Rather than
+	// risk stopping such a container mid-transfer, we SKIP it and notify once (mirrors how
+	// the bandwidth shaper refuses host/container-net containers).
+	type cand struct {
+		name string
+		is   model.IdleStop
+	}
+	var cands []cand
+	for name, is := range desired {
+		c, ok := byName[name]
+		if !ok || c.State != "running" {
+			m.mu.Lock()
+			delete(m.idle, name) // gone/stopped → fresh window on the next start
+			m.mu.Unlock()
+			continue
+		}
+		if sharedNetns(c) {
+			m.mu.Lock()
+			delete(m.idle, name)
+			m.mu.Unlock()
+			if m.throttle(name+"|idlenetns", now) {
+				m.notify(ctx, cfg.Notify, "Idle-stop skipped: "+name,
+					name+" uses host/container networking, so per-container idle can't be measured — it is not auto-stopped.", "warning")
+			}
+			continue
+		}
+		cands = append(cands, cand{name, is})
+	}
+	if len(cands) == 0 {
+		return
+	}
+	// Sample CPU/network CONCURRENTLY (StatsLive blocks ~1s each for its delta), bounded so
+	// a large idle-stop set can't flood the docker socket. The gather shares no state, so it
+	// needs no lock; the decision below runs sequentially under m.mu.
+	samples := make([]model.Stats, len(cands))
+	serrs := make([]error, len(cands))
+	sem := make(chan struct{}, 6)
+	var wg sync.WaitGroup
+	for i := range cands {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			samples[i], serrs[i] = m.Statter.StatsLive(ctx, cands[i].name)
+		}(i)
+	}
+	wg.Wait()
+	for i := range cands {
+		name, is := cands[i].name, cands[i].is
+		threshold := is.CPUThresholdPct
+		if threshold <= 0 {
+			threshold = defaultIdleCPUPct
+		}
+		st, serr := samples[i], serrs[i]
+		busy := serr != nil || st.CPUPercent > threshold // unreadable sample → treat as active
+		m.mu.Lock()
+		if m.idle == nil {
+			m.idle = map[string]*idleTrack{}
+		}
+		tr := m.idle[name]
+		if tr == nil {
+			tr = &idleTrack{}
+			m.idle[name] = tr
+		}
+		// Network-activity guard: even at low CPU, meaningful traffic since the last
+		// sample means the container is in use. A counter going backwards = a restart
+		// (activity). Only trust the sample when the read succeeded.
+		if serr == nil {
+			netBytes := st.NetRx + st.NetTx
+			if tr.hasNet {
+				if elapsed := now.Sub(tr.netAt).Seconds(); elapsed > 0 {
+					if netBytes < tr.netBytes || float64(netBytes-tr.netBytes)/elapsed > idleNetFloorBytesPerSec {
+						busy = true
+					}
+				}
+			}
+			tr.netBytes, tr.netAt, tr.hasNet = netBytes, now, true
+		}
+		if busy || tr.busyAt.IsZero() {
+			tr.busyAt = now // busy, or first observation: (re)start the idle clock
+			m.mu.Unlock()
+			continue
+		}
+		idleFor := now.Sub(tr.busyAt)
+		m.mu.Unlock()
+		if idleFor < time.Duration(is.IdleMinutes)*time.Minute {
+			continue
+		}
+		if err := m.Docker.Stop(ctx, name); err != nil {
+			if m.throttle(name+"|idlestopfail", now) {
+				m.notify(ctx, cfg.Notify, "Idle-stop failed", name+": "+err.Error(), "warning")
+			}
+			continue
+		}
+		m.mu.Lock()
+		delete(m.idle, name) // stopped → forget; a restart gets a fresh window
+		m.mu.Unlock()
+		if m.throttle(name+"|idlestopped", now) {
+			m.notify(ctx, cfg.Notify, "Idle-stopped "+name,
+				name+" was idle (CPU <= "+strconv.Itoa(int(threshold))+"%, low network) for "+strconv.Itoa(is.IdleMinutes)+" min and was stopped", "normal")
+		}
+	}
 }
 
 // tickBandwidths (re-)applies each configured egress rate limit to its running

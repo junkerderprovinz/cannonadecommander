@@ -632,6 +632,28 @@ func (c *Client) Stats(ctx context.Context, ref string) (model.Stats, error) {
 	return computeStats(raw), nil
 }
 
+// StatsLive returns an instantaneous snapshot with a REAL CPU delta. Unlike
+// Stats (one-shot, whose CPU% is a lifetime average because precpu_stats is
+// empty), this uses stream=false WITHOUT one-shot, so dockerd samples twice
+// ~1s apart and fills precpu_stats — yielding the CURRENT CPU% the idle-stop
+// watcher needs as its liveness signal. It costs ~1s per call, so the monitor
+// only calls it for the few containers that have idle-stop enabled.
+func (c *Client) StatsLive(ctx context.Context, ref string) (model.Stats, error) {
+	resp, err := c.do(ctx, "GET", "/containers/"+url.PathEscape(ref)+"/stats?stream=false")
+	if err != nil {
+		return model.Stats{}, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return model.Stats{}, apiError(resp)
+	}
+	var raw dockerStats
+	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
+		return model.Stats{}, fmt.Errorf("decode stats: %w", err)
+	}
+	return computeStats(raw), nil
+}
+
 // computeStats mirrors the docker CLI's own CPU%/mem math and is a pure function
 // so it can be unit-tested with a canned snapshot.
 func computeStats(s dockerStats) model.Stats {

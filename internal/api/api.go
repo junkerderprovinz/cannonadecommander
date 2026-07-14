@@ -595,6 +595,20 @@ func (s *Server) handlePutConfig(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "bad shaping interface (want a name like eth0, br0.20)"})
 		return
 	}
+	for _, is := range cfg.IdleStops {
+		if is.Name == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "idle-stop entry with no container name"})
+			return
+		}
+		if is.IdleMinutes < 0 || is.IdleMinutes > 44640 { // 0..31 days (0 = inert; the monitor ignores it)
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "bad idle-stop minutes (want 0-44640)"})
+			return
+		}
+		if is.CPUThresholdPct < 0 || is.CPUThresholdPct > 100 {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "bad idle-stop CPU threshold (want 0-100)"})
+			return
+		}
+	}
 	if err := s.Store.SaveConfig(cfg); err != nil {
 		writeErr(w, http.StatusInternalServerError, err)
 		return

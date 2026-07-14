@@ -335,6 +335,7 @@
   }
   function paint() {
     try {
+      if (localStorage.getItem("cc.theming") === "0") return; // MASTER THEMING off: don't paint (reverts on reload)
       var tbs = document.querySelectorAll("#plugin_table, table.tablesorter");
       if (!tbs.length) return;
       Array.prototype.slice.call(tbs).forEach(function (t5) { t5.classList.add(t5.querySelector("#plugin_list") ? "cc-plug" : "cc-plug-lite"); });
@@ -419,7 +420,7 @@
   }
 
   function boot() {
-    if (localStorage.getItem("cc.enable.plugins") === "0") return; // area disabled in CC settings
+    if (localStorage.getItem("cc.enable.plugins") === "0" || localStorage.getItem("cc.theming") === "0") return; // area disabled, or master theming off
     adopt(function () {
       paint();
       var host = document.getElementById("displaybox") || document.body; // whole page: tab switches + ajax rewrites

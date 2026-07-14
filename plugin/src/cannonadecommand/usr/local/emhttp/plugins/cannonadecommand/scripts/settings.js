@@ -217,6 +217,16 @@
     var wrapSettings = el("div", "cc-set-wrap");
     var wrapMain = el("div", "cc-set-wrap");
     var adoptToggles = {}; // adopt-key → its toggle element (a colour pick flips it live); declared UP here (not further down) because the Docker area's styleToggle now runs early, with the moved global Badges card
+    // MASTER THEMING switch (first, prominent). Off = keep ONLY the Docker orchestration
+    // FUNCTIONS (start plan, dependencies, health-gate, watchdog, schedules, limits, bandwidth,
+    // idle-stop) and disable ALL visual theming (badges, colours, rainbow, cards, and every
+    // area's restyling). Defaults on, so existing installs are unchanged. render() on change
+    // keeps the toggle in sync; the tabs pick it up via their storage listeners / on next load.
+    (function () {
+      var tc = card(T("Theming", "Theming"), T("Aus = nur die Docker-FUNKTIONEN von CannonadeCommand bleiben (Startplan, Abhängigkeiten, Health-Gate, Watchdog, Zeitpläne, Limits, Bandbreite, Auto-Stop bei Leerlauf). Das gesamte visuelle Theming — Badges, Farben, Rainbow, Karten und die Umgestaltung aller Tabs — wird abgeschaltet.", "Off = only CannonadeCommand's Docker FUNCTIONS remain (start plan, dependencies, health-gate, watchdog, schedules, limits, bandwidth, idle auto-stop). All visual theming — badges, colours, rainbow, cards and every tab's restyling — is turned off."));
+      tc.appendChild(toggleRow(T("Theming aktiv", "Theming on"), localStorage.getItem("cc.theming") !== "0", function (v) { set("cc.theming", v ? "1" : "0"); render(); syncHeaderBar(); syncSharesBar(); }));
+      wrapMain.appendChild(tc);
+    })();
     // Bereiche: enable/disable each area CannonadeCommand enhances
     (function () {
       var c = card(T("Bereiche", "Areas"), T("Aktiviere, welche Bereiche CannonadeCommand verschönert. Ein deaktivierter Bereich blendet seinen Tab hier sofort aus.", "Choose which areas CannonadeCommand enhances. Disabling an area hides its tab here immediately."));

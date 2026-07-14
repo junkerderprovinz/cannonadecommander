@@ -64,9 +64,14 @@
   function apply() {
     try {
       var root = document.documentElement;
-      var on = g("cc.enable.header", "0") !== "0"; // default OFF (new + global: opt in)
+      // MASTER THEMING off (cc.theming="0") behaves like the area being disabled — header is
+      // purely presentational. The storage listener re-runs apply(), so a live toggle reverts.
+      var on = g("cc.enable.header", "0") !== "0" && g("cc.theming", "1") !== "0";
       root.classList.toggle("cc-header-on", on);
-      if (!on) return;
+      // paintNav() with cc-header-on now removed => rb=false => it removeProperty's every
+      // lingering rainbow inline colour, so a live theming-OFF (even with Rainbow on) fully
+      // reverts the menu bar instead of leaving the coloured tabs behind.
+      if (!on) { paintNav(); return; }
       var a = accent();
       // ISOLATED accent var — NOT the shared --cc-accent. Other global enhancers (shares.js,
       // the page-specific docker/plugins/vms) also write --cc-accent on documentElement and

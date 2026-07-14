@@ -420,7 +420,9 @@
   function apply() {
     try {
       var root = document.documentElement;
-      var on = g("cc.enable.shares", "0") !== "0"; // default OFF (flips Unraid's tabbed setting: opt in)
+      // MASTER THEMING off behaves like the area being disabled → on=false runs the teardown
+      // branch below (cards unwrapped, classes removed) for a clean live revert.
+      var on = g("cc.enable.shares", "0") !== "0" && g("cc.theming", "1") !== "0"; // default OFF (flips Unraid's tabbed setting: opt in)
       root.classList.toggle("cc-shares-on", on);
       // /Shares legitimately shows one tab family -> mark it so the CSS single-tab-hide excludes it
       root.classList.toggle("cc-on-shares", on && pn() === "/Shares");
@@ -469,7 +471,7 @@
       if (!host) return;
       mo = new MutationObserver(function () {
         if (moPending) return; moPending = true;
-        setTimeout(function () { moPending = false; hideRedundantTabs(); paintTabs(); enhanceShares(); paintRows(); enhanceShareDetail(); }, 150);
+        setTimeout(function () { moPending = false; if (g("cc.theming", "1") === "0") return; hideRedundantTabs(); paintTabs(); enhanceShares(); paintRows(); enhanceShareDetail(); }, 150); // MASTER THEMING off: observer must not re-inject (apply()'s teardown already cleaned up)
       });
       mo.observe(host, { childList: true, subtree: true });
     } catch (e) {}

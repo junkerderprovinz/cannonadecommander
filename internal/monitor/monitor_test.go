@@ -13,7 +13,11 @@ import (
 type fakeDocker struct {
 	list       []model.Container
 	actions    []string
-	restartErr error // when set, Restart records the attempt then returns this error
+	restartErr error              // when set, Restart records the attempt then returns this error
+	stopErr    error              // when set, Stop records the attempt then returns this error
+	cpu        map[string]float64 // idle-stop: live CPU% per container name (StatsLive)
+	net        map[string]uint64  // idle-stop: cumulative RX+TX bytes per container name (StatsLive)
+	statErr    map[string]error   // idle-stop: StatsLive error per container name
 }
 
 func (f *fakeDocker) List(context.Context) ([]model.Container, error) { return f.list, nil }
@@ -23,11 +27,30 @@ func (f *fakeDocker) Start(_ context.Context, n string) error {
 }
 func (f *fakeDocker) Stop(_ context.Context, n string) error {
 	f.actions = append(f.actions, "stop:"+n)
-	return nil
+	return f.stopErr
 }
 func (f *fakeDocker) Restart(_ context.Context, n string) error {
 	f.actions = append(f.actions, "restart:"+n)
 	return f.restartErr
+}
+func (f *fakeDocker) StatsLive(_ context.Context, n string) (model.Stats, error) {
+	if f.statErr != nil {
+		if e, ok := f.statErr[n]; ok {
+			return model.Stats{}, e
+		}
+	}
+	return model.Stats{CPUPercent: f.cpu[n], NetRx: f.net[n]}, nil
+}
+
+// countAction returns how many times exactly `want` appears in the action log.
+func countAction(actions []string, want string) int {
+	n := 0
+	for _, a := range actions {
+		if a == want {
+			n++
+		}
+	}
+	return n
 }
 
 type fakeCfg struct{ c model.Config }
@@ -335,5 +358,261 @@ func TestWatchdogFailedRestartIsCappedAndThrottled(t *testing.T) {
 	}
 	if failed != 1 || gaveUp != 1 {
 		t.Fatalf("expected exactly one 'restart failed' and one 'gave up' (throttled), got failed=%d gaveUp=%d (%v)", failed, gaveUp, fn.n)
+	}
+}
+
+// ─────────────────────────── idle-stop (ContainerNursery-style) ───────────────
+
+// A container idle (CPU at/below threshold) for its whole window is stopped once,
+// and never re-stopped once it is no longer running.
+func TestIdleStopStopsAfterIdleWindow(t *testing.T) {
+	fd := &fakeDocker{
+		list: []model.Container{{Name: "jelly", State: "running"}},
+		cpu:  map[string]float64{"jelly": 1.0}, // idle
+	}
+	clock := time.Date(2026, 7, 3, 3, 0, 0, 0, time.Local)
+	m := &Monitor{Docker: fd, Statter: fd, Now: func() time.Time { return clock },
+		Config: fakeCfg{c: model.Config{IdleStops: []model.IdleStop{
+			{Name: "jelly", Enabled: true, IdleMinutes: 2, CPUThresholdPct: 5},
+		}}}}
+	m.Tick(context.Background()) // t0: first observation → start the idle clock, no stop
+	if countAction(fd.actions, "stop:jelly") != 0 {
+		t.Fatalf("must not stop on the first observation, got %v", fd.actions)
+	}
+	clock = clock.Add(1 * time.Minute)
+	m.Tick(context.Background()) // idle 1 min (< 2) → not yet
+	if countAction(fd.actions, "stop:jelly") != 0 {
+		t.Fatalf("must not stop before the full idle window, got %v", fd.actions)
+	}
+	clock = clock.Add(90 * time.Second)
+	m.Tick(context.Background()) // idle 2.5 min (>= 2) → stop
+	if countAction(fd.actions, "stop:jelly") != 1 {
+		t.Fatalf("should idle-stop after the window, got %v", fd.actions)
+	}
+	fd.list = []model.Container{{Name: "jelly", State: "exited"}}
+	clock = clock.Add(1 * time.Minute)
+	m.Tick(context.Background()) // stopped now → must not re-stop
+	if countAction(fd.actions, "stop:jelly") != 1 {
+		t.Fatalf("must not re-stop a container that is no longer running, got %v", fd.actions)
+	}
+}
+
+// CPU-liveness guard: a busy container (CPU above threshold) is never idle-stopped,
+// however long the loop runs.
+func TestIdleStopBusyNeverStops(t *testing.T) {
+	fd := &fakeDocker{
+		list: []model.Container{{Name: "build", State: "running"}},
+		cpu:  map[string]float64{"build": 80.0}, // busy
+	}
+	clock := time.Date(2026, 7, 3, 3, 0, 0, 0, time.Local)
+	m := &Monitor{Docker: fd, Statter: fd, Now: func() time.Time { return clock },
+		Config: fakeCfg{c: model.Config{IdleStops: []model.IdleStop{
+			{Name: "build", Enabled: true, IdleMinutes: 1, CPUThresholdPct: 5},
+		}}}}
+	for i := 0; i < 10; i++ { // 5 minutes of busy ticks
+		m.Tick(context.Background())
+		clock = clock.Add(30 * time.Second)
+	}
+	if countAction(fd.actions, "stop:build") != 0 {
+		t.Fatalf("a busy container must never be idle-stopped, got %v", fd.actions)
+	}
+}
+
+// A burst of activity resets the idle timer, so the FULL window must pass again
+// (measured from the last time it looked busy) before a stop.
+func TestIdleStopResetsOnActivity(t *testing.T) {
+	fd := &fakeDocker{
+		list: []model.Container{{Name: "app", State: "running"}},
+		cpu:  map[string]float64{"app": 1.0}, // starts idle
+	}
+	clock := time.Date(2026, 7, 3, 3, 0, 0, 0, time.Local)
+	m := &Monitor{Docker: fd, Statter: fd, Now: func() time.Time { return clock },
+		Config: fakeCfg{c: model.Config{IdleStops: []model.IdleStop{
+			{Name: "app", Enabled: true, IdleMinutes: 3, CPUThresholdPct: 5},
+		}}}}
+	m.Tick(context.Background())       // t0: first observation
+	clock = clock.Add(2 * time.Minute) // idle 2 min (< 3)
+	fd.cpu["app"] = 50                 // a burst of activity...
+	m.Tick(context.Background())       // ...busy → reset the idle clock
+	fd.cpu["app"] = 1                  // idle again
+	clock = clock.Add(2 * time.Minute) // 2 min since the reset (< 3)
+	m.Tick(context.Background())
+	if countAction(fd.actions, "stop:app") != 0 {
+		t.Fatalf("activity must reset the idle timer, got %v", fd.actions)
+	}
+	clock = clock.Add(90 * time.Second) // 3.5 min since the reset (>= 3)
+	m.Tick(context.Background())
+	if countAction(fd.actions, "stop:app") != 1 {
+		t.Fatalf("should stop a full window after the last activity, got %v", fd.actions)
+	}
+}
+
+// Disabled idle-stops and non-running containers are ignored.
+func TestIdleStopIgnoresDisabledAndNotRunning(t *testing.T) {
+	fd := &fakeDocker{
+		list: []model.Container{
+			{Name: "off", State: "running"}, // idle-stop disabled
+			{Name: "gone", State: "exited"}, // not running
+		},
+		cpu: map[string]float64{"off": 0, "gone": 0},
+	}
+	clock := time.Date(2026, 7, 3, 3, 0, 0, 0, time.Local)
+	m := &Monitor{Docker: fd, Statter: fd, Now: func() time.Time { return clock },
+		Config: fakeCfg{c: model.Config{IdleStops: []model.IdleStop{
+			{Name: "off", Enabled: false, IdleMinutes: 1},
+			{Name: "gone", Enabled: true, IdleMinutes: 1},
+		}}}}
+	for i := 0; i < 6; i++ {
+		m.Tick(context.Background())
+		clock = clock.Add(1 * time.Minute)
+	}
+	if len(fd.actions) != 0 {
+		t.Fatalf("disabled + non-running idle-stops must do nothing, got %v", fd.actions)
+	}
+}
+
+// Without a Statter wired, the idle-stop feature is inert (never stops anything).
+func TestIdleStopInertWithoutStatter(t *testing.T) {
+	fd := &fakeDocker{list: []model.Container{{Name: "x", State: "running"}}}
+	clock := time.Date(2026, 7, 3, 3, 0, 0, 0, time.Local)
+	m := &Monitor{Docker: fd, Now: func() time.Time { return clock }, // no Statter
+		Config: fakeCfg{c: model.Config{IdleStops: []model.IdleStop{
+			{Name: "x", Enabled: true, IdleMinutes: 1},
+		}}}}
+	for i := 0; i < 5; i++ {
+		m.Tick(context.Background())
+		clock = clock.Add(1 * time.Minute)
+	}
+	if len(fd.actions) != 0 {
+		t.Fatalf("without a Statter the idle-stop feature must be inert, got %v", fd.actions)
+	}
+}
+
+// An unreadable CPU sample is treated as ACTIVE (never stop on unknown state).
+func TestIdleStopSampleErrorNeverStops(t *testing.T) {
+	fd := &fakeDocker{
+		list:    []model.Container{{Name: "y", State: "running"}},
+		cpu:     map[string]float64{"y": 0},                             // would look idle...
+		statErr: map[string]error{"y": errors.New("stats unavailable")}, // ...but sampling fails
+	}
+	clock := time.Date(2026, 7, 3, 3, 0, 0, 0, time.Local)
+	m := &Monitor{Docker: fd, Statter: fd, Now: func() time.Time { return clock },
+		Config: fakeCfg{c: model.Config{IdleStops: []model.IdleStop{
+			{Name: "y", Enabled: true, IdleMinutes: 1, CPUThresholdPct: 5},
+		}}}}
+	for i := 0; i < 6; i++ {
+		m.Tick(context.Background())
+		clock = clock.Add(1 * time.Minute)
+	}
+	if countAction(fd.actions, "stop:y") != 0 {
+		t.Fatalf("an unreadable CPU sample must be treated as active, got %v", fd.actions)
+	}
+}
+
+// A CPU-idle but network-ACTIVE container (e.g. a running download waiting on a
+// slow peer) must be kept alive by the network-throughput guard.
+func TestIdleStopNetworkActivityKeepsAlive(t *testing.T) {
+	fd := &fakeDocker{
+		list: []model.Container{{Name: "dl", State: "running"}},
+		cpu:  map[string]float64{"dl": 1.0}, // CPU looks idle...
+		net:  map[string]uint64{"dl": 0},
+	}
+	clock := time.Date(2026, 7, 3, 3, 0, 0, 0, time.Local)
+	m := &Monitor{Docker: fd, Statter: fd, Now: func() time.Time { return clock },
+		Config: fakeCfg{c: model.Config{IdleStops: []model.IdleStop{
+			{Name: "dl", Enabled: true, IdleMinutes: 2, CPUThresholdPct: 5},
+		}}}}
+	for i := 0; i < 8; i++ {
+		fd.net["dl"] += 50 * 1024 * 30 // +50 KiB/s over the 30s tick → well above the 8 KiB/s floor
+		m.Tick(context.Background())
+		clock = clock.Add(30 * time.Second)
+	}
+	if countAction(fd.actions, "stop:dl") != 0 {
+		t.Fatalf("a CPU-idle but network-active container must not be idle-stopped, got %v", fd.actions)
+	}
+}
+
+// A host/container-networked container has no per-container network counters, so its
+// network-idle is unmeasurable — it must be SKIPPED (never stopped) and notified once,
+// not stopped on CPU alone.
+func TestIdleStopSkipsHostNetworkedContainer(t *testing.T) {
+	fd := &fakeDocker{
+		list: []model.Container{{Name: "plex", State: "running", Network: "host"}},
+		cpu:  map[string]float64{"plex": 1.0}, // CPU idle
+	}
+	fn := &fakeNotifier{}
+	clock := time.Date(2026, 7, 3, 3, 0, 0, 0, time.Local)
+	m := &Monitor{Docker: fd, Statter: fd, Notifier: fn, Now: func() time.Time { return clock },
+		Config: fakeCfg{c: model.Config{Notify: model.Notify{Unraid: true}, IdleStops: []model.IdleStop{
+			{Name: "plex", Enabled: true, IdleMinutes: 1, CPUThresholdPct: 5},
+		}}}}
+	for i := 0; i < 6; i++ {
+		m.Tick(context.Background())
+		clock = clock.Add(1 * time.Minute)
+	}
+	if countAction(fd.actions, "stop:plex") != 0 {
+		t.Fatalf("a host-networked container must never be idle-stopped (net idle unmeasurable), got %v", fd.actions)
+	}
+	skipped := false
+	for _, s := range fn.n {
+		if s == "Idle-stop skipped: plex" {
+			skipped = true
+		}
+	}
+	if !skipped {
+		t.Fatalf("expected an 'idle-stop skipped' notification for the host-net container, got %v", fn.n)
+	}
+}
+
+// Disabling then re-enabling a still-running container must start a FRESH window (the
+// stale idle clock is pruned), not stop it immediately off the old clock.
+func TestIdleStopReEnableGetsFreshWindow(t *testing.T) {
+	fd := &fakeDocker{
+		list: []model.Container{{Name: "svc", State: "running", Network: "bridge"}},
+		cpu:  map[string]float64{"svc": 1.0}, // idle throughout
+	}
+	clock := time.Date(2026, 7, 3, 3, 0, 0, 0, time.Local)
+	enabled := model.Config{IdleStops: []model.IdleStop{{Name: "svc", Enabled: true, IdleMinutes: 5, CPUThresholdPct: 5}}}
+	disabled := model.Config{IdleStops: []model.IdleStop{{Name: "svc", Enabled: false, IdleMinutes: 5, CPUThresholdPct: 5}}}
+	m := &Monitor{Docker: fd, Statter: fd, Now: func() time.Time { return clock }, Config: fakeCfg{c: enabled}}
+	m.Tick(context.Background())       // t0: first observation, idle clock starts
+	clock = clock.Add(4 * time.Minute) // idle 4 min (< 5)
+	m.Tick(context.Background())
+	m.Config = fakeCfg{c: disabled} // disable, and let a long time pass
+	clock = clock.Add(10 * time.Minute)
+	m.Tick(context.Background()) // stale clock must be PRUNED here
+	m.Config = fakeCfg{c: enabled}
+	m.Tick(context.Background()) // re-enabled: fresh observation, must NOT stop off the old clock
+	if countAction(fd.actions, "stop:svc") != 0 {
+		t.Fatalf("re-enabling must start a fresh window, not stop off the stale clock, got %v", fd.actions)
+	}
+	clock = clock.Add(4 * time.Minute) // 4 min since re-enable (< 5)
+	m.Tick(context.Background())
+	if countAction(fd.actions, "stop:svc") != 0 {
+		t.Fatalf("still within the fresh window, got %v", fd.actions)
+	}
+	clock = clock.Add(2 * time.Minute) // now > 5 min since re-enable
+	m.Tick(context.Background())
+	if countAction(fd.actions, "stop:svc") != 1 {
+		t.Fatalf("should stop after a full fresh window post-reenable, got %v", fd.actions)
+	}
+}
+
+// CPUThresholdPct <= 0 falls back to the monitor's default idle threshold.
+func TestIdleStopDefaultThreshold(t *testing.T) {
+	fd := &fakeDocker{
+		list: []model.Container{{Name: "z", State: "running"}},
+		cpu:  map[string]float64{"z": 4.0}, // below the 5% default
+	}
+	clock := time.Date(2026, 7, 3, 3, 0, 0, 0, time.Local)
+	m := &Monitor{Docker: fd, Statter: fd, Now: func() time.Time { return clock },
+		Config: fakeCfg{c: model.Config{IdleStops: []model.IdleStop{
+			{Name: "z", Enabled: true, IdleMinutes: 1}, // no explicit threshold → default
+		}}}}
+	m.Tick(context.Background())
+	clock = clock.Add(90 * time.Second)
+	m.Tick(context.Background())
+	if countAction(fd.actions, "stop:z") != 1 {
+		t.Fatalf("CPU below the default threshold should idle-stop, got %v", fd.actions)
 	}
 }

@@ -161,12 +161,27 @@ type Bandwidth struct {
 	IngressKbit int    `json:"ingress_kbit,omitempty"` // download cap (kbit/s)
 }
 
+// IdleStop stops a container after it has stayed idle (instantaneous CPU at or
+// below the threshold) for IdleMinutes — CC's take on ContainerNursery's
+// sleep-on-idle, driven by CPU LIVENESS instead of an HTTP proxy. A container
+// whose CPU rises above the threshold is "busy" and its idle timer resets, so a
+// container in active use is never stopped. Disabled entries and non-running
+// containers are ignored. The engine is stop-only (CC does not wake it back up —
+// the user or a schedule/Unraid autostart starts it again).
+type IdleStop struct {
+	Name            string  `json:"name"`
+	Enabled         bool    `json:"enabled"`
+	IdleMinutes     int     `json:"idle_minutes"`      // stop after this many continuous minutes at/below the CPU threshold
+	CPUThresholdPct float64 `json:"cpu_threshold_pct"` // "idle" = live CPU% <= this; <=0 lets the monitor pick its default
+}
+
 // Config is the automation configuration the daemon acts on, persisted alongside
 // the plan on the flash. Empty = nothing scheduled/watched, no notifications.
 type Config struct {
 	Schedules  []Schedule  `json:"schedules"`
 	Watchdogs  []Watchdog  `json:"watchdogs"`
 	Bandwidths []Bandwidth `json:"bandwidths,omitempty"`
+	IdleStops  []IdleStop  `json:"idle_stops,omitempty"`
 	// ShapeIface is the in-container interface egress shaping is applied to (Settings).
 	// Blank means the netshape default (eth0). Same for every shaped container.
 	ShapeIface string `json:"shape_iface,omitempty"`

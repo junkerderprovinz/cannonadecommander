@@ -114,7 +114,25 @@
       });
     } catch (e) {}
   }
+  // Revert every inline visual this enhancer applies (state-badge styling + icon tint),
+  // so the MASTER THEMING toggle live-reverts the VM page without a reload. Leaves the
+  // observer/timers alone (unlike teardown), so re-enabling theming re-tints via apply().
+  function stripVmTheming() {
+    try {
+      Array.prototype.slice.call(document.querySelectorAll("#kvm_list tr.sortable td.vm-name span.state")).forEach(function (st) {
+        ["display", "background", "color", "border-radius", "padding", "margin-left", "font-size", "font-weight", "text-transform", "letter-spacing", "line-height"].forEach(function (p) { st.style.removeProperty(p); });
+      });
+      var imgs = vmImgs();
+      for (var i = 0; i < imgs.length; i++) {
+        imgs[i].style.filter = ""; imgs[i].style.removeProperty("color");
+        var w = imgs[i].parentElement; if (w) ["background", "border-radius", "width", "height", "padding", "display", "align-items", "justify-content", "box-sizing"].forEach(function (p) { w.style.removeProperty(p); });
+      }
+      var sv = document.getElementById("cc-vm-tint-svg"); if (sv) sv.remove();
+      var hh = document.getElementById("cc-vm-mono-svg"); if (hh) hh.remove();
+    } catch (e) {}
+  }
   function apply() {
+    if (ls("cc.theming") === "0") { stripVmTheming(); return; } // MASTER THEMING off: VMs page fully native
     try { enhanceRows(); } catch (e) {}
     // adopt-toggle ON (default) -> Docker's cc.* settings; OFF -> own ccv.* keys.
     // Stay even with adopt-off + no tint colour when the Logo-Hintergrund badge is on.

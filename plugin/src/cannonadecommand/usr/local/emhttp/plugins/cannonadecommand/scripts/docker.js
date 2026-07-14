@@ -35,6 +35,13 @@
   // change for existing installs), else use the Docker tab's OWN ccd.accent. Rainbow stays global
   // (cc.rainbow), and the icon-tint / density stay Docker-owned (cc.iconcolor / cc.density) as before.
   function effc(k) { return localStorage.getItem("cc.styledocker") !== "0" ? localStorage.getItem("cc." + k) : localStorage.getItem("ccd." + k); }
+  // MASTER THEMING SWITCH. cc.theming defaults to "1" (ON) so existing installs are
+  // unchanged; "0" strips the VISUAL layer only (native-cell restyle, decorative row
+  // badges, icon tint, rainbow, grid/card view, theming menu rows) while EVERY
+  // orchestration control stays — the actions column, the state toggle, the CPU/RAM/BW
+  // gears, the plan chip + its editor, Save-plan/Start-in-order, the engine heartbeat.
+  // Read it ONLY at the presentational chokepoints below; never near boot()/timers/api.
+  function themingOn() { return localStorage.getItem("cc.theming") !== "0"; }
   // The FRONTEND version, stamped by pkg_build.sh at package time. Shown next to the
   // engine version so a stale browser/plugin frontend is instantly distinguishable from
   // a stale daemon (repeated "it still doesn't work" turned out to be old UIs under test).
@@ -46,8 +53,8 @@
     : [["Mo", 1], ["Tu", 2], ["We", 3], ["Th", 4], ["Fr", 5], ["Sa", 6], ["Su", 0]];
 
   var T = {
-    de: { uptodate: "Aktuell", update: "Update", start: "Starten", stop: "Stoppen", restart: "Neustart", pause: "Pause", resume: "Fortsetzen", force: "Update erzwingen", save: "Plan speichern", startorder: "In Reihenfolge starten", filter: "filtern…", cols: "Badges", view: "Ansicht", list: "Liste", grid: "Raster", plan: "Startplan", done: "erledigt", saving: "speichere…", saved: "gespeichert", after: "nach", active: "aktiv", watchdog: "Auto-Start", wUnhealthy: "bei „unhealthy“", wExit: "bei Absturz (nicht bei normalem Stopp)", wMax: "max./Std.", schedules: "Zeitpläne", addsched: "+ Zeitplan", remove: "entfernen", manage: "Im Startplan verwalten", dependsOn: "Hängt ab von", commaSep: "kommagetrennt", startDelay: "Startverzögerung", secWait: "Sek. vor dem Start warten", readyWhen: "Bereit wenn", onFail: "Bei Fehlschlag", failhint: "abort überspringt Abhängige · continue/degrade starten sie trotzdem.", ramLimit: "RAM-Limit", cpuLimit: "CPU-Limit", cpuram: "CPU/RAM-Limits", ramPh: "z. B. 2G · 512M · leer = unverändert", cpuPh: "z. B. 1.5 · leer = unverändert", limitsFoot: "Sofort per Docker-Update angewendet, kein Neustart. Leeres Feld lässt den Wert unverändert. „Limit entfernen“ setzt auf unbegrenzt (Docker kann ein Limit live nicht ganz löschen — restlos weg erst durch Neu-Erstellen des Containers).", invalid: "Ungültige Eingabe", saveShort: "Speichern", ramNum: "z. B. 2 · leer = unverändert", cpuNum: "z. B. 1.5 · leer", cpuPin: "CPU-Pinning", cpuPinPh: "z. B. 0-3,6  (leer = alle)", cfgSet: "eingestellt", cfgUnset: "nicht eingestellt (Standard)", removeLim: "Limit entfernen", execPh: "Befehl im Container, z. B. pg_isready", logPh: "Text im Log, z. B. ready", bandwidth: "Bandbreite", egress: "Egress (Upload)", upload: "↑ Upload", download: "↓ Download", bwFoot: "Upload = tbf-Shaper, Download = Netfilter-Policing (hashlimit) im Container — kein Kernel-Qdisc. Wird laufend angewendet; nach einem Container-Neustart erst im nächsten Zyklus wieder. Braucht nsenter + tc/iptables auf dem Host; die Schnittstelle stellst du in den Einstellungen ein." },
-    en: { uptodate: "up to date", update: "Update", start: "Start", stop: "Stop", restart: "Restart", pause: "Pause", resume: "Resume", force: "Force update", save: "Save plan", startorder: "Start in order", filter: "filter…", cols: "Badges", view: "View", list: "List", grid: "Grid", plan: "Plan", done: "done", saving: "saving…", saved: "saved", after: "after", active: "active", watchdog: "Auto-start", wUnhealthy: "when unhealthy", wExit: "on crash (not on a normal stop)", wMax: "max/hour", schedules: "Schedules", addsched: "+ schedule", remove: "remove", manage: "Manage in the start plan", dependsOn: "Depends on", commaSep: "comma-separated", startDelay: "Start delay", secWait: "sec to wait before starting", readyWhen: "Ready when", onFail: "On fail", failhint: "abort skips dependents · continue/degrade start them anyway.", ramLimit: "RAM limit", cpuLimit: "CPU limit", cpuram: "CPU/RAM limits", ramPh: "e.g. 2G · 512M · empty = unchanged", cpuPh: "e.g. 1.5 · empty = unchanged", limitsFoot: "Applied instantly via Docker update, no restart. An empty field leaves the value unchanged. “Remove limit” sets it to unlimited (Docker can't fully unset a limit live — gone for good only by recreating the container).", invalid: "invalid value", saveShort: "Save", ramNum: "e.g. 2 · empty = unchanged", cpuNum: "e.g. 1.5 · empty", cpuPin: "CPU pinning", cpuPinPh: "e.g. 0-3,6  (empty = all)", cfgSet: "configured", cfgUnset: "not set (default)", removeLim: "Remove limit", execPh: "command in the container, e.g. pg_isready", logPh: "text in the log, e.g. ready", bandwidth: "Bandwidth", egress: "Egress (upload)", upload: "↑ Upload", download: "↓ Download", bwFoot: "Upload = tbf shaper, download = netfilter policing (hashlimit) inside the container — no kernel qdisc. Re-applied while running; after a container restart it returns on the next cycle. Needs nsenter + tc/iptables on the host; set the interface on the Settings page." },
+    de: { uptodate: "Aktuell", update: "Update", start: "Starten", stop: "Stoppen", restart: "Neustart", pause: "Pause", resume: "Fortsetzen", force: "Update erzwingen", save: "Plan speichern", startorder: "In Reihenfolge starten", filter: "filtern…", cols: "Badges", view: "Ansicht", list: "Liste", grid: "Raster", plan: "Startplan", done: "erledigt", saving: "speichere…", saved: "gespeichert", after: "nach", active: "aktiv", watchdog: "Auto-Start", wUnhealthy: "bei „unhealthy“", wExit: "bei Absturz (nicht bei normalem Stopp)", wMax: "max./Std.", schedules: "Zeitpläne", addsched: "+ Zeitplan", remove: "entfernen", manage: "Im Startplan verwalten", dependsOn: "Hängt ab von", commaSep: "kommagetrennt", startDelay: "Startverzögerung", secWait: "Sek. vor dem Start warten", readyWhen: "Bereit wenn", onFail: "Bei Fehlschlag", failhint: "abort überspringt Abhängige · continue/degrade starten sie trotzdem.", ramLimit: "RAM-Limit", cpuLimit: "CPU-Limit", cpuram: "CPU/RAM-Limits", ramPh: "z. B. 2G · 512M · leer = unverändert", cpuPh: "z. B. 1.5 · leer = unverändert", limitsFoot: "Sofort per Docker-Update angewendet, kein Neustart. Leeres Feld lässt den Wert unverändert. „Limit entfernen“ setzt auf unbegrenzt (Docker kann ein Limit live nicht ganz löschen — restlos weg erst durch Neu-Erstellen des Containers).", invalid: "Ungültige Eingabe", saveShort: "Speichern", ramNum: "z. B. 2 · leer = unverändert", cpuNum: "z. B. 1.5 · leer", cpuPin: "CPU-Pinning", cpuPinPh: "z. B. 0-3,6  (leer = alle)", cfgSet: "eingestellt", cfgUnset: "nicht eingestellt (Standard)", removeLim: "Limit entfernen", execPh: "Befehl im Container, z. B. pg_isready", logPh: "Text im Log, z. B. ready", bandwidth: "Bandbreite", egress: "Egress (Upload)", upload: "↑ Upload", download: "↓ Download", bwFoot: "Upload = tbf-Shaper, Download = Netfilter-Policing (hashlimit) im Container — kein Kernel-Qdisc. Wird laufend angewendet; nach einem Container-Neustart erst im nächsten Zyklus wieder. Braucht nsenter + tc/iptables auf dem Host; die Schnittstelle stellst du in den Einstellungen ein.", idleStop: "Auto-Stop bei Leerlauf", idleMin: "Leerlauf-Minuten", idleCpu: "CPU-Schwelle %", idleFoot: "Stoppt den Container, wenn CPU UND Netzwerk für die eingestellte Zeit niedrig bleiben. Ein ausgelasteter Container wird nie gestoppt; CC startet ihn nicht automatisch wieder." },
+    en: { uptodate: "up to date", update: "Update", start: "Start", stop: "Stop", restart: "Restart", pause: "Pause", resume: "Resume", force: "Force update", save: "Save plan", startorder: "Start in order", filter: "filter…", cols: "Badges", view: "View", list: "List", grid: "Grid", plan: "Plan", done: "done", saving: "saving…", saved: "saved", after: "after", active: "active", watchdog: "Auto-start", wUnhealthy: "when unhealthy", wExit: "on crash (not on a normal stop)", wMax: "max/hour", schedules: "Schedules", addsched: "+ schedule", remove: "remove", manage: "Manage in the start plan", dependsOn: "Depends on", commaSep: "comma-separated", startDelay: "Start delay", secWait: "sec to wait before starting", readyWhen: "Ready when", onFail: "On fail", failhint: "abort skips dependents · continue/degrade start them anyway.", ramLimit: "RAM limit", cpuLimit: "CPU limit", cpuram: "CPU/RAM limits", ramPh: "e.g. 2G · 512M · empty = unchanged", cpuPh: "e.g. 1.5 · empty = unchanged", limitsFoot: "Applied instantly via Docker update, no restart. An empty field leaves the value unchanged. “Remove limit” sets it to unlimited (Docker can't fully unset a limit live — gone for good only by recreating the container).", invalid: "invalid value", saveShort: "Save", ramNum: "e.g. 2 · empty = unchanged", cpuNum: "e.g. 1.5 · empty", cpuPin: "CPU pinning", cpuPinPh: "e.g. 0-3,6  (empty = all)", cfgSet: "configured", cfgUnset: "not set (default)", removeLim: "Remove limit", execPh: "command in the container, e.g. pg_isready", logPh: "text in the log, e.g. ready", bandwidth: "Bandwidth", egress: "Egress (upload)", upload: "↑ Upload", download: "↓ Download", bwFoot: "Upload = tbf shaper, download = netfilter policing (hashlimit) inside the container — no kernel qdisc. Re-applied while running; after a container restart it returns on the next cycle. Needs nsenter + tc/iptables on the host; set the interface on the Settings page.", idleStop: "Auto-stop when idle", idleMin: "Idle minutes", idleCpu: "CPU threshold %", idleFoot: "Stops the container when CPU AND network stay low for the set time. A busy container is never stopped; CC does not start it again automatically." },
   };
   function t(k) { return (T[LANG] || T.en)[k] || T.en[k]; }
   var STATE_LABELS = {
@@ -58,7 +65,7 @@
   };
   function stateLabel(s) { var m = STATE_LABELS[LANG] || STATE_LABELS.en; return m[s] || s || "?"; }
 
-  var mode = localStorage.getItem(VIEW_KEY) === "grid" ? "grid" : "list";
+  var mode = (localStorage.getItem(VIEW_KEY) === "grid" && themingOn()) ? "grid" : "list"; // grid is a theming view; never start in grid with theming off
   var containers = [], containerNames = [], stats = {}, shiplog = {}, workingPlan = {}, lastRun = {}, iconCache = {};
   var netPrev = {}; // name → {rx,tx,t} previous cumulative net counters, to derive the live down/up RATE
   var daemonVersion = ""; // the RUNNING daemon's version (from /api/state) — shown in the gear menu so it's obvious which backend is live after an update
@@ -69,7 +76,7 @@
   var daemonUp = null;
   // Automation config (schedules + watchdogs + notify) lives on the flash next to
   // the plan; loaded whole, mutated per-container in the editor, and PUT back whole.
-  var config = { schedules: [], watchdogs: [], bandwidths: [], notify: { unraid: false, webhook: "" } };
+  var config = { schedules: [], watchdogs: [], bandwidths: [], idle_stops: [], notify: { unraid: false, webhook: "" } };
   var limits = {}; // name → CONFIGURED caps {mem_bytes,nano_cpus,cpuset_cpus}, for the "is a limit set?" dots
   var hostCpus = 0, hostCoreOf = [], hostMem = 0; // the HOST's logical-CPU count + HT grouping + total RAM (from the engine)
   var hostPCores = [], hostECores = []; // Intel hybrid P/E-core CPU lists (empty on non-hybrid CPUs)
@@ -183,7 +190,7 @@
       var u = c.ui_settings || {};
       keys.forEach(function (k) { var v = localStorage.getItem(k); if (v === null) delete u[k]; else u[k] = v; });
       uiPending = {};
-      return api("PUT", "config", { schedules: c.schedules || [], watchdogs: c.watchdogs || [], bandwidths: c.bandwidths || [], notify: c.notify || { unraid: false, webhook: "" }, shape_iface: c.shape_iface || "", ui_settings: u });
+      return api("PUT", "config", { schedules: c.schedules || [], watchdogs: c.watchdogs || [], bandwidths: c.bandwidths || [], idle_stops: c.idle_stops || [], notify: c.notify || { unraid: false, webhook: "" }, shape_iface: c.shape_iface || "", ui_settings: u });
     }).catch(function () {});
   }
   function adoptUISettings(u) {
@@ -194,9 +201,9 @@
   function loadConfig() {
     return api("GET", "config").then(function (c) {
       if (c && typeof c === "object") {
-        config = { schedules: c.schedules || [], watchdogs: c.watchdogs || [], bandwidths: c.bandwidths || [], notify: c.notify || { unraid: false, webhook: "" }, shape_iface: c.shape_iface || "", ui_settings: c.ui_settings || undefined };
+        config = { schedules: c.schedules || [], watchdogs: c.watchdogs || [], bandwidths: c.bandwidths || [], idle_stops: c.idle_stops || [], notify: c.notify || { unraid: false, webhook: "" }, shape_iface: c.shape_iface || "", ui_settings: c.ui_settings || undefined };
         // cross-origin settings: adopt the server-side cc.* mirror, then re-render
-        if (adoptUISettings(c.ui_settings)) { applySettings(); if (mode === "list") { applyEnhanceClasses(); reinjectRowBadges(); } else renderGrid(); }
+        if (adoptUISettings(c.ui_settings)) { applySettings(); if (mode === "list") { if (themingOn()) applyEnhanceClasses(); else removeEnhanceClasses(); reinjectRowBadges(); } else renderGrid(); }
         // first run against this engine: SEED the server mirror from this browser's
         // settings, so they survive origin switches and cleared browser data
         if (!uiSeeded && (!c.ui_settings || !Object.keys(c.ui_settings).length)) { uiSeeded = true; var seed9 = collectUISettings(); if (Object.keys(seed9).length) { Object.keys(seed9).forEach(function (k9) { uiPending[k9] = 1; }); pushUISettings(); } }
@@ -223,6 +230,10 @@
   // egressKbit = upload cap, ingressKbit = download cap; 0 clears that direction. The entry
   // is dropped only when BOTH are 0.
   function setBandwidth(name, egressKbit, ingressKbit) { var k = norm(name); config.bandwidths = (config.bandwidths || []).filter(function (b) { return norm(b.name) !== k; }); if (egressKbit > 0 || ingressKbit > 0) config.bandwidths.push({ name: name, egress_kbit: egressKbit || 0, ingress_kbit: ingressKbit || 0 }); }
+  // idle-auto-stop (ContainerNursery-style): stop a container after it has been idle
+  // (CPU + network low) for N minutes. idleStopFor reads the entry, setIdleStop upserts it.
+  function idleStopFor(name) { var k = norm(name), list = config.idle_stops || []; for (var i = 0; i < list.length; i++) if (norm(list[i].name) === k) return list[i]; return null; }
+  function setIdleStop(name, is) { var k = norm(name); config.idle_stops = (config.idle_stops || []).filter(function (x) { return norm(x.name) !== k; }); if (is) config.idle_stops.push(is); }
   // a kbit rate as "5 Mbit" / "500 kbit" / "–" (0 = none).
   function bwKbitLabel(kbit) { if (!(kbit > 0)) return "–"; return kbit >= 1000 ? (Math.round(kbit / 100) / 10) + " Mbit" : kbit + " kbit"; }
   // configured UPLOAD cap for the badge tooltip: "↑ 5 Mbit". Download shaping was removed
@@ -348,14 +359,14 @@
   // one resource line: a badge + its gear, side by side; the res-group stacks these.
   function resLine(badge, gear) { var line = el("div", "cc-resline"); line.appendChild(badge); line.appendChild(gear); return line; }
   function planBadge(name) {
-    var node = workingPlan[name], wdOn = !!watchdogFor(name), schedN = schedulesFor(name).length, auto = wdOn || schedN > 0;
+    var node = workingPlan[name], wdOn = !!watchdogFor(name), schedN = schedulesFor(name).length, idleOn = !!idleStopFor(name), auto = wdOn || schedN > 0 || idleOn;
     var chip = el("a", "cc-b cc-plan" + (node ? " cc-plan-on" : "") + (auto ? " cc-plan-auto" : ""));
     chip.href = "#"; chip.innerHTML = '<span class="cc-b-k"></span><span class="cc-b-v"></span>';
     chip.querySelector(".cc-b-k").textContent = t("plan");
     chip.querySelector(".cc-b-v").textContent = depsTxt(node);
-    chip.title = "start order for " + name + (wdOn ? " · watchdog" : "") + (schedN ? " · " + schedN + "× " + t("schedules").toLowerCase() : "");
-    // a small marker so the row shows at a glance that automation is attached
-    if (auto) { var m = el("span", "cc-plan-mark"); m.textContent = (wdOn ? "⏻" : "") + (schedN ? "⏱" : ""); chip.appendChild(m); }
+    chip.title = "start order for " + name + (wdOn ? " · watchdog" : "") + (schedN ? " · " + schedN + "× " + t("schedules").toLowerCase() : "") + (idleOn ? " · " + t("idleStop").toLowerCase() : "");
+    // a small marker so the row shows at a glance that automation is attached (⏻ watchdog, ⏱ schedule, ☾ idle-stop)
+    if (auto) { var m = el("span", "cc-plan-mark"); m.textContent = (wdOn ? "⏻" : "") + (schedN ? "⏱" : "") + (idleOn ? "☾" : ""); chip.appendChild(m); }
     chip.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); openEditor(chip, name); });
     return chip;
   }
@@ -471,6 +482,20 @@
   }
   function applyIconTint() {
     try {
+      // theming off: fully revert the inline tint/sizing so icons render native (a live
+      // toggle must not leave 62px tinted icons behind — the "dead-switch" trap).
+      if (!themingOn()) {
+        var tt0 = tintTargets();
+        for (var q = 0; q < tt0.length; q++) {
+          var z = tt0[q];
+          ["filter", "width", "height", "vertical-align", "margin", "object-fit", "font-size", "color"].forEach(function (p) { z.style.removeProperty(p); });
+          if (z.parentNode && z.parentNode.style) ["display", "align-items", "align-self", "margin"].forEach(function (p) { z.parentNode.style.removeProperty(p); });
+        }
+        document.documentElement.style.removeProperty("--cc-iconbg-color");
+        var s0 = document.getElementById("cc-tint-svg"); if (s0) s0.remove();
+        var m0 = document.getElementById("cc-mono-svg"); if (m0) m0.remove();
+        return;
+      }
       var f = iconFilter();
       var imgs = tintTargets();
       // Logo-Hintergrund (cc.iconbg): the icon sits on an accent-coloured badge box, so
@@ -505,7 +530,7 @@
   var RB_OFFSET = Math.floor(Math.random() * RB_PAL.length);
   function applyRainbowPalette() {
     var rt = document.documentElement;
-    if (localStorage.getItem("cc.rainbow") !== "1") { rt.style.removeProperty("--cc-btn-accent"); RB_KINDS.forEach(function (k) { rt.style.removeProperty("--cc-rb-" + k); rt.style.removeProperty("--cc-rb-" + k + "-t"); }); return; }
+    if (!themingOn() || localStorage.getItem("cc.rainbow") !== "1") { rt.style.removeProperty("--cc-btn-accent"); RB_KINDS.forEach(function (k) { rt.style.removeProperty("--cc-rb-" + k); rt.style.removeProperty("--cc-rb-" + k + "-t"); }); return; }
     // rotation is TOGGLEABLE (cc.rainbowrot, default on): off = stable colours (offset 0)
     var off = localStorage.getItem("cc.rainbowrot") === "0" ? 0 : RB_OFFSET;
     // user-customised palette (Settings: click a swatch to adjust) overrides the default
@@ -575,7 +600,7 @@
     try {
       var bar = document.querySelector("div.js-actions"); if (!bar) return;
       var btns = bar.querySelectorAll("input[type=button]");
-      if (localStorage.getItem("cc.rainbow") !== "1") { Array.prototype.slice.call(btns).forEach(function (b) { b.style.removeProperty("background"); b.style.removeProperty("color"); }); return; }
+      if (!themingOn() || localStorage.getItem("cc.rainbow") !== "1") { Array.prototype.slice.call(btns).forEach(function (b) { b.style.removeProperty("background"); b.style.removeProperty("color"); }); return; }
       var pal = RB_PAL; try { var jp = JSON.parse(localStorage.getItem("cc.rbpal") || "null"); if (jp && jp.length) pal = jp; } catch (e2) {}
       var off = localStorage.getItem("cc.rainbowrot") === "0" ? 0 : RB_OFFSET;
       Array.prototype.slice.call(btns).forEach(function (b, i) { var c = pal[(i + off) % pal.length]; b.style.setProperty("background", c, "important"); b.style.setProperty("color", idealText(c), "important"); });
@@ -627,22 +652,26 @@
       var name = rowName(tr);
       if (filterText) tr.style.display = (norm(name).indexOf(filterText) >= 0) ? "" : "none";
       var nameCell = tr.querySelector("td.ct-name"), upCell = tr.querySelector("td.updatecolumn");
-      // vertically CENTRE every cell's content in the row (logo + name sat at the top —
-      // Unraid's td vertical-align beats the stylesheet, so it's enforced inline).
-      Array.prototype.slice.call(tr.children).forEach(function (td2) { td2.style.setProperty("vertical-align", "middle", "important"); });
-      // the icon/name wrapper itself: Unraid can give .outer full height + top alignment,
-      // which pins the logo to the top of the row even with the td centred — force it.
-      // stray direct children of td.ct-name BELOW .outer (br / spinner / state text on
-      // some builds) add invisible height and pin the visible block to the top — hide them.
-      if (nameCell) Array.prototype.slice.call(nameCell.children).forEach(function (chn) { if (!chn.classList || !chn.classList.contains("outer")) chn.style.setProperty("display", "none", "important"); });
-      var outerBox = nameCell && nameCell.querySelector(".outer");
-      if (outerBox) { outerBox.style.setProperty("display", "flex", "important"); outerBox.style.setProperty("align-items", "center", "important"); outerBox.style.setProperty("height", "auto", "important"); }
+      // COSMETIC row centring — theming only. Native cells keep their native alignment
+      // when theming is off; the orchestration controls below still inject.
+      if (themingOn()) {
+        // vertically CENTRE every cell's content in the row (logo + name sat at the top —
+        // Unraid's td vertical-align beats the stylesheet, so it's enforced inline).
+        Array.prototype.slice.call(tr.children).forEach(function (td2) { td2.style.setProperty("vertical-align", "middle", "important"); });
+        // the icon/name wrapper itself: Unraid can give .outer full height + top alignment,
+        // which pins the logo to the top of the row even with the td centred — force it.
+        // stray direct children of td.ct-name BELOW .outer (br / spinner / state text on
+        // some builds) add invisible height and pin the visible block to the top — hide them.
+        if (nameCell) Array.prototype.slice.call(nameCell.children).forEach(function (chn) { if (!chn.classList || !chn.classList.contains("outer")) chn.style.setProperty("display", "none", "important"); });
+        var outerBox = nameCell && nameCell.querySelector(".outer");
+        if (outerBox) { outerBox.style.setProperty("display", "flex", "important"); outerBox.style.setProperty("align-items", "center", "important"); outerBox.style.setProperty("height", "auto", "important"); }
+      }
       var adv = isAdvancedView(), c = containerByName(name);
       // the ACTIONS cell must exist BEFORE any nth-child lookup below — it sits at
       // position 2 and shifts every later column by one. Injecting it last put the
       // resource badges into Autostart and the plan chip into Betriebszeit.
       injectActionCell(tr, name, c);
-      setupVolMarquee(tr, c); // AFTER the actions cell exists, so the header th index and the row td index line up (else it landed one column over -> the doubled copy)
+      if (themingOn()) setupVolMarquee(tr, c); // cosmetic hover marquee — theming only. AFTER the actions cell exists, so the header th index and the row td index line up
 
       // ── NAME cell (col 1): start/stop badge, and BENEATH it Container-ID / Von ──
       if (nameCell) {
@@ -650,22 +679,25 @@
         var st = (c && c.state) || glyphState(glyph) || "unknown";
         var meta = el("div", "cc-namemeta"); meta.setAttribute(MARK, "1");
         var sb = stateToggle(name, st); if (showUnhealthy(c)) { sb.classList.add("cc-badge-alert"); sb.textContent = stateLabel(st) + " ✕"; sb.title = unhealthyTip(); }
-        meta.appendChild(sb);
-        var advDiv = nameCell.querySelector(":scope > div.advanced");
-        var idrow = el("div", "cc-namemeta-ids"), added = false, hideAdv = false;
-        if (advDiv) {
-          if (colOn("id")) { var cid = readContainerId(advDiv); if (cid) { idrow.appendChild(badgeInfo("ID", cid.slice(0, 12), "id")); added = true; hideAdv = true; } }
-          if (colOn("von")) { var a = advDiv.querySelector("a[target='_blank']"); if (a && a.textContent.trim()) { var vb = badgeInfo("Von", a.textContent.trim(), "von"); vb.title = a.getAttribute("href") || ""; idrow.appendChild(vb); added = true; hideAdv = true; } }
+        meta.appendChild(sb); // the start/stop state toggle is a CONTROL — always
+        // ID / Von / Volumes are DECORATIVE info badges — theming only.
+        if (themingOn()) {
+          var advDiv = nameCell.querySelector(":scope > div.advanced");
+          var idrow = el("div", "cc-namemeta-ids"), added = false, hideAdv = false;
+          if (advDiv) {
+            if (colOn("id")) { var cid = readContainerId(advDiv); if (cid) { idrow.appendChild(badgeInfo("ID", cid.slice(0, 12), "id")); added = true; hideAdv = true; } }
+            if (colOn("von")) { var a = advDiv.querySelector("a[target='_blank']"); if (a && a.textContent.trim()) { var vb = badgeInfo("Von", a.textContent.trim(), "von"); vb.title = a.getAttribute("href") || ""; idrow.appendChild(vb); added = true; hideAdv = true; } }
+          }
+          // Volumes come from the ENGINE (Mounts), so they show even for a stopped
+          // container that has no native advanced block. One badge = the mount count,
+          // with every "source → dest" (ro/rw) in its tooltip.
+          if (colOn("vol") && c && c.mounts && c.mounts.length) {
+            var volB = badgeInfo("Volumes", String(c.mounts.length), "vol");
+            volB.title = c.mounts.map(function (m) { return m.source + " → " + m.dest + (m.rw ? "" : " (ro)"); }).join("\n");
+            idrow.appendChild(volB); added = true;
+          }
+          if (added) { if (hideAdv && advDiv) advDiv.classList.add("cc-hidden"); meta.appendChild(idrow); }
         }
-        // Volumes come from the ENGINE (Mounts), so they show even for a stopped
-        // container that has no native advanced block. One badge = the mount count,
-        // with every "source → dest" (ro/rw) in its tooltip.
-        if (colOn("vol") && c && c.mounts && c.mounts.length) {
-          var volB = badgeInfo("Volumes", String(c.mounts.length), "vol");
-          volB.title = c.mounts.map(function (m) { return m.source + " → " + m.dest + (m.rw ? "" : " (ro)"); }).join("\n");
-          idrow.appendChild(volB); added = true;
-        }
-        if (added) { if (hideAdv && advDiv) advDiv.classList.add("cc-hidden"); meta.appendChild(idrow); }
         var inner = nameCell.querySelector(".inner") || nameCell; inner.appendChild(meta);
       }
 
@@ -700,31 +732,37 @@
       // the tag never leaks into the Simple view and always renders as a real badge. ──
       if (upCell) {
         var vh = el("div", "cc-rowbadges"); vh.setAttribute(MARK, "1");
-        var advs = upCell.querySelectorAll(":scope > div.advanced");
-        var tagDiv = null; // the LAST advanced div without an action link = the image-tag text
-        for (var ai = advs.length - 1; ai >= 0; ai--) { if (!advs[ai].querySelector("a.exec, span.orange-text, span.green-text")) { tagDiv = advs[ai]; break; } }
-        var tagTxt = tagDiv ? tagDiv.textContent.replace(/\s+/g, " ").trim() : "";
-        // Hide only the TEXT advanced divs (the image tag we re-render as a badge) — NOT
-        // the one carrying the force-update a.exec link, or the "Update erzwingen" badge
-        // could never show no matter what the column matrix says.
-        Array.prototype.forEach.call(advs, function (d) { if (!d.querySelector("a.exec")) d.classList.add("cc-hidden"); });
-        // the APPLY-UPDATE action link (top-level a.exec, NOT inside an advanced div)
-        // gets its amber pill inline — some builds have no nested orange-text span,
-        // so the :has() CSS never fired and only bare text showed.
-        Array.prototype.slice.call(upCell.querySelectorAll("a.exec")).forEach(function (ax) {
-          if (ax.closest("div.advanced")) return;
-          ax.style.setProperty("background", "#e0912a", "important");
-          ax.style.setProperty("color", "#1a1a1a", "important");
-          ax.style.setProperty("display", "inline-flex", "important");
-          ax.style.setProperty("align-items", "center", "important");
-        });
-        if (colOn("version") && tagTxt) vh.appendChild(badgeInfo("Tag", tagTxt, "version"));
-        var p = lastRunPill(name); if (p) vh.appendChild(p);
+        // The image-Tag badge + hiding the native tag text + the amber update-button
+        // restyle are DECORATIVE — theming only. With theming off, Unraid's native
+        // version/update column shows unchanged.
+        if (themingOn()) {
+          var advs = upCell.querySelectorAll(":scope > div.advanced");
+          var tagDiv = null; // the LAST advanced div without an action link = the image-tag text
+          for (var ai = advs.length - 1; ai >= 0; ai--) { if (!advs[ai].querySelector("a.exec, span.orange-text, span.green-text")) { tagDiv = advs[ai]; break; } }
+          var tagTxt = tagDiv ? tagDiv.textContent.replace(/\s+/g, " ").trim() : "";
+          // Hide only the TEXT advanced divs (the image tag we re-render as a badge) — NOT
+          // the one carrying the force-update a.exec link, or the "Update erzwingen" badge
+          // could never show no matter what the column matrix says.
+          Array.prototype.forEach.call(advs, function (d) { if (!d.querySelector("a.exec")) d.classList.add("cc-hidden"); });
+          // the APPLY-UPDATE action link (top-level a.exec, NOT inside an advanced div)
+          // gets its amber pill inline — some builds have no nested orange-text span,
+          // so the :has() CSS never fired and only bare text showed.
+          Array.prototype.slice.call(upCell.querySelectorAll("a.exec")).forEach(function (ax) {
+            if (ax.closest("div.advanced")) return;
+            ax.style.setProperty("background", "#e0912a", "important");
+            ax.style.setProperty("color", "#1a1a1a", "important");
+            ax.style.setProperty("display", "inline-flex", "important");
+            ax.style.setProperty("align-items", "center", "important");
+          });
+          if (colOn("version") && tagTxt) vh.appendChild(badgeInfo("Tag", tagTxt, "version"));
+        }
+        var p = lastRunPill(name); if (p) vh.appendChild(p); // last plan-run outcome = orchestration status — always
         if (vh.children.length) upCell.appendChild(vh);
       }
 
       // ── NETWORK group (col 3): consolidate Netzwerk / Container IP / LAN IP / Port ──
-      if (colOn("net")) {
+      // Decorative info badges — theming only; native network cell stays when off.
+      if (themingOn() && colOn("net")) {
         var c3 = tr.querySelector(":scope > td:nth-child(4)"); // +1: actions column
         if (c3) {
           var netTxt = readmoreText(tr, 4), ipTxt = readmoreText(tr, 5), portTxt = readmoreText(tr, 6), lanTxt = readmoreText(tr, 7); // +1: actions column
@@ -817,7 +855,7 @@
   // directly (no CSS-var indirection) with auto black/white glyphs.
   function tintAct(bar) {
     var colorsOn = localStorage.getItem("cc.actcolors") !== "0";
-    var rb = localStorage.getItem("cc.rainbow") === "1";
+    var rb = themingOn() && localStorage.getItem("cc.rainbow") === "1"; // rainbow is theming; accent/legibility tint stays
     var pal = RB_PAL;
     try { var jp = JSON.parse(localStorage.getItem("cc.rbpal") || "null"); if (jp && jp.length) pal = jp; } catch (e2) {}
     var off = localStorage.getItem("cc.rainbowrot") === "0" ? 0 : RB_OFFSET;
@@ -939,7 +977,7 @@
       try { document.cookie = "docker_listview_mode=" + (next ? "advanced" : "basic") + "; path=/"; } catch (e9) {}
       try { var inp9 = document.querySelector("input.advancedview"); if (inp9) inp9.checked = next; } catch (e9) {}
       if (typeof window.loadlist === "function") { try { window.loadlist(); } catch (e9) {} }
-      setTimeout(function () { try { applyEnhanceClasses(); reinjectRowBadges(); } catch (e9) {} }, 300);
+      setTimeout(function () { try { if (themingOn()) applyEnhanceClasses(); else removeEnhanceClasses(); reinjectRowBadges(); } catch (e9) {} }, 300);
     }
     tg.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); flip(); });
     tg.addEventListener("keydown", function (e) { if (e.key === " " || e.key === "Enter") { e.preventDefault(); flip(); } });
@@ -985,8 +1023,10 @@
   }
   function injectAllRowBadges() {
     relocateTopBar(); findRows().forEach(injectRowBadges);
-    requestAnimationFrame(centerNameCells);
-    setTimeout(centerNameCells, 800); // late-loading icon images change the row height
+    if (themingOn()) { // centring is cosmetic — native rows keep native alignment when theming off
+      requestAnimationFrame(centerNameCells);
+      setTimeout(centerNameCells, 800); // late-loading icon images change the row height
+    }
   }
   // EVIDENCE-BASED centring: measure where .outer actually sits inside td.ct-name and
   // compensate with translateY. CSS-only attempts kept failing because Unraid's own
@@ -1013,6 +1053,23 @@
     Array.prototype.slice.call(root.querySelectorAll("[" + MARK + "]")).forEach(function (n) { n.remove(); });
     Array.prototype.slice.call(root.querySelectorAll("[" + ROWMARK + "]")).forEach(function (n) { n.removeAttribute(ROWMARK); });
     Array.prototype.slice.call(root.querySelectorAll(".cc-hidden")).forEach(function (n) { n.classList.remove("cc-hidden"); });
+  }
+  // Revert the per-row COSMETIC inline styles injectRowBadges/centerNameCells wrote onto the
+  // NATIVE cells (vertical-centring, the hidden native name-cell state text/spinner, the
+  // .outer flex + translateY). removeEnhanceClasses/clearRowBadges don't touch these, so a
+  // live theming-OFF would otherwise leave the row half-restyled until a reload.
+  function stripRowCosmetic() {
+    try {
+      findRows().forEach(function (tr) {
+        Array.prototype.slice.call(tr.children).forEach(function (td2) { td2.style.removeProperty("vertical-align"); });
+        var nc = tr.querySelector("td.ct-name");
+        if (nc) {
+          Array.prototype.slice.call(nc.children).forEach(function (chn) { chn.style.removeProperty("display"); });
+          var ob = nc.querySelector(".outer");
+          if (ob) ["display", "align-items", "height", "transform"].forEach(function (p) { ob.style.removeProperty(p); });
+        }
+      });
+    } catch (e) {}
   }
   function reinjectRowBadges() { clearRowBadges(); injectAllRowBadges(); applyIconTint(); }
 
@@ -1170,13 +1227,16 @@
       menuStatusEl = el("div", "cc-menu-status cc-ok-text", "engine up · " + containers.length + (daemonVersion ? " · v" + String(daemonVersion).replace(/^v/, "") : "") + " · UI v" + CC_VER);
     }
     m.appendChild(menuStatusEl);
-    m.appendChild(menuHead(t("view")));
-    var seg = el("div", "cc-seg");
-    var bL = el("button", "cc-seg-btn" + (mode === "list" ? " cc-seg-on" : ""), t("list"));
-    var bG = el("button", "cc-seg-btn" + (mode === "grid" ? " cc-seg-on" : ""), t("grid"));
-    bL.addEventListener("click", function () { closeMenu(); setMode("list"); }); bG.addEventListener("click", function () { closeMenu(); setMode("grid"); });
-    seg.appendChild(bL); seg.appendChild(bG);
-    var vrow = el("div", "cc-menu-row cc-menu-plain"); vrow.appendChild(seg); m.appendChild(vrow);
+    // View list/grid is a THEMING choice (grid is the card view) — hidden with theming off.
+    if (themingOn()) {
+      m.appendChild(menuHead(t("view")));
+      var seg = el("div", "cc-seg");
+      var bL = el("button", "cc-seg-btn" + (mode === "list" ? " cc-seg-on" : ""), t("list"));
+      var bG = el("button", "cc-seg-btn" + (mode === "grid" ? " cc-seg-on" : ""), t("grid"));
+      bL.addEventListener("click", function () { closeMenu(); setMode("list"); }); bG.addEventListener("click", function () { closeMenu(); setMode("grid"); });
+      seg.appendChild(bL); seg.appendChild(bG);
+      var vrow = el("div", "cc-menu-row cc-menu-plain"); vrow.appendChild(seg); m.appendChild(vrow);
+    }
     // Basic/Advanced lives HERE now (the native switch row above the table is
     // hidden): flip Unraid's own hidden checkbox so cookie + re-render stay native.
     var segA = el("div", "cc-seg");
@@ -1191,26 +1251,29 @@
     bA.addEventListener("click", function () { setAdvView(true); });
     segA.appendChild(bB); segA.appendChild(bA);
     var arow = el("div", "cc-menu-row cc-menu-plain"); arow.appendChild(segA); m.appendChild(arow);
-    // Rainbow directly here (same origin as the icons — no more cross-tab guessing)
-    var segR = el("div", "cc-seg");
-    var rbOn = localStorage.getItem("cc.rainbow") === "1";
-    var bRoff = el("button", "cc-seg-btn" + (!rbOn ? " cc-seg-on" : ""), LANG === "de" ? "Rainbow aus" : "Rainbow off");
-    var bRon = el("button", "cc-seg-btn" + (rbOn ? " cc-seg-on" : ""), LANG === "de" ? "Rainbow an" : "Rainbow on");
-    function setRb(v) { localStorage.setItem("cc.rainbow", v ? "1" : "0"); closeMenu(); applySettings(); if (mode === "list") { applyEnhanceClasses(); reinjectRowBadges(); } else renderGrid(); }
-    bRoff.addEventListener("click", function () { setRb(false); });
-    bRon.addEventListener("click", function () { setRb(true); });
-    segR.appendChild(bRoff); segR.appendChild(bRon);
-    var rrow = el("div", "cc-menu-row cc-menu-plain"); rrow.appendChild(segR); m.appendChild(rrow);
-    // icon colours on/off (default on) — base palette normally, rainbow palette in rainbow mode
-    var segC = el("div", "cc-seg");
-    var acOn = localStorage.getItem("cc.actcolors") !== "0";
-    var bCoff = el("button", "cc-seg-btn" + (!acOn ? " cc-seg-on" : ""), LANG === "de" ? "Icons grau" : "Icons grey");
-    var bCon = el("button", "cc-seg-btn" + (acOn ? " cc-seg-on" : ""), LANG === "de" ? "Icons farbig" : "Icons coloured");
-    function setAc(v) { localStorage.setItem("cc.actcolors", v ? "1" : "0"); closeMenu(); applySettings(); if (mode === "list") { applyEnhanceClasses(); reinjectRowBadges(); } else renderGrid(); }
-    bCoff.addEventListener("click", function () { setAc(false); });
-    bCon.addEventListener("click", function () { setAc(true); });
-    segC.appendChild(bCoff); segC.appendChild(bCon);
-    var crow = el("div", "cc-menu-row cc-menu-plain"); crow.appendChild(segC); m.appendChild(crow);
+    // Rainbow + icon-colour are THEMING toggles — hidden with theming off.
+    if (themingOn()) {
+      // Rainbow directly here (same origin as the icons — no more cross-tab guessing)
+      var segR = el("div", "cc-seg");
+      var rbOn = localStorage.getItem("cc.rainbow") === "1";
+      var bRoff = el("button", "cc-seg-btn" + (!rbOn ? " cc-seg-on" : ""), LANG === "de" ? "Rainbow aus" : "Rainbow off");
+      var bRon = el("button", "cc-seg-btn" + (rbOn ? " cc-seg-on" : ""), LANG === "de" ? "Rainbow an" : "Rainbow on");
+      var setRb = function (v) { localStorage.setItem("cc.rainbow", v ? "1" : "0"); closeMenu(); applySettings(); if (mode === "list") { if (themingOn()) applyEnhanceClasses(); else removeEnhanceClasses(); reinjectRowBadges(); } else renderGrid(); };
+      bRoff.addEventListener("click", function () { setRb(false); });
+      bRon.addEventListener("click", function () { setRb(true); });
+      segR.appendChild(bRoff); segR.appendChild(bRon);
+      var rrow = el("div", "cc-menu-row cc-menu-plain"); rrow.appendChild(segR); m.appendChild(rrow);
+      // icon colours on/off (default on) — base palette normally, rainbow palette in rainbow mode
+      var segC = el("div", "cc-seg");
+      var acOn = localStorage.getItem("cc.actcolors") !== "0";
+      var bCoff = el("button", "cc-seg-btn" + (!acOn ? " cc-seg-on" : ""), LANG === "de" ? "Icons grau" : "Icons grey");
+      var bCon = el("button", "cc-seg-btn" + (acOn ? " cc-seg-on" : ""), LANG === "de" ? "Icons farbig" : "Icons coloured");
+      var setAc = function (v) { localStorage.setItem("cc.actcolors", v ? "1" : "0"); closeMenu(); applySettings(); if (mode === "list") { if (themingOn()) applyEnhanceClasses(); else removeEnhanceClasses(); reinjectRowBadges(); } else renderGrid(); };
+      bCoff.addEventListener("click", function () { setAc(false); });
+      bCon.addEventListener("click", function () { setAc(true); });
+      segC.appendChild(bCoff); segC.appendChild(bCon);
+      var crow = el("div", "cc-menu-row cc-menu-plain"); crow.appendChild(segC); m.appendChild(crow);
+    }
     var frow = el("div", "cc-menu-row cc-menu-plain");
     var filter = el("input", "cc-filter"); filter.type = "text"; filter.placeholder = t("filter"); filter.value = filterText;
     filter.addEventListener("input", function () { filterText = norm(filter.value); applyFilter(); });
@@ -1236,7 +1299,7 @@
   function toggleMenu(anchor) { if (menu) closeMenu(); else openMenu(anchor); }
 
   // ───────────────────────── mode
-  function setMode(m) { mode = m; localStorage.setItem(VIEW_KEY, m); refresh(); }
+  function setMode(m) { if (!themingOn() && m === "grid") m = "list"; mode = m; localStorage.setItem(VIEW_KEY, m); refresh(); } // grid is a theming view → coerce to list when theming off
   function refresh() { applyMode(); if (mode === "grid" || (mode === "list" && colOn("res"))) refreshStats(); }
   // update one CPU/RAM engine-badge group in place (values only).
   function updateResGroup(rg, s, state) {
@@ -1252,6 +1315,11 @@
   function applyMode() {
     try {
       if (dead) return;
+      // MASTER THEMING OFF: never enter the grid VIEW and never add the .cc-enh restyle
+      // classes — native Unraid cells stay native. Still inject the orchestration row
+      // controls (actions column, state toggle, CPU/RAM/BW gears, plan chip) via
+      // injectAllRowBadges(), whose decorative blocks self-gate on themingOn().
+      if (!themingOn()) { hideNative(false); removeGridHolder(); removeEnhanceClasses(); injectAllRowBadges(); return; }
       if (mode === "grid") { removeEnhanceClasses(); clearRowBadges(); hideNative(true); renderGrid(); }
       else { hideNative(false); removeGridHolder(); applyEnhanceClasses(); injectAllRowBadges(); }
     } catch (e) { try { hideNative(false); } catch (e2) {} } // never leave the native list hidden or broken
@@ -1466,6 +1534,28 @@
     pop.appendChild(wSec);
     function readWatchdog() { if (!wEn.checked) return null; return { name: name, enabled: true, on_unhealthy: !!wU.checked, on_exit: !!wX.checked, max_restarts: parseInt(wM.value, 10) || 0 }; }
 
+    // ── Idle-auto-stop (ContainerNursery-style) — stop when idle, independent of plan ──
+    // Kept to ONE collapsed line-group (a toggle + two inputs) so the editor stays übersichtlich.
+    var ni = idleStopFor(name);
+    var nSec = el("div", "cc-pop-auto");
+    var nHead = el("label", "cc-pop-row cc-pop-toggle"), nEn = el("input"); nEn.type = "checkbox"; nEn.checked = !!(ni && ni.enabled);
+    nHead.appendChild(nEn); nHead.appendChild(el("span", "cc-pop-sech", t("idleStop"))); nSec.appendChild(nHead);
+    var nBody = el("div", "cc-pop-sub" + (nEn.checked ? "" : " cc-dis"));
+    var nMrow = el("div", "cc-pop-row"); nMrow.appendChild(el("label", "cc-pop-lbl", t("idleMin")));
+    var nMin = el("input", "cc-in cc-port"); nMin.type = "number"; nMin.min = "1"; nMin.placeholder = "30"; nMin.value = (ni && ni.idle_minutes) ? ni.idle_minutes : "";
+    nMrow.appendChild(nMin); nBody.appendChild(nMrow);
+    var nCrow = el("div", "cc-pop-row"); nCrow.appendChild(el("label", "cc-pop-lbl", t("idleCpu")));
+    var nCpu = el("input", "cc-in cc-port"); nCpu.type = "number"; nCpu.min = "0"; nCpu.max = "100"; nCpu.placeholder = "5"; nCpu.value = (ni && ni.cpu_threshold_pct) ? ni.cpu_threshold_pct : "";
+    nCrow.appendChild(nCpu); nBody.appendChild(nCrow); nSec.appendChild(nBody);
+    nSec.appendChild(el("div", "cc-pop-foot", t("idleFoot")));
+    nEn.addEventListener("change", function () { nBody.classList.toggle("cc-dis", !nEn.checked); });
+    pop.appendChild(nSec);
+    // Enabled but blank/invalid minutes => default to the placeholder (30), never 0: a 0
+    // would persist an enabled entry that the monitor ignores yet the plan chip still marks
+    // as active (a confusing dead entry). CPU 0/blank is fine — the monitor treats <=0 as its
+    // 5% default.
+    function readNursery() { if (!nEn.checked) return null; return { name: name, enabled: true, idle_minutes: parseInt(nMin.value, 10) || 30, cpu_threshold_pct: parseFloat(nCpu.value) || 0 }; }
+
     // ── Schedules (timed lifecycle actions) — independent of plan membership ──
     function schedRow(s) {
       var row = el("div", "cc-sched-row");
@@ -1493,7 +1583,7 @@
     var act = el("div", "cc-pop-row cc-pop-act");
     act.style.setProperty("border-top", "none", "important"); // no bottom separator line either (user call)
     var bSave = el("span", "cc-btn cc-btn-primary", t("saveShort"));
-    bSave.addEventListener("click", function () { saveEditor(name, readWatchdog(), readSchedules(), false); });
+    bSave.addEventListener("click", function () { saveEditor(name, readWatchdog(), readSchedules(), readNursery(), false); });
     act.appendChild(bSave); pop.appendChild(act);
     function commit() {
       if (!manageOn) { delete workingPlan[name]; body.classList.add("cc-dis"); refreshChip(anchor, name); return; }
@@ -1644,7 +1734,7 @@
     api("GET", "config")
       .then(function (fresh) {
         if (!fresh || typeof fresh !== "object") throw new Error("config unreadable");
-        config = { schedules: fresh.schedules || [], watchdogs: fresh.watchdogs || [], bandwidths: fresh.bandwidths || [], notify: fresh.notify || { unraid: false, webhook: "" }, shape_iface: fresh.shape_iface || "", ui_settings: fresh.ui_settings || undefined };
+        config = { schedules: fresh.schedules || [], watchdogs: fresh.watchdogs || [], bandwidths: fresh.bandwidths || [], idle_stops: fresh.idle_stops || [], notify: fresh.notify || { unraid: false, webhook: "" }, shape_iface: fresh.shape_iface || "", ui_settings: fresh.ui_settings || undefined };
         setBandwidth(name, egressKbit, ingressKbit);
         return api("PUT", "config", config);
       })
@@ -1856,7 +1946,7 @@
   // and the notify block (set in Settings) are preserved. Config is saved FIRST and
   // independently: the automation is unrelated to the plan, so an invalid/stale
   // plan (a bad dependency) must never cause the watchdog/schedules to be lost.
-  function saveEditor(name, wd, scheds, thenApply) {
+  function saveEditor(name, wd, scheds, nursery, thenApply) {
     flash(t("saving"));
     // Read-modify-write: re-fetch the LIVE config, replace ONLY this container's
     // watchdog + schedules, then write it back — so notify + the shaping interface
@@ -1870,8 +1960,8 @@
         // engine always returns a config object on success, so this only guards the
         // unexpected (a null/garbage body), never a legitimate first save.
         if (!fresh || typeof fresh !== "object") throw new Error("config unreadable");
-        config = { schedules: fresh.schedules || [], watchdogs: fresh.watchdogs || [], bandwidths: fresh.bandwidths || [], notify: fresh.notify || { unraid: false, webhook: "" }, shape_iface: fresh.shape_iface || "", ui_settings: fresh.ui_settings || undefined };
-        setWatchdog(name, wd); setSchedules(name, scheds);
+        config = { schedules: fresh.schedules || [], watchdogs: fresh.watchdogs || [], bandwidths: fresh.bandwidths || [], idle_stops: fresh.idle_stops || [], notify: fresh.notify || { unraid: false, webhook: "" }, shape_iface: fresh.shape_iface || "", ui_settings: fresh.ui_settings || undefined };
+        setWatchdog(name, wd); setSchedules(name, scheds); setIdleStop(name, nursery);
         return api("PUT", "config", config);
       })
       .then(function () { return api("PUT", "plan", collectPlan()); })
@@ -1938,7 +2028,7 @@
   }
   function enhanceShipLogBubble(bub) {
     try {
-      if (localStorage.getItem("cc.rainbow") !== "1") return; // accent + shape are pure CSS
+      if (!themingOn() || localStorage.getItem("cc.rainbow") !== "1") return; // accent + shape are pure CSS; rainbow is theming
       Array.prototype.slice.call(bub.querySelectorAll(".sl-upd:not(.sl-upd-off), .sl-gh")).forEach(function (bn, i) {
         var c = ccRbColor(i);
         bn.style.setProperty("background", c, "important");
@@ -1966,7 +2056,7 @@
     lastAdv = isAdvancedView();
     // reinject id/Von + re-apply the advanced class on an Advanced/Basic flip
     // (Unraid's toggle has no reliable event, so poll the effective state)
-    timers.push(setInterval(function () { try { if (dead || mode !== "list") return; var a = isAdvancedView(); if (a !== lastAdv) { lastAdv = a; applyEnhanceClasses(); reinjectRowBadges(); } } catch (e) {} }, 1500));
+    timers.push(setInterval(function () { try { if (dead || mode !== "list") return; var a = isAdvancedView(); if (a !== lastAdv) { lastAdv = a; if (themingOn()) applyEnhanceClasses(); else removeEnhanceClasses(); reinjectRowBadges(); } } catch (e) {} }, 1500));
     // FAST, UNGATED liveness: the moment the proxy 404/410s (uninstalled) tear the
     // UI down — within ~4s, and NOT blocked by an open menu/popover like the 9s
     // poll. This is what makes an uninstall visibly clean up the open tab quickly.
@@ -2037,8 +2127,19 @@
         try {
           if (dead || !e.key || !/^ccd?\./.test(e.key)) return; // react to global cc.* AND Docker-own ccd.* keys
           if (e.key === "cc.view") { setMode(localStorage.getItem("cc.view") === "grid" ? "grid" : "list"); return; }
+          // MASTER THEMING toggle flipped live: coerce grid->list if now off, fully reset the
+          // old visual state, then let applyMode() re-render per the new theming state.
+          if (e.key === "cc.theming") {
+            if (!themingOn() && mode === "grid") { mode = "list"; localStorage.setItem(VIEW_KEY, "list"); }
+            applySettings(); clearRowBadges(); removeEnhanceClasses(); applyMode();
+            // applyMode's OFF-branch re-injects orchestration but does NOT revert the icon tint
+            // or the per-row cosmetic inline styles from the prior theming-ON state — do it here
+            // so a live theming-OFF fully reverts without a reload (no "dead-switch").
+            if (!themingOn()) { applyIconTint(); stripRowCosmetic(); }
+            return;
+          }
           applySettings();
-          if (mode === "list") { applyEnhanceClasses(); reinjectRowBadges(); }
+          if (mode === "list") { if (themingOn()) applyEnhanceClasses(); else removeEnhanceClasses(); reinjectRowBadges(); }
           else if (mode === "grid") renderGrid();
         } catch (e2) {}
       });

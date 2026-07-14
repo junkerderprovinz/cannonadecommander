@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.11.3">
+  <!ENTITY version   "2.12.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,21 @@
 </ICON>
 
 <CHANGES>
+### 2.12.0
+1. New: **master theming switch.** CC Settings -> General has a new "Theming" toggle at the top. Turn
+   it OFF to keep ONLY CannonadeCommand's Docker functions (the start plan, dependencies, health-gate,
+   watchdog, schedules, CPU/RAM limits, bandwidth and the new idle auto-stop) while every visual change
+   — badges, colours, rainbow, cards and the restyling of the Docker/Header/Shares/Plugins/VM/Settings
+   tabs — is disabled. Defaults on, so nothing changes for existing installs. (The Docker, header,
+   Shares detail, VM and Settings pages revert live; the Shares list and Plugins tables revert on the
+   next page load.)
+2. New: **auto-stop containers when idle** (inspired by ContainerNursery). In a container's start-plan
+   editor there is now an "Auto-stop when idle" section: set the idle minutes and a CPU threshold, and
+   the engine stops the container once it has stayed idle — low CPU AND low network — for that long. A
+   busy container is never stopped, and a host/container-network container is skipped (its per-container
+   idle can't be measured) with a notification. CC does not start it again automatically (a schedule,
+   the start plan, or Unraid's autostart does). The plan chip shows a moon marker when it is active.
+
 ### 2.11.3
 1. Freigaben: the settings cards are fixed properly. The settings form now sits INSIDE its main card
    (it was leaving the main card empty and rendering the form below it), and the "Einstellungen
@@ -510,7 +525,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>8dc3f99a594608cdb85fe5cd52e7e67468ad4474f136686b3ec36b2700a7dd05</SHA256>
+  <SHA256>6c037582f5d83d0e3890f45406053fb7558770f856b0eaa1de47fbb3e603f24f</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

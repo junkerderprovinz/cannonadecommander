@@ -323,3 +323,40 @@ func TestConfigPutGetAndValidate(t *testing.T) {
 		t.Fatalf("config get wrong: %+v", got)
 	}
 }
+
+func TestConfigIdleStopValidation(t *testing.T) {
+	s, h := newServer()
+	put := func(cfg model.Config) int {
+		body, _ := json.Marshal(cfg)
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest("PUT", "/api/config", bytes.NewReader(body)))
+		return rec.Code
+	}
+	// valid idle-stop → stored and round-trips
+	if code := put(model.Config{IdleStops: []model.IdleStop{{Name: "jelly", Enabled: true, IdleMinutes: 30, CPUThresholdPct: 5}}}); code != 200 {
+		t.Fatalf("valid idle-stop should be 200, got %d", code)
+	}
+	if len(s.Store.(*memStore).cfg.IdleStops) != 1 {
+		t.Fatalf("idle-stop not stored: %+v", s.Store.(*memStore).cfg)
+	}
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest("GET", "/api/config", nil))
+	var got model.Config
+	_ = json.Unmarshal(rec.Body.Bytes(), &got)
+	if len(got.IdleStops) != 1 || got.IdleStops[0].Name != "jelly" || got.IdleStops[0].IdleMinutes != 30 {
+		t.Fatalf("idle-stop did not round-trip: %+v", got.IdleStops)
+	}
+	// invalid: empty name, out-of-range minutes, out-of-range threshold → 400
+	if code := put(model.Config{IdleStops: []model.IdleStop{{Name: "", Enabled: true, IdleMinutes: 30}}}); code != 400 {
+		t.Fatalf("empty name should be 400, got %d", code)
+	}
+	if code := put(model.Config{IdleStops: []model.IdleStop{{Name: "x", IdleMinutes: 999999}}}); code != 400 {
+		t.Fatalf("out-of-range minutes should be 400, got %d", code)
+	}
+	if code := put(model.Config{IdleStops: []model.IdleStop{{Name: "x", IdleMinutes: 30, CPUThresholdPct: 150}}}); code != 400 {
+		t.Fatalf("threshold > 100 should be 400, got %d", code)
+	}
+	if code := put(model.Config{IdleStops: []model.IdleStop{{Name: "x", IdleMinutes: 30, CPUThresholdPct: -1}}}); code != 400 {
+		t.Fatalf("negative threshold should be 400, got %d", code)
+	}
+}

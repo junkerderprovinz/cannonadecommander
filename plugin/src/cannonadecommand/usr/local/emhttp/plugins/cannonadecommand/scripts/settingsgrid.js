@@ -130,7 +130,8 @@
   function apply() {
     try {
       var root = document.documentElement;
-      var live = g("cc.enable.settings", "1") !== "0" && onSettings();
+      // MASTER THEMING off behaves like the area being disabled (purely presentational).
+      var live = g("cc.enable.settings", "1") !== "0" && g("cc.theming", "1") !== "0" && onSettings();
       var badge = live && g("ccs.iconbg", "1") !== "0";
       // tint only when the badge is OFF and a valid colour is set (mutually exclusive UI)
       var tint = live && !badge && /^#[0-9a-f]{6}$/i.test(g("ccs.iconcolor", ""));

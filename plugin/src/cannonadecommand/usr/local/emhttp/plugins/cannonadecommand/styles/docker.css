@@ -197,6 +197,12 @@ a.sl-updall { display: none !important; }
 .cc-enh:not(.cc-c-force)   #docker_list tr.sortable td.updatecolumn div.advanced a.exec,
 .cc-enh:not(.cc-c-res)     #docker_list tr.sortable td.advanced span[class^='cpu-'],
 .cc-enh:not(.cc-c-res)     #docker_list tr.sortable td.advanced span[class^='mem-'] { display: none !important; }
+/* MASTER THEMING off (table without .cc-enh): the injected CC resgroup already shows CPU/RAM
+   plus the limit/bandwidth gears, so hide the duplicate NATIVE cpu/mem text in the same cell.
+   Scoped to :not(.cc-enh) so theming ON — which instead restyles those native spans into the
+   badges (rules above) — is unaffected. */
+table:not(.cc-enh) #docker_list tr.sortable td.advanced:has(> .cc-resgroup) span[class^='cpu-'],
+table:not(.cc-enh) #docker_list tr.sortable td.advanced:has(> .cc-resgroup) span[class^='mem-'] { display: none !important; }
 /* The APPLY-UPDATE action ("Aktualisierung anwenden", an a.exec wrapping span.orange-text)
    must NEVER be hidden: the force-update toggle above only scopes to the advanced block's
    force link now, and this override keeps the apply link + its "update ready" text visible

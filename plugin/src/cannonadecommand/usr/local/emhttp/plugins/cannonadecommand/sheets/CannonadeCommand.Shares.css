@@ -82,19 +82,18 @@ html.cc-shares-on #displaybox table.unraid.share_status thead th {
 }
 
 /* ═══ align the Shares content with the MAIN MENU BAR ═══
-   Anchor = the menu bar's text left = `.nav-item a { padding: 0 10px }` in default-base.css (the
-   nav-tile itself has zero padding), so the first menu item's text sits at x=10px. #displaybox's
-   native padding-left is 1rem = 10px (html font-size 62.5%), so content + nav.tabs + first tab pill +
-   bottom buttons already sit on the menu line by default — BUT 1rem SCALES with Unraid's font switch
-   while the menu's 10px is FIXED, so they drift at non-default sizes. We therefore pin the left inset
-   to a fixed px token locked to the menu at any font size. (CC's old value was 15px, from stale
-   Header.css math — 5px too far right; 10px is the real edge.) div.title carries its OWN 10px left
-   padding (span.left text lands 10px past the content edge), so we zero it to put every title's TEXT
-   on the menu line too. Broadened from the list to BOTH shares pages via :is() so the /Shares/Share
-   detail (tabs, section titles, cards) aligns as well; /Docker (also cc-shares-on) stays native;
-   sidebar theme excluded (its #displaybox uses padding-left:8rem). The token is a shared geometry
-   constant (like --cc-b-radius, NOT an accent) — any CC area can reuse it. */
-html.cc-shares-on { --cc-align-left: 10px; }
+   The visible menu-bar left edge depends on whether the CC HEADER area is on: with it ON, Header.css
+   turns the first menu item into a PILL whose border-box LEFT = .nav-tile:not(.right) padding-left
+   (12px) + .nav-item>a margin-left (3px) = 15px; with it OFF, the native menu TEXT sits at 10px
+   (.nav-item a padding-left). #displaybox's native padding-left is 1rem = 10px, so content/tabs/title
+   sat 5px LEFT of the menu PILL for every user running the Header area (v2.10 wrongly pinned 10px — it
+   inverted the value; 15px is the pill edge). So --cc-align-left is header-GATED: 10px by default, 15px
+   under .cc-header-on, a fixed px locked to the menu at any font size. div.title carries its OWN 10px
+   left padding, so we zero it to put every title's TEXT on the menu line too. Broadened to BOTH shares
+   pages via :is(); /Docker (also cc-shares-on) stays native; sidebar theme excluded (8rem inset). The
+   token is a shared geometry constant (like --cc-b-radius, NOT an accent) — any CC area reuses it. */
+html.cc-shares-on { --cc-align-left: 10px; }              /* header area OFF: native menu TEXT edge (.nav-item a padding-left) */
+html.cc-shares-on.cc-header-on { --cc-align-left: 15px; } /* header area ON: CC menu PILL edge = nav-tile 12px + .nav-item>a margin 3px (border-box left) */
 html.cc-shares-on:not(.Theme--sidebar):is(.cc-on-shares, .cc-on-share-detail) #displaybox { padding-left: var(--cc-align-left, 10px); }
 html.cc-shares-on:not(.Theme--sidebar):is(.cc-on-shares, .cc-on-share-detail) #displaybox div.title { padding-left: 0; }
 /* the leading NAME cell keeps a small deliberate indent (12px past the anchor) so the share name
@@ -370,8 +369,8 @@ html.cc-shares-on.cc-on-share-detail #displaybox .ui-dropdownchecklist-dropconta
   gap: 6px !important; padding: 8px !important;
   width: max-content !important; min-width: 160px !important; max-width: min(92vw, 420px) !important;  /* panel hugs the widest pill, not the widget's inline 300px */
   height: auto !important; max-height: 50vh !important; overflow-y: auto !important; overflow-x: hidden !important;  /* the list is the ONLY scroll container */
-  background: #303030 !important; border: 1px solid rgba(255, 255, 255, .16) !important; border-radius: 10px !important;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, .6) !important;   /* elevated floating panel, clearly off the #222 card */
+  background: #303030 !important; border: none !important; border-radius: 10px !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .6) !important;   /* NO border line (user: "Keine Rahmenlinien!"); depth = fill + shadow off the #222 card */
 }
 /* the widget writes a stale inline px height + width:300 onto the OUTER wrapper -> free height/width/
    overflow ONLY (never its widget-managed position/top/left/z-index) so the list hugs its content and
@@ -384,8 +383,8 @@ html.cc-shares-on.cc-on-share-detail #displaybox .cc-sel-opt {
   display: flex !important; align-items: center; gap: 8px; justify-content: flex-start;
   height: auto !important; line-height: 1.3 !important; margin: 0 !important;
   padding: 6px 12px; cursor: pointer; border-radius: var(--cc-b-radius, 999px);
-  background: rgba(255, 255, 255, .14) !important;   /* raised from .08 -> legible when NOT selected */
-  border: 1px solid #6f6f6f !important; color: #ececec !important; white-space: nowrap;
+  background: rgba(255, 255, 255, .14) !important;   /* legible chip fill vs the #303030 panel — NO border line */
+  border: none !important; color: #ececec !important; white-space: nowrap;
 }
 html.cc-shares-on.cc-on-share-detail #displaybox .ui-dropdownchecklist-item:has(input:checked) {
   background: var(--cc-shr-accent, #2f6feb) !important; border-color: var(--cc-shr-accent, #2f6feb) !important;
@@ -416,14 +415,13 @@ html.cc-shares-on.cc-on-share-detail #displaybox nav.tabs button[role="tab"] { d
 html.cc-shares-on.cc-on-share-detail #displaybox nav.tabs { border: none; min-height: 0; }
 /* the prev/next arrows stay flowed so nav.tabs keeps a height (they were position:absolute) */
 html.cc-shares-on.cc-on-share-detail #displaybox .menuNavButtonsTabbed { position: static; margin-left: auto; }
-/* per-card header = a CC BADGE/pill (accent chip, hugs its text), NO underline line (user: "Keine
-   Linien, wir machen die überschrift in ein badge"). Text comes from the tab button via shares.js. */
+/* per-card header = a REAL CC badge: SOLID accent fill + contrast text, hugs its text, no line
+   (user: "Die Cards überschriften in richtige Badges formatieren. inkl. Färbung"). Text from the tab
+   button via shares.js. Uses the area accent (rainbow-agnostic like the other semantic headers). */
 html.cc-shares-on.cc-on-share-detail #displaybox .cc-card-head {
   display: inline-flex; align-items: center; gap: 7px;
   font-weight: 700; text-transform: uppercase; letter-spacing: .6px; font-size: 12px; line-height: 1;
-  color: var(--cc-shr-accent, #2f6feb);
-  background: rgba(255, 255, 255, .08);                                  /* fallback chip if no color-mix */
-  background: color-mix(in srgb, var(--cc-shr-accent, #2f6feb) 16%, transparent);
+  background: var(--cc-shr-accent, #2f6feb) !important; color: var(--cc-shr-accent-text, #fff) !important;
   border: none; border-radius: var(--cc-b-radius, 999px);
   padding: 6px 14px; margin: 0 0 14px;
 }
@@ -439,6 +437,43 @@ html.cc-shares-on.cc-on-share-detail #displaybox section[role="tabpanel"] dd,
 html.cc-shares-on.cc-on-share-detail #displaybox section[role="tabpanel"] .inline_help,
 html.cc-shares-on.cc-on-share-detail #displaybox section[role="tabpanel"] blockquote { color: #d5d5d5; }
 
+/* ═══ clone-settings "Einstellungen übernehmen von" -> small SIDE card beside the main card, and the
+   SMB "User Access" region -> its own MAIN card (user: clone = Nebencard, SMB Benutzerzugriff =
+   Hauptcard). shares.js wraps whole forms/blocks (no field leaves its <form>). When a section holds a
+   split it stops being the card itself and becomes a transparent, wider flex host; the two columns are
+   the cards. NO border lines (rule [[cc-standardize-widget-style-systemwide]]) — distinguish by fill +
+   shadow. */
+html.cc-shares-on.cc-on-share-detail #displaybox .tab-content:has(.cc-split-row) {
+  max-width: 1040px; background: none; padding: 0;   /* room for main + side card; section is a host now, not the card */
+}
+html.cc-shares-on.cc-on-share-detail #displaybox .cc-split-row {
+  display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start;   /* side card stacks below on narrow screens */
+}
+html.cc-shares-on.cc-on-share-detail #displaybox .cc-main-col {
+  flex: 1 1 460px; min-width: 0;
+  background: #222; border: none; border-radius: 12px; padding: 16px 20px; box-shadow: 0 1px 4px rgba(0, 0, 0, .35);
+}
+html.cc-shares-on.cc-on-share-detail #displaybox .cc-side-card {
+  flex: 0 0 260px;
+  background: #222; border: none; border-radius: 12px; padding: 12px 14px; box-shadow: 0 1px 4px rgba(0, 0, 0, .35);
+}
+/* the columns are the cards now -> drop the inner .shade backgrounds/insets */
+html.cc-shares-on.cc-on-share-detail #displaybox .cc-main-col > .shade,
+html.cc-shares-on.cc-on-share-detail #displaybox .cc-side-card .clone-settings,
+html.cc-shares-on.cc-on-share-detail #displaybox .cc-side-card .shade {
+  background: none !important; padding: 0; margin: 0;
+}
+/* SMB "User Access" = its own main card, stacked under the SMB-settings split. LEFT-aligned + full
+   host width so its left edge lines up with the split-row above (align-to-menu-bar) AND its own inner
+   clone split (main + side) fits without wrapping. */
+html.cc-shares-on.cc-on-share-detail #displaybox .cc-user-access-card {
+  background: #222; border: none; border-radius: 12px; padding: 16px 20px; margin: 16px 0 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .35);
+}
+html.cc-shares-on.cc-on-share-detail #displaybox .cc-user-access-card > .title.nocontrol {
+  margin: 0 0 12px !important; padding: 0 !important; border: 0 !important;   /* title bar = the card header */
+}
+
 /* ═══ custom single-<select> overlay (.cc-sel): a native <select>'s open popup is OS-rendered and
    unreachable by CSS, so shares.js mirrors each into this overlay to match the disk dropdown (user:
    "alle dropdownlisten ... alle listen!"). The real <select> stays (display:none) as the source of
@@ -453,8 +488,8 @@ html.cc-shares-on.cc-on-share-detail #displaybox .cc-sel-panel {
   display: none; position: absolute; z-index: 20; margin-top: 4px; flex-direction: column; gap: 6px;
   padding: 8px; width: max-content; min-width: 160px; max-width: min(92vw, 420px);
   max-height: 50vh; overflow-y: auto; overflow-x: hidden;
-  background: #303030; border: 1px solid rgba(255, 255, 255, .16); border-radius: 10px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, .6);
+  background: #303030; border: none; border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .6);   /* NO border line (user: "Keine Rahmenlinien!") */
 }
 html.cc-shares-on.cc-on-share-detail #displaybox .cc-sel.cc-open .cc-sel-panel { display: flex; }
 html.cc-shares-on.cc-on-share-detail #displaybox .cc-sel.cc-sel-disabled .cc-sel-trigger { opacity: .5; cursor: not-allowed; }

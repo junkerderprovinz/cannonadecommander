@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.11.0">
+  <!ENTITY version   "2.11.1">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,17 @@
 </ICON>
 
 <CHANGES>
+### 2.11.1
+1. Alignment: the plugin tabs, the plugin list and the share content line up with the main menu bar
+   again — the anchor was 5px off (with the CC menu bar enabled the first menu pill sits at 15px, not
+   10px). Applies to the Plugins/Docker pages too.
+2. Freigaben: each card title is now a solid coloured badge (was a faint underlined chip).
+3. Freigaben: the dropdown lists and panels no longer have any border lines.
+4. Freigaben: "Einstellungen übernehmen von" moves into a small side card beside the main card, and
+   "SMB Benutzerzugriff" becomes its own main card.
+5. Freigaben: every dropdown on the share settings pages — including the "Read settings from" selects —
+   now uses the disk-list look.
+
 ### 2.11.0
 - Freigaben: the share detail sub-pages are now shown in narrower, centered cards (like the CC settings
   cards, not full page width), and each card title is a badge showing the real sub-page name — the
@@ -483,7 +494,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>a4412aaa6d78d490fe5816dcdb04be5f28d7763a85321315292d6368275877f7</SHA256>
+  <SHA256>1759e76505b577aa7cc805507ac5c3b28f3abcb931bfa422c4763b71b74fcd23</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

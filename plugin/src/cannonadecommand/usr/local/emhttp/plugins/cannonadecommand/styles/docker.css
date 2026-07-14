@@ -570,6 +570,18 @@ div.tab input[type=radio]:checked + label,
    line, spaced uppercase labels. ── */
 div.title { background: transparent !important; border-bottom: 1px solid #2f2f2f !important; box-shadow: none !important; padding-left: 0 !important; }
 div.title span.left, div.title span.right { text-transform: uppercase; letter-spacing: 2px; font-size: 12px; }
+
+/* ── align Docker + Plugins content with the CC-styled MAIN MENU BAR (rule [[cc-align-everything-to-menu-bar]]).
+   Header.css turns the first menu item into a PILL whose border-box LEFT edge =
+   .nav-tile:not(.right) padding-left (12px) + .nav-item>a margin-left (3px) = 15px (header area ON);
+   native menu text = 10px (header OFF). #displaybox's native padding-left is only 1rem (=10px), so the
+   plugin tabs (nav.tabs first pill), #plugin_list and every div.title sat 5px LEFT of the menu pill.
+   Pin the content edge to the token. :has() scopes to Docker+Plugins (Settings has neither table);
+   sidebar theme excluded (its #displaybox uses padding-left:8rem). */
+html { --cc-align-left: 10px; }
+html.cc-header-on { --cc-align-left: 15px; }
+html:not(.Theme--sidebar) #displaybox:has(#plugin_list),
+html:not(.Theme--sidebar) #displaybox:has(#docker_list) { padding-left: var(--cc-align-left, 10px); }
 .tabs, #tabs { background: transparent !important; border: 0 !important; }
 .tabs .tab, #tabs .tab { background: transparent !important; border: 0 !important; text-transform: uppercase; letter-spacing: 1.5px; }
 

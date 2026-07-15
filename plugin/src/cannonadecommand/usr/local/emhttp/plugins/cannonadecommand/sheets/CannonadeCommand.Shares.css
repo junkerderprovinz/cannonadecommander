@@ -484,7 +484,7 @@ html.cc-shares-on.cc-on-share-detail #displaybox .cc-main-col {
   background: #222; border: none; border-radius: 12px; padding: 16px 20px; box-shadow: 0 1px 4px rgba(0, 0, 0, .35);
 }
 html.cc-shares-on.cc-on-share-detail #displaybox .cc-side-card {
-  flex: 0 1 460px; min-width: 0; align-self: flex-start;   /* Nebencard basis bumped 360 -> 460 (user: too small); can shrink on narrow (no overflow), no grow */
+  flex: 0 1 540px; min-width: 0; align-self: flex-start;   /* Nebencard basis 460 -> 540 (user: still too small); can shrink on narrow, no grow */
   background: #222; border: none; border-radius: 12px; padding: 16px 18px; box-shadow: 0 1px 4px rgba(0, 0, 0, .35);
 }
 /* the two columns ARE the cards now -> drop every inner .shade fill, and NEUTRALIZE the native float:
@@ -499,6 +499,28 @@ html.cc-shares-on.cc-on-share-detail #displaybox .cc-side-card .shade {
   background: none !important; padding: 0; margin: 0;
   position: static !important; inset: auto !important; width: auto !important;
 }
+/* ═══ Nebencard CONTENT must fit the card (user: "es geht über den Rand hinaus"). The native clone block
+   is built for its 40rem (640px) absolute float: Unraid's dl is a TWO-column grid (grid-template-columns:
+   35% 1fr), so in a narrower card the label eats 35% and the value column (select + Read/Write button)
+   overflows the right edge. Inside the Nebencard we use Unraid's OWN responsive pattern instead —
+   ONE column (label ABOVE its control row) — and let the control row wrap + its select shrink, so the
+   content always fits whatever width the card has. */
+html.cc-shares-on.cc-on-share-detail #displaybox .cc-side-card dl {
+  display: grid !important; grid-template-columns: 1fr !important; gap: 4px 0 !important; margin: 0 0 12px !important;
+}
+html.cc-shares-on.cc-on-share-detail #displaybox .cc-side-card dl:last-child { margin-bottom: 0 !important; }
+html.cc-shares-on.cc-on-share-detail #displaybox .cc-side-card dt,
+html.cc-shares-on.cc-on-share-detail #displaybox .cc-side-card dd {
+  width: auto !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; text-align: left !important;
+}
+/* the value row (select + its Read/Write button) may wrap, and nothing inside may force an overflow */
+html.cc-shares-on.cc-on-share-detail #displaybox .cc-side-card dd > span.flex { flex-wrap: wrap !important; row-gap: 6px !important; }
+html.cc-shares-on.cc-on-share-detail #displaybox .cc-side-card dd select,
+html.cc-shares-on.cc-on-share-detail #displaybox .cc-side-card dd .cc-sel,
+html.cc-shares-on.cc-on-share-detail #displaybox .cc-side-card dd .cc-sel-trigger,
+html.cc-shares-on.cc-on-share-detail #displaybox .cc-side-card dd .ui-dropdownchecklist,
+html.cc-shares-on.cc-on-share-detail #displaybox .cc-side-card dd .ui-dropdownchecklist-selector { max-width: 100% !important; box-sizing: border-box !important; }
+html.cc-shares-on.cc-on-share-detail #displaybox .cc-side-card * { min-width: 0; }   /* let every flex/grid child shrink instead of pushing past the card */
 /* a native sub-heading that sits BETWEEN two crows in the same panel (e.g. "SMB User Access", whose
    form becomes its OWN Hauptcard in the next crow) -> a light, left-aligned label on the transparent
    host, not a boxed title bar. */

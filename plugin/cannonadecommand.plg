@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.14.0">
+  <!ENTITY version   "2.14.1">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,12 @@
 </ICON>
 
 <CHANGES>
+### 2.14.1
+1. Freigaben (share detail): the side card no longer overflows its right edge. Unraid's clone block is
+   built for a 640px float (its label/value list is a two-column grid), so in the narrower card the
+   Read/Write button spilled past the border. The side card is bigger now, and inside it the list uses
+   Unraid's own one-column responsive layout (label above its control), so the content always fits.
+
 ### 2.14.0
 1. Freigaben (share detail): the disk dropdown panels no longer show a faint frame, and every dropdown
    option is now mouse-reactive — neutral grey until you hover it (then it fills with the accent). A
@@ -549,7 +555,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>f141a33a427100e953de5f76d1d153de7dd9b641ac39a8ffa291316866c7a8cc</SHA256>
+  <SHA256>fa96b961b9d3752d188cd8a1d5bc5621db0f480d4c6dc3a7c9868bd2df1dabd9</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

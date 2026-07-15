@@ -35,7 +35,7 @@ jobs:
       # Every bug here that has cost us a release came from ASSUMING a DOM shape instead of pinning it.
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
       - name: js syntax
         run: find plugin/src -name '*.js' -print0 | xargs -0 -r -n1 node --check
       - name: js dom tests

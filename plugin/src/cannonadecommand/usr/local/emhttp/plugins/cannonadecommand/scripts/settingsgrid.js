@@ -94,6 +94,54 @@
       }
     } catch (e) {}
   }
+  // === category-group HEADINGS -> accent badges (/Settings + /Tools) ===
+  // Native heading DOM, read from source (include/DefaultPageLayout/MainContentTabless.php:12-18 +
+  // include/PageBuilder.php tab_title()) — IDENTICAL on both landing pages:
+  //   <div class="title"><span class="left inline-flex flex-row items-center gap-1"><i class="fa fa-cog title"></i>Label</span>
+  //                      <span class="right inline-flex flex-row items-center gap-1"></span></div>
+  // Settings.page/Tools.page carry no Title= themselves, and the template only emits div.title for a
+  // page that HAS one, so every div.title on the landing pages is exactly one category heading.
+  // The label is a BARE TEXT NODE inside span.left, so span.left IS the badge box: pure CSS, no DOM
+  // surgery, idempotent by construction. JS only stamps the rainbow colour per heading, exactly like
+  // paintGrid() does for the tiles. data-cc-sgh is a TEARDOWN INDEX, deliberately NOT a set-and-bail
+  // guard — the paint MUST re-run when the palette/rotation/rbmode changes.
+  // Selector note: the inner <i> ALSO carries class "title" (PageBuilder.php:99), so always qualify
+  // div.title. The heading set (div.title > span.left) is disjoint from paintGrid's (.Panel > a > span),
+  // so no tile index can shift.
+  function paintHeads() {
+    try {
+      var rb = rbOn(), neutral = rb && rbNeutral();
+      document.documentElement.classList.toggle("cc-settingsgrid-headsneutral", neutral); // "active only": headings neutral, colour on hover
+      var heads = document.querySelectorAll("#displaybox div.title > span.left");
+      for (var i = 0; i < heads.length; i++) {
+        var h = heads[i];
+        h.setAttribute("data-cc-sgh", "1");               // teardown index (attribute write -> no childList re-fire)
+        if (!rb) {
+          h.style.removeProperty("background"); h.style.removeProperty("color");
+          h.style.removeProperty("--cc-rb-c"); h.style.removeProperty("--cc-rb-ct"); // accent mode: let the sheet's --cc-accent show through
+          continue;
+        }
+        var c = rbColor(i), tc = idealText(c);
+        h.style.setProperty("--cc-rb-c", c); h.style.setProperty("--cc-rb-ct", tc);   // per-heading colour for the neutral-mode :hover
+        if (!neutral) { h.style.setProperty("background", c, "important"); h.style.setProperty("color", tc, "important"); }
+        else { h.style.removeProperty("background"); h.style.removeProperty("color"); } // CSS neutral-idle grey shows; hover recolours via --cc-rb-c
+      }
+    } catch (e) {}
+  }
+  // FULL teardown: drop the neutral class + every inline stamp, then the markers, so a live disable
+  // (area off / theming off / navigating away) reverts to the native headings without a reload.
+  function clearHeads() {
+    try {
+      document.documentElement.classList.remove("cc-settingsgrid-headsneutral");
+      var heads = document.querySelectorAll("#displaybox [data-cc-sgh]");
+      for (var i = 0; i < heads.length; i++) {
+        var h = heads[i];
+        h.style.removeProperty("background"); h.style.removeProperty("color");
+        h.style.removeProperty("--cc-rb-c"); h.style.removeProperty("--cc-rb-ct");
+        h.removeAttribute("data-cc-sgh");
+      }
+    } catch (e) {}
+  }
   // COLOUR-TINT mode (mutually exclusive with the accent badge): when the badge is OFF
   // (ccs.iconbg="0") and a colour is chosen (ccs.iconcolor), recolour each tile icon to
   // that colour instead. Font glyphs get an !important text colour; raster img.PanelImg
@@ -150,14 +198,26 @@
       var badge = live && g("ccs.iconbg", "1") !== "0";
       // tint only when the badge is OFF and a valid colour is set (mutually exclusive UI)
       var tint = live && !badge && /^#[0-9a-f]{6}$/i.test(g("ccs.iconcolor", ""));
+      var a = accent();
       root.classList.toggle("cc-settingsgrid-on", badge);
       root.classList.toggle("cc-settingsgrid-tint", tint);
-      if (badge) {
-        clearTint(); // badge takes precedence — drop any tint from a previous render
-        var a = accent();
+      // The category-group HEADINGS badge whenever the area + theming are live on a grid page —
+      // INDEPENDENT of the tile badge/tint modes, so they survive an icon-badge opt-out. Hence their
+      // own class rather than reusing cc-settingsgrid-on (which is additionally gated on ccs.iconbg).
+      root.classList.toggle("cc-settingsgrid-heads-on", live);
+      if (live) {
+        // HOISTED out of the badge branch below: the heading badges read these and must keep their
+        // accent in TINT mode too (where badge == false). Still gated on onGrid(), so the SHARED
+        // --cc-accent is still never written on a docker/plugins/vms page.
         root.style.setProperty("--cc-accent", a);
         root.style.setProperty("--cc-accent-text", idealText(a));
         root.style.setProperty("--cc-b-radius", shape());
+        paintHeads();
+      } else {
+        clearHeads(); // area/theming off or not a grid page -> native headings back
+      }
+      if (badge) {
+        clearTint(); // badge takes precedence — drop any tint from a previous render
         var sgIcon = g("ccs.iconcolor", "");
         var sgBg = /^#[0-9a-f]{6}$/i.test(sgIcon) ? sgIcon : a;
         root.style.setProperty("--cc-iconbg-color", sgBg);
@@ -189,7 +249,7 @@
     apply();
     watch();
     // the CC settings page writes cc.*/ccs.* keys from another origin/tab
-    try { window.addEventListener("storage", function (e) { if (e && e.key && e.key.indexOf("cc") === 0) apply(); }); } catch (e) {}
+    try { window.addEventListener("storage", function (e) { if (e && e.key && e.key !== "cc.stateCache" && /^cc[a-z]*\./.test(e.key)) apply(); }); } catch (e) {} // cc.stateCache EXCLUDED: docker.js rewrites it every 9s, which would repaint this area on a 9s loop in every other open tab
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
 })();

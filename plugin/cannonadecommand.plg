@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.14.1">
+  <!ENTITY version   "2.15.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,24 @@
 </ICON>
 
 <CHANGES>
+### 2.15.0
+1. Freigaben: the "Einstellungen lesen von" (Read settings from) picker now shows the share you picked
+   immediately, and keeps showing it. It used to stay blank after the first pick and show the PREVIOUS
+   share after the next one -- the clone block sits outside the settings form, so the field's own label
+   refresh was silently skipped. Present since 2.11.0. The "Mover action" dropdown, and the four SMB/NFS
+   "Read" buttons, are fixed the same way.
+2. Fixed: enabling Freigaben no longer breaks horizontal scrolling on every OTHER table page (Docker,
+   Plugins, disks, the file manager, ...) below about 1000px width. An ungated rule was silently reaching
+   every page, not just Freigaben.
+3. New: the Einstellungen and Werkzeuge tabs now show their section headings (System Settings, Network
+   Services, ...) as CC badges too, matching the tile badges already there.
+4. New: the Durchsuchen (file manager) page is now styled in the CC look -- table, buttons and the
+   selected-row highlight -- reachable from Freigaben, Hauptmenü or the global file-manager button.
+5. Fixed: the System Stats page's tab bar no longer gets pushed down when its own control row (interval
+   + refresh pickers) appears -- the controls now sit on their own line below the tabs.
+6. Internal: added an automated check that runs on every change from now on, so a bug shaped like #1 is
+   caught before release rather than after.
+
 ### 2.14.1
 1. Freigaben (share detail): the side card no longer overflows its right edge. Unraid's clone block is
    built for a 640px float (its label/value list is a two-column grid), so in the narrower card the
@@ -555,7 +573,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>fa96b961b9d3752d188cd8a1d5bc5621db0f480d4c6dc3a7c9868bd2df1dabd9</SHA256>
+  <SHA256>365e53d173d73f587ca303b21d57ff647f26057eb18ee830638ec717bc3d5a47</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

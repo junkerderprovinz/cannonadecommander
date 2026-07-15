@@ -69,8 +69,22 @@ html.cc-shares-on #displaybox nav.tabs button[role="tab"] i.title { color: inher
    because the prev/next nav arrows live inside it. */
 html.cc-shares-on:not(.cc-on-shares):not(.cc-on-share-detail) #displaybox > nav.tabs:has(> .tabs-container > button[role="tab"]:only-child) { display: none; }
 
-/* ═══ shares tables -> a light CC polish (kept clean + readable) ═══ */
-html.cc-shares-on #displaybox .TableContainer,
+/* ═══ shares tables -> a light CC polish (kept clean + readable) ═══
+   PAGE-GATED, and deliberately WITHOUT an overflow declaration. Both were bugs:
+   (1) cc-shares-on is the area class and rides on EVERY page, so an un-gated `#displaybox
+       .TableContainer` hit all ~19 pages that emit one (DiskList, ArrayDevices, DockerContainers,
+       Plugins, VMMachines, Browse, ...) — contradicting this sheet's own "/Docker stays native"
+       note below. It now uses the same :is() page gate as the alignment rules at the bottom.
+   (2) `overflow: hidden` is a SHORTHAND, so it also overwrote the x-axis and killed native
+       `.TableContainer{overflow-x:auto}` (default-base.css) — whose tables are `min-width:1000px`.
+       Horizontal scrolling was therefore dead site-wide for anyone running the Freigaben area.
+       We now set NO overflow at all: the native overflow-x:auto stands, and since a non-visible
+       overflow-x forces the used overflow-y to auto, the box stays a scroll container and the
+       radius still clips. share_status is /Shares-only markup (it renders on no other page), so its
+       own clip is page-scoped by construction and stays. */
+html.cc-shares-on:is(.cc-on-shares, .cc-on-share-detail, .cc-on-browse) #displaybox .TableContainer {
+  border-radius: 8px;   /* NO overflow here on purpose: native overflow-x:auto must survive (table min-width:1000px) */
+}
 html.cc-shares-on #displaybox table.unraid.share_status {
   border-radius: 8px;
   overflow: hidden;
@@ -94,8 +108,8 @@ html.cc-shares-on #displaybox table.unraid.share_status thead th {
    token is a shared geometry constant (like --cc-b-radius, NOT an accent) — any CC area reuses it. */
 html.cc-shares-on { --cc-align-left: 10px; }              /* header area OFF: native menu TEXT edge (.nav-item a padding-left) */
 html.cc-shares-on.cc-header-on { --cc-align-left: 15px; } /* header area ON: CC menu PILL edge = nav-tile 12px + .nav-item>a margin 3px (border-box left) */
-html.cc-shares-on:not(.Theme--sidebar):is(.cc-on-shares, .cc-on-share-detail) #displaybox { padding-left: var(--cc-align-left, 10px); }
-html.cc-shares-on:not(.Theme--sidebar):is(.cc-on-shares, .cc-on-share-detail) #displaybox div.title { padding-left: 0; }
+html.cc-shares-on:not(.Theme--sidebar):is(.cc-on-shares, .cc-on-share-detail, .cc-on-browse, .cc-on-stats) #displaybox { padding-left: var(--cc-align-left, 10px); }
+html.cc-shares-on:not(.Theme--sidebar):is(.cc-on-shares, .cc-on-share-detail, .cc-on-browse, .cc-on-stats) #displaybox div.title { padding-left: 0; }
 /* the leading NAME cell keeps a small deliberate indent (12px past the anchor) so the share name
    isn't cramped against the edge; tabs/title/buttons stay flush at the anchor. */
 html.cc-shares-on #displaybox table.unraid.share_status tr > td:first-child { padding-left: 12px; }
@@ -581,4 +595,177 @@ html.cc-shares-on.cc-shares-rbneutral.cc-on-shares #displaybox table.unraid.shar
    NOT the lingering cc-shares-rbneutral) stops the hover recolour immediately. */
 html.cc-shares-rbneutral.cc-on-shares #displaybox nav.tabs button[role="tab"]:not([aria-selected="true"]):hover {
   background: var(--cc-rb-c, var(--cc-shr-accent, #2f6feb)) !important; color: var(--cc-rb-ct, var(--cc-shr-accent-text, #fff)) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════════════
+   BROWSE / FILE MANAGER (/<parent>/Browse?dir=…) — shares.js marks html.cc-on-browse (suffix match:
+   the parent is /Shares, /Main or the current task). Tabless page => #displaybox + div.title exist,
+   NO nav.tabs. The table is table.indexer.tablesorter (Browse.page), NOT .unraid.share_status — so
+   none of the /Shares list rules above reach it and it needs its own deliberately small set.
+
+   CSS-ONLY BY DESIGN: shares.js injects nothing here, so teardown = dropping the class.
+   FOUR HARD RULES, all because this page runs DESTRUCTIVE jobs (delete / move). Do not "tidy" them:
+     1. NEVER hide or zero-size a check glyph. selectAll() filters i[id^="check_"]:visible
+        (Browse.page), so an invisible glyph is SILENTLY SKIPPED by select-all — and the user then
+        presses DELETE on a subset they believe is everything. (The display:none-an-i.orb trick that
+        statusPill() uses on /Shares is FORBIDDEN here.)
+     2. NEVER add or remove columns. tablesorter is configured BY INDEX (headers:{0:…,8:…}) and the
+        sort column is cookie-persisted. This is the opposite of enhanceRow/enhanceHead on /Shares.
+     3. NEVER recolour icons table-wide. The Location column encodes encryption state BY ICON COLOUR
+        (grey = not encrypted, green = unlocked, red = locked) and td.ext marks broken symlinks red.
+     4. NEVER touch the #buttons container display. Browse.css hides it and loadList() reveals it via
+        a jQuery .show() = an INLINE display after the AJAX table lands. A CC display:flex loses to
+        that inline; !important would beat Browse.css and flash all 12 buttons before the table
+        exists. The native input margins already lay the row out.
+   ═══════════════════════════════════════════════════════════════════════════════════════════════ */
+
+/* ── table -> a CC card: fill + shadow, no border lines.
+   THEME-NEUTRAL ON PURPOSE. A hard fill (e.g. #222) here would be the only opaque colour in this sheet
+   sitting UNDER content CC does not own: the file listing's text and its unchecked check-glyphs are
+   coloured by the NATIVE theme (Browse.css re-points --browse-icon-color to --browse-text-color = #1d1b1b
+   on the azure/white themes). Forcing a dark card under near-black native text renders the whole listing
+   at ~1:1 contrast on Theme--white. So we tint translucently and let the theme's own backdrop show
+   through, exactly like every other surface rule in this sheet. */
+html.cc-shares-on.cc-on-browse #displaybox .TableContainer {
+  background-color: rgba(128, 128, 128, .07); border: none; box-shadow: 0 1px 4px rgba(0, 0, 0, .35);
+}
+/* background-COLOR, not the shorthand: `background` would reset background-image and wipe the native
+   tablesorter sort-arrow artwork off the sorted column header. */
+html.cc-shares-on.cc-on-browse #displaybox table.indexer thead th {
+  background-color: rgba(128, 128, 128, .14); border: none;
+  font-weight: 600; text-transform: uppercase; letter-spacing: .6px; font-size: var(--cc-sm-fs, 11px);
+}
+/* roomier rows, matching the /Shares list treatment. PADDING ONLY — never height/display (rules 1+2). */
+html.cc-shares-on.cc-on-browse #displaybox table.indexer tbody td { padding-top: 6px; padding-bottom: 6px; border: none; }
+/* the "N objects: …" summary is the tfoot -> a quiet footer strip, not a data row. No hardcoded ink:
+   the native theme owns the text colour (see the theme note on .TableContainer above); we only tint. */
+html.cc-shares-on.cc-on-browse #displaybox table.indexer tfoot td {
+  background-color: rgba(128, 128, 128, .10); border: none;
+  font-size: 12px; font-style: italic; opacity: .8;
+}
+/* hover must out-specify Browse.css's table.tablesorter.indexer tbody tr:hover td (0,3,3); the
+   #displaybox id wins. Kept deliberately FAINT so it can never be misread as "selected". */
+html.cc-shares-on.cc-on-browse #displaybox table.indexer tbody tr:hover td { background-color: rgba(255, 255, 255, .05); }
+
+/* ── SELECTION: make it LOUDER, never quieter ─────────────────────────────────────────────────
+   Unraid conveys selection with NOTHING but a glyph swap on i#check_N (fa-square-o <->
+   fa-check-square-o) — no row class, no checkbox input, no aria state. At 1.8rem grey that is easy
+   to misread on a page whose buttons include DELETE and MOVE. So: pin the glyph visible (a), accent
+   the CHECKED one (b), and add a row treatment keyed off the REAL state class via :has() (c).
+   No JS, so it can never drift out of sync with what selectOne()/selectAll() actually did.
+   :has() degradation is safe: without it (a)+(b) still work, only the row tint is lost. */
+html.cc-shares-on.cc-on-browse #displaybox table.indexer i[id^="check_"] {
+  display: inline-block !important;      /* jQuery :visible reads offsetWidth/Height — NEVER zero these (rule 1) */
+  visibility: visible !important; opacity: 1 !important; font-size: 1.8rem;
+}
+html.cc-shares-on.cc-on-browse #displaybox table.indexer i[id^="check_"].fa-check-square-o {
+  color: var(--cc-shr-accent, #2f6feb) !important;   /* checked pops against the unchecked grey */
+}
+html.cc-shares-on.cc-on-browse #displaybox table.indexer tbody tr:has(i[id^="check_"].fa-check-square-o) > td {
+  background-color: rgba(47, 111, 235, .22);                                          /* fallback */
+  background-color: color-mix(in srgb, var(--cc-shr-accent, #2f6feb) 22%, transparent);
+}
+html.cc-shares-on.cc-on-browse #displaybox table.indexer tbody tr:has(i[id^="check_"].fa-check-square-o) > td:first-child {
+  box-shadow: inset 3px 0 0 0 var(--cc-shr-accent, #2f6feb);   /* leading accent bar — a fill, not a border line */
+}
+/* a hovered SELECTED row must still read selected — the faint hover tint must never win */
+html.cc-shares-on.cc-on-browse #displaybox table.indexer tbody tr:has(i[id^="check_"].fa-check-square-o):hover > td {
+  background-color: rgba(47, 111, 235, .30);                                          /* fallback */
+  background-color: color-mix(in srgb, var(--cc-shr-accent, #2f6feb) 30%, transparent);
+}
+
+/* ── the breadcrumb bar type filter. input.dfm_filter is styled by the globally loaded
+   BrowseButton.css, which reserves padding-left for its absolutely-positioned icon. Flatten the fill
+   to match CC but LEAVE padding-left ALONE — the detail page's input[type=text]{padding:6px 10px}
+   would slide the text under the glyph. That rule is .cc-on-share-detail-gated so it does not leak
+   here; do not "unify" the two. */
+html.cc-shares-on.cc-on-browse #displaybox .title input.dfm_filter {
+  background-color: rgba(128, 128, 128, .12) !important; border: none !important;
+  border-radius: 6px !important;   /* NO `color`: the field sits on the native theme backdrop, and the
+                                      intent here is only to flatten the FILL — the theme owns the ink. */
+}
+
+/* ── ACTION BUTTONS. They ARE input[type=button], the same element as the share-detail ones, but they
+   reuse NO class CC already styles: they carry .dfm_control plus .jobs/.basic/.extra/.rename/.common,
+   and Done is the only classless one. Native enable logic:
+     .extra  (Delete/Copy/Move/Owner/Permission/Calculate) — enabled iff >=1 row checked
+     .rename (Rename)  — enabled iff EXACTLY 1 checked; on a share root the enabling code is
+                         PHP-omitted entirely => permanently disabled
+     .common (Create/Upload) — disabled if there is no dir, or it is a share root
+     .jobs   (Jobs)    — disabled unless there are jobs
+   i.e. exactly the screenshot: Jobs + Rename greyed, the rest live. See rule 4 re: display. */
+html.cc-shares-on.cc-on-browse #displaybox #buttons input[type="button"] {
+  border: none !important; box-shadow: none !important;
+  padding: 0 14px !important; height: var(--cc-md-h, 30px) !important; box-sizing: border-box !important;
+  min-width: 0 !important;   /* beats the native min-width:86px so the pill hugs its text */
+  font-size: var(--cc-md-fs, 13px) !important; font-weight: 600 !important;
+  text-transform: uppercase !important; letter-spacing: .6px !important; font-family: inherit !important;
+  border-radius: var(--cc-b-radius, 999px) !important;
+  cursor: pointer; transition: filter .12s, opacity .12s;
+  background: var(--cc-shr-accent, #2f6feb) !important; color: var(--cc-shr-accent-text, #fff) !important;
+}
+/* Done is navigation, not an action -> neutral secondary. It is the ONLY classless input in #buttons. */
+html.cc-shares-on.cc-on-browse #displaybox #buttons input[type="button"]:not(.dfm_control) {
+  background: #4a4a4a !important; color: #f0f0f0 !important;
+}
+/* DELETE -> the canonical CC danger red (same as .cc-b-del). It shares class .extra with
+   Copy/Move/Owner/Permission/Calculate, so its action id is the ONLY stable hook. The comma in the
+   prefix pins the first argument, so doActions(11/12/14/15,…) can never match. Explicitly NOT reusing
+   the detail page's input[type=button]:not(.clone){background:#4a4a4a} — that would paint DELETE
+   identical to Done. If upstream ever moves these to addEventListener this fails SAFE: Delete falls
+   back to the accent, never to disabled-grey. */
+html.cc-shares-on.cc-on-browse #displaybox #buttons input[type="button"][onclick^="doActions(1,"] {
+  background: #d9433f !important; color: #fff !important;
+}
+html.cc-shares-on.cc-on-browse #displaybox #buttons input[type="button"]:hover:not(:disabled) { filter: brightness(1.14); }
+/* DISABLED must be UNMISTAKABLE here. disabled is a real DOM property, so :disabled is reliable —
+   but the detail page's opacity+grayscale approach does not reset the background, and a
+   grayscale(.4)/opacity(.45) red still reads pinkish = armed. Flatten the fill outright so a disabled
+   Delete/Move/Rename cannot be mistaken for a live one. Deliberately NO pointer-events:none — the
+   native disabled property already blocks the click, and keeping pointer events preserves the
+   not-allowed cursor as feedback. */
+html.cc-shares-on.cc-on-browse #displaybox #buttons input[type="button"]:disabled,
+html.cc-shares-on.cc-on-browse #displaybox #buttons input[type="button"]:disabled:hover {
+  background: #3a3a3a !important; color: #8a8a8a !important;
+  opacity: .55 !important; filter: none !important; cursor: not-allowed !important;
+}
+
+/* RAINBOW: Browse is deliberately rainbow-AGNOSTIC (accent only), like the semantic status pill and
+   the card-title badges. Files/folders have no active/idle semantics, and mapping rbmode="active"
+   onto SELECTION would make a hover colour indistinguishable from a selected colour on a page with a
+   DELETE button. So .cc-on-browse is intentionally NOT added to the rbneutral selectors above. */
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════════════
+   /Stats — SYSTEM STATS (shares.js marks html.cc-on-stats)
+   The page is NOT part of unraid/webgui; it ships from the separate unraid/dynamix repo
+   (source/system-stats). Stats.page is Type="xmenu" Tabs="true", so it renders Unraid's STANDARD
+   tabbed layout — #displaybox > nav.tabs > .tabs-container > button[role=tab] — which is exactly the
+   bar this sheet already restyles. Nothing below names a plugin-internal class, so if the plugin is
+   absent (or its markup changes) these rules simply match nothing.
+
+   THE BUG (user: the tabs are pushed down when the System Stats sub-tab shows its settings):
+   SystemStats.page does `$('.tabs').append("<span class='status'>…</span>")` — it injects its control
+   group (the two interval <select>s + Reset) as a SECOND CHILD of nav.tabs, alongside .tabs-container.
+   Native default-base.css:
+       .tabs           { display:flex; align-items:center; justify-content:space-between; gap:.5rem }
+       .tabs-container { display:flex; ...; width:100% }
+       span.status     { display:inline-block; margin-left:auto }
+   With no wrapping, the full-width .tabs-container and the taller control group are forced onto ONE
+   line: the container shrinks and `align-items:center` re-centres the short tab buttons against the
+   taller sibling — i.e. the tabs visibly drop. Giving the control group its own line removes the
+   height conflict entirely, so the tabs sit where they do on every other page.
+
+   NEVER set `display` on span.status: SystemStats.page shows/hides it with jQuery .show()/.hide(),
+   which writes an INLINE display. A `display:…!important` here would beat .hide() and leak the
+   controls onto the Disk Stats tab. `order`/`flex-basis` are safe — they only apply while it IS a
+   flex item, i.e. while it is visible.
+   ═══════════════════════════════════════════════════════════════════════════════════════════════ */
+html.cc-shares-on.cc-on-stats #displaybox nav.tabs {
+  flex-wrap: wrap;           /* let the appended control group wrap onto its own line */
+  align-items: flex-start;   /* belt-and-braces: a taller sibling must never re-centre the tabs downward */
+  row-gap: 10px;
+}
+html.cc-shares-on.cc-on-stats #displaybox nav.tabs > span.status {
+  order: 99;                 /* always AFTER .tabs-container, whatever order the plugin appended in */
+  flex: 0 0 auto;            /* native margin-left:auto keeps it right-aligned on its own row */
 }

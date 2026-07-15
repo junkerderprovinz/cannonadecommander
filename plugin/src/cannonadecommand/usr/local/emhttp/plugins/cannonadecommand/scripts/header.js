@@ -164,7 +164,7 @@
     // the Settings page (or the Docker tab) writes cc.* AND section-specific keys (cch./ccs./
     // ccp./ccv.) from another origin/tab — re-apply on any of them. NB: "cch.accent" does NOT
     // contain the substring "cc." so the old indexOf("cc.")===0 check silently missed it.
-    try { window.addEventListener("storage", function (e) { if (e.key && /^cc[a-z]?\./.test(e.key)) apply(); }); } catch (e) {}
+    try { window.addEventListener("storage", function (e) { if (e && e.key && e.key !== "cc.stateCache" && /^cc[a-z]*\./.test(e.key)) apply(); }); } catch (e) {} // cc.stateCache EXCLUDED: docker.js rewrites it every 9s, which would repaint this area on a 9s loop in every other open tab
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
 })();

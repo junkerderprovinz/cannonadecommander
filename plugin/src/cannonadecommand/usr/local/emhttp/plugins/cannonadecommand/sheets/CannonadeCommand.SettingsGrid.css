@@ -1,9 +1,13 @@
 /* CannonadeCommand - GLOBAL Settings-page category-icon restyle.
  *
- * Auto-<link>-injected into <head> on EVERY Unraid page (Buttons .page hook). To make
- * that safe, EVERY rule is scoped to html.cc-settingsgrid-on, a class settingsgrid.js
- * only adds on the /Settings AND /Tools LANDING pages (identical .Panel tile grid)
- * when the "Einstellungen & Werkzeuge" area is enabled. Absent => ZERO effect anywhere.
+ * Auto-<link>-injected into <head> on EVERY Unraid page (Buttons .page hook). To make that
+ * safe, EVERY rule is scoped to one of TWO html classes that settingsgrid.js only adds on the
+ * /Settings AND /Tools LANDING pages (identical .Panel tile grid) when the "Einstellungen und
+ * Werkzeuge" area is enabled — absent => ZERO effect anywhere:
+ *   - cc-settingsgrid-on        the category TILE badge (additionally gated on ccs.iconbg)
+ *   - cc-settingsgrid-heads-on  the category-group HEADING badges (see the block at the end;
+ *                               gated on `live` only, because they must badge in TINT mode too)
+ * Both are set only behind onGrid(), so neither can reach a Docker/Plugins/VMs page.
  *
  * Each category tile's icon wrapper (the bare <span> inside the tile's <a>, DOM:
  *   <div class="Panel"><a><span><i class="icon-x PanelIcon"></i></span>
@@ -63,4 +67,69 @@ html.cc-settingsgrid-on.cc-settingsgrid-rbneutral #displaybox .Panel > a:hover >
 }
 html.cc-settingsgrid-on.cc-settingsgrid-rbneutral #displaybox .Panel > a:hover > span > i.PanelIcon {
   color: var(--cc-rb-ct, var(--cc-iconbg-text, var(--cc-accent-text, #fff))) !important;
+}
+
+/* ═══ category-group HEADINGS (/Settings + /Tools) -> filled accent badges ═══
+   Native DOM read from source (include/DefaultPageLayout/MainContentTabless.php:12-18 +
+   include/PageBuilder.php tab_title()) — IDENTICAL on both pages (both Type="xmenu" Tabs="false",
+   so both render through the same tabless template):
+     <div class="title">
+       <span class="left inline-flex flex-row items-center gap-1"><i class="fa fa-cog title"></i>System Settings</span>
+       <span class="right inline-flex flex-row items-center gap-1"></span>
+     </div>
+   Settings.page/Tools.page carry NO Title= of their own and the template only emits div.title for a
+   page that HAS one, so EVERY div.title on the two LANDING pages is exactly one category heading
+   (System Settings / Network Services / User Preferences / User Utilities | Unraid OS / webGUI /
+   Wizards / About). The label is a bare TEXT NODE inside span.left, so span.left IS the badge box —
+   no DOM surgery, idempotent by construction.
+   BEWARE: that <i> ALSO carries class "title" (PageBuilder.php:99) -> ALWAYS qualify div.title.
+   Scoped to html.cc-settingsgrid-heads-on, which settingsgrid.js sets on the two landing pages
+   whenever area + master theming are on — INDEPENDENT of the tile badge/tint modes, so the headings
+   badge in BOTH (cc-settingsgrid-on would vanish the moment a user opts out of the tile badge). */
+html.cc-settingsgrid-heads-on #displaybox div.title {
+  background: none !important; background-color: transparent !important;
+  border-bottom: 0 !important; padding: 0 !important;
+  letter-spacing: normal !important; font-size: inherit !important;
+  margin: 22px 0 12px !important;
+}
+html.cc-settingsgrid-heads-on #displaybox div.title:first-of-type { margin-top: 0 !important; }
+html.cc-settingsgrid-heads-on #displaybox div.title > span.right { flex: 0 0 auto; }   /* the empty right slot must not stretch the space-between row */
+
+/* span.left (glyph + label) -> the filled accent badge; same recipe as Shares' .cc-card-head */
+html.cc-settingsgrid-heads-on #displaybox div.title > span.left {
+  display: inline-flex !important; align-items: center; gap: 8px !important;   /* native .gap-1 is .25rem -> match the card badge */
+  font-weight: 700; text-transform: uppercase; letter-spacing: .6px; font-size: 15px; line-height: 1;
+  background: var(--cc-accent, #2f6feb) !important; color: var(--cc-accent-text, #fff) !important;
+  border: none !important; border-radius: var(--cc-b-radius, 999px) !important;
+  padding: 9px 18px !important; margin: 0 !important;
+  text-decoration: none !important; transition: filter .12s;
+}
+/* glyph inherits the badge ink; zero native i.title{margin-right:8px} — the gap handles spacing.
+   img.icon arm: a category whose Tag= is a .png takes tab_title()'s <img class="icon"> branch. */
+html.cc-settingsgrid-heads-on #displaybox div.title > span.left > i,
+html.cc-settingsgrid-heads-on #displaybox div.title > span.left > img.icon {
+  color: inherit !important; margin: 0 !important;
+  display: inline-block !important;   /* the sidebar themes do `.Theme--sidebar i.title{display:none}`,
+                                         which would strip the glyph out of OUR badge while the tiles
+                                         keep theirs; our (1,3,3) beats their (0,2,1). */
+}
+
+/* rainbow "colour only the active badge" sub-mode. Headings have no active item, so idle badges go
+   neutral grey and colour on HOVER via the per-heading --cc-rb-c/--cc-rb-ct paintHeads stamps —
+   the same contract paintGrid uses for the tiles. Gated on BOTH -headsneutral AND -heads-on so the
+   neutral rules die the instant area/theming is disabled live (else grey badges leak onto the native
+   headings until a reload). A SEPARATE class from -rbneutral on purpose: -rbneutral is toggled only
+   inside paintGrid(), which never runs in tint mode, so reusing it would strand headings colourful there. */
+html.cc-settingsgrid-heads-on.cc-settingsgrid-headsneutral #displaybox div.title > span.left {
+  background: rgba(128, 128, 128, .18) !important; color: #cfcfcf !important;
+}
+/* hover the BADGE, not the row: native div.title is a full-width flex row (default-base.css
+   `div.title{display:flex;justify-content:space-between}`) and its right slot is empty, so keying the
+   hover off the ROW would recolour the badge from anywhere on a ~1700px invisible strip — we strip the
+   row's own background just above, so there is nothing there to hover. (The tile analogue keys off
+   .Panel > a, which is legitimate: .Panel is max-width:120px, i.e. the tile IS the target.) */
+html.cc-settingsgrid-heads-on.cc-settingsgrid-headsneutral #displaybox div.title > span.left:hover {
+  background: var(--cc-rb-c, var(--cc-accent, #2f6feb)) !important;
+  color: var(--cc-rb-ct, var(--cc-accent-text, #fff)) !important;
+  filter: none !important;
 }

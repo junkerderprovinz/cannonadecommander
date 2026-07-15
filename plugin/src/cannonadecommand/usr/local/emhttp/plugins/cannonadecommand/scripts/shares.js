@@ -45,6 +45,23 @@
   // /Shares editor is /Shares/Share?name=... -> a strict, trailing-slash-normalised
   // pathname check keeps us on the LANDING pages only (see settingsgrid.onSettings).
   function pn() { try { return location.pathname.replace(/\/+$/, ""); } catch (e) { return ""; } }
+  // Browse / file manager. Reached as /<parent>/Browse?dir=… — the parent segment VARIES (/Shares/Browse
+  // from ShareList.php's a.view, /Main/Browse from DiskList.php, /<task>/Browse from the global File
+  // Manager button), so unlike onShares/onShareDetail this cannot be an exact pn() match; suffix-match
+  // instead. The second condition is a DOM sentinel: table.indexer.tablesorter is STATIC markup
+  // (Browse.page), present on first paint before the AJAX tbody lands. Do NOT drop it as "redundant" —
+  // it is what stops a third-party page merely NAMED Browse from matching.
+  function onBrowse() {
+    try { return /\/Browse$/.test(pn()) && !!document.querySelector("#displaybox table.indexer.tablesorter"); } catch (e) { return false; }
+  }
+  // /Stats — the System Stats page. NOT part of unraid/webgui: it ships from the separate
+  // unraid/dynamix repo (source/system-stats), which is why it is absent from the webgui source tree.
+  // Stats.page is Type="xmenu" Tabs="true", so it renders Unraid's STANDARD tabbed layout
+  // (#displaybox > nav.tabs > .tabs-container > button[role=tab]) — the same bar this area already
+  // restyles everywhere else. We only need the marker so the alignment anchor + the control-row fix
+  // below can be page-scoped; there is no plugin-internal markup in our selectors, so if the plugin is
+  // absent the class simply never appears.
+  function onStats() { return pn() === "/Stats"; }
   // tiny i18n (same shape as docker.js): en fallback, de when the page lang is German.
   var LANG = (document.documentElement.lang || navigator.language || "en").slice(0, 2).toLowerCase();
   var T = { de: { browse: "Durchsuchen", protected: "Geschützt", unprotected: "Ungeschützt", protection: "Schutz" }, en: { browse: "Browse", protected: "Protected", unprotected: "Unprotected", protection: "Protection" } };
@@ -258,6 +275,14 @@
       if (pn() !== "/Shares/Share") return;
       var sels = box.querySelectorAll('select:not([multiple]):not([data-cc-sel])'); // ALL single selects (incl. the clone-block "Read settings from"); multiples = dropdownchecklist (already badged)
       for (var i = 0; i < sels.length; i++) ccWrapSelect(sels[i]);
+      // ...then RE-SYNC the ones already wrapped. Unraid re-labels and re-selects options at runtime
+      // (updateScreen() rewrites #direction's option text via jQuery .text(), and re-points #primary/
+      // #secondary by property writes). We are a defer script, so the FIRST updateScreen() runs after
+      // we wrapped -> without this the labels stay as they were at wrap time (for #direction: EMPTY).
+      // A .text() rewrite IS a childList mutation, so the observer already brings us back here.
+      // ccSyncOne is guarded (it only writes when the text actually differs), so this cannot loop.
+      var done = box.querySelectorAll("select[data-cc-sel]");
+      for (var j = 0; j < done.length; j++) ccSyncOne(done[j]);
     } catch (e) {}
   }
   function ccWrapSelect(sel) {
@@ -274,7 +299,12 @@
           if (sel.options[idx].disabled) return;
           sel.selectedIndex = idx;
           sel.dispatchEvent(new Event("change", { bubbles: true })); // fires inline onchange (updateScreen etc.)
-          ccSyncGroup(sel.form);                          // refresh sibling labels updateScreen just changed
+          ccSyncOne(sel);                                 // ALWAYS sync the picked select ITSELF: the clone block is a
+          // SIBLING of the form, not inside it (ShareEdit.page: .relative = [div.clone-settings, form]), so readshare's
+          // sel.form is NULL and the form-scoped ccSyncGroup below no-ops -> its label never updated. It only refreshed
+          // on the NEXT open (see the trigger handler), which is exactly the reported "picked share is not shown, and
+          // picking another shows the previous one". Cheap + idempotent, so the form-scoped pass may re-sync it.
+          ccSyncGroup(sel.form);                          // + refresh SIBLING labels updateScreen just changed (form-scoped cascade)
           wrap.classList.remove("cc-open");
         };
       })(k));
@@ -293,9 +323,23 @@
     var w = sel.parentNode; if (!w) return;
     w.classList.toggle("cc-sel-disabled", !!sel.disabled);   // statically-disabled selects (shareCOW on existing shares, moverDirection2) read as inert, not interactive
     var t = w.querySelector(".cc-sel-trigger"), c = w.querySelectorAll(".cc-sel-opt");
-    if (t) t.textContent = sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : "";
+    // GUARDED, like the chip loop below: since ccSelects() now re-syncs already-wrapped selects on
+    // every observer tick, an UNCONDITIONAL textContent write here would replace the trigger's text
+    // node even when the string is unchanged -> a childList mutation -> the MutationObserver
+    // (childList:true, subtree:true) fires again -> enhanceShareDetail -> ccSelects -> this write again
+    // -> a self-sustaining ~150ms repaint loop on /Shares/Share for as long as the page is open.
+    var label = sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : "";
+    if (t && t.textContent !== label) t.textContent = label;
     for (var k = 0; k < c.length; k++) {
       var o = sel.options[+c[k].getAttribute("data-i")]; if (!o) continue;
+      // The option TEXT is as live as .selected/.disabled — Unraid rewrites it at runtime. #direction
+      // ("Mover action") is rendered by PHP with EMPTY option text (mk_option(direction(),'0','')) and
+      // is only labelled later by updateScreen()'s jQuery .text() writes; shares.js is a defer script,
+      // so it wraps the select BEFORE that runs. Chips built once from sel.options[k].text would stay
+      // permanently BLANK there, and go stale on every Primary/Secondary change (which re-labels them).
+      // The !== guard keeps this a no-op in the common case, so it emits no childList mutation and
+      // cannot loop the observer.
+      if (c[k].textContent !== o.text) c[k].textContent = o.text;
       c[k].classList.toggle("is-selected", o.selected);
       c[k].classList.toggle("is-disabled", !!o.disabled);
     }
@@ -315,6 +359,24 @@
   document.addEventListener("click", function () {
     var o = document.querySelectorAll(".cc-sel.cc-open"); for (var i = 0; i < o.length; i++) o[i].classList.remove("cc-open");
   });
+  // One-time: Unraid's Read buttons (readShare/readSMB/readUserSMB/readNFS — the input.clone ones)
+  // repoint the form's selects from INSIDE a $.get callback (e.g. `form.shareSecurity.value =
+  // data.security;`). Those are PROPERTY writes: no change event, no attribute, no childList mutation
+  // -> the observer stays silent and the cc-sel trigger keeps showing the OLD value while the form
+  // POSTs the NEW one — the same desync class as the clone-block bug above, just reached via the Read
+  // button. A sel.addEventListener("change") would NOT fix it: readSMB/readUserSMB fire their
+  // $(form).find('select').trigger('change') BEFORE the AJAX lands, and a jQuery .trigger() only
+  // reaches inline onchange + jQuery-bound handlers, never addEventListener. ajaxComplete fires right
+  // AFTER the success callback, which is exactly when the new values are in place. URL-scoped to the
+  // two clone endpoints so the page's other polling cannot cause a repaint loop. No teardown needed:
+  // ccSelectsTeardown() strips data-cc-sel, after which this selector matches nothing.
+  try {
+    if (window.jQuery) window.jQuery(document).ajaxComplete(function (ev, xhr, opt) {
+      if (!/\/(ProtocolData|ShareData)\.php/.test((opt && opt.url) || "")) return;
+      var s = document.querySelectorAll("#displaybox select[data-cc-sel]");
+      for (var i = 0; i < s.length; i++) ccSyncOne(s[i]);
+    });
+  } catch (e) {}
 
   // ── Clone-settings block -> Nebencard beside the Hauptcard. Unraid renders THREE variants of the
   // "Read/Write settings from" clone next to the settings form; we normalize all three to ONE structure
@@ -482,6 +544,12 @@
       // single-tab-hide rule skips it (else the prev/next arrows, which live in the tab bar, vanish)
       // and so its own CC theming (buttons/inputs/title) applies.
       root.classList.toggle("cc-on-share-detail", on && pn() === "/Shares/Share");
+      // the file manager (/<parent>/Browse). CSS-ONLY area: nothing is injected, so this class toggle IS
+      // the whole teardown. NB the page runs DESTRUCTIVE jobs (delete/move) — see the cc-on-browse block
+      // in Shares.css for the rules on why nothing there touches rows, columns or the check glyphs.
+      root.classList.toggle("cc-on-browse", on && onBrowse());
+      // /Stats: CSS-only, like Browse — the class toggle IS the teardown.
+      root.classList.toggle("cc-on-stats", on && onStats());
       if (!on) {
         // area disabled at runtime: removing the class reverts every CSS rule (cards collapse back to
         // tab-switching), but the JS-injected card headers would linger as stray unstyled divs -> pull
@@ -546,7 +614,7 @@
     watch();
     // the CC settings page writes cc.*/ccsh.* keys from another origin/tab -> re-apply on
     // any of them. NB "ccsh.accent" needs [a-z]* (two letters) to be caught (see header.js).
-    try { window.addEventListener("storage", function (e) { if (e && e.key && /^cc[a-z]*\./.test(e.key)) apply(); }); } catch (e) {}
+    try { window.addEventListener("storage", function (e) { if (e && e.key && e.key !== "cc.stateCache" && /^cc[a-z]*\./.test(e.key)) apply(); }); } catch (e) {} // cc.stateCache EXCLUDED: docker.js rewrites it every 9s, which would repaint this area on a 9s loop in every other open tab
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
 })();

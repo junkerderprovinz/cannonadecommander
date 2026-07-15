@@ -206,7 +206,7 @@
     if (localStorage.getItem("cc.enable.vms") === "0") return; // area disabled in CC settings
     try {
       arm();
-      window.addEventListener("storage", function (e) { try { if (!dead && e && e.key && /^ccv?\./.test(e.key)) apply(); } catch (e2) {} }); // cc.* AND the VM tab's own ccv.* (accent/iconcolor) — else an adopt-OFF own-colour pick never live-updates
+      window.addEventListener("storage", function (e) { try { if (!dead && e && e.key && e.key !== "cc.stateCache" && /^ccv?\./.test(e.key)) apply(); } catch (e2) {} }); // cc.* AND the VM tab's own ccv.* (accent/iconcolor) — else an adopt-OFF own-colour pick never live-updates. // cc.stateCache EXCLUDED: docker.js rewrites it every 9s, which would repaint this area on a 9s loop in every other open tab
       // persistent re-probe (NEVER cleared): re-arm when the proxy returns, so a
       // transient gap during a plugin UPDATE doesn't kill the tint until reload.
       setInterval(function () { try { if (!dead) return; fetch(PROXY + "?path=state", { headers: { Accept: "application/json" } }).then(function (r) { if (r.ok) arm(); }).catch(function () {}); } catch (e) {} }, 8000);

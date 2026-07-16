@@ -33,7 +33,7 @@ jobs:
       # The WebGUI half is plain browser JS with no bundler, so it gets the gate the Go half already has:
       # a syntax check on every script, plus DOM-shim tests that replay the markup Unraid really renders.
       # Every bug here that has cost us a release came from ASSUMING a DOM shape instead of pinning it.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
       - name: js syntax

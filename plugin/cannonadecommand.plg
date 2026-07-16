@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.15.0">
+  <!ENTITY version   "2.16.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,14 @@
 </ICON>
 
 <CHANGES>
+### 2.16.0
+1. Freigaben (Detailseite, SMB/NFS-Einstellungen): auf CC-Wunsch vereinheitlicht mit Settings/Werkzeuge --
+   statt Karten jetzt Abschnitte mit Titelbadge, keine umschliessende Box mehr. Dabei einen echten
+   Kontrastfehler selbst gefangen und behoben: die alte helle Schrift war nur richtig, weil eine dunkle
+   Kartenflaeche garantiert dahinter lag -- ohne die Box waere sie auf hellen Themes kaum lesbar gewesen.
+2. Fixed: die Einstellungen- und Werkzeuge-Tabs waren nicht buendig zur Hauptmenueleiste -- als einzige
+   von fuenf CC-Flaechen hatte dieses Blatt den Ausrichtungs-Anker nie verdrahtet bekommen.
+
 ### 2.15.0
 1. Freigaben: the "Einstellungen lesen von" (Read settings from) picker now shows the share you picked
    immediately, and keeps showing it. It used to stay blank after the first pick and show the PREVIOUS
@@ -573,7 +581,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>365e53d173d73f587ca303b21d57ff647f26057eb18ee830638ec717bc3d5a47</SHA256>
+  <SHA256>2dbfe40f20d84db44e35a865ebe14998eb21b252dfca4020f144ca26cb0230b4</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

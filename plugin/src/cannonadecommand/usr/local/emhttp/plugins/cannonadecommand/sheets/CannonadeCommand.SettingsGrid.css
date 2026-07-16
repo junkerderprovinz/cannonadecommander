@@ -20,6 +20,23 @@
 
 :root { --cc-sg-size: 64px; --cc-sg-glyph: 32px; --cc-sg-rmax: 16px; }
 
+/* ═══ align the Settings/Tools content with the MAIN MENU BAR (v2.16.0) ═══
+   --cc-align-left is the geometry token every other CC area wires — but each globally-injected sheet
+   must define its OWN local copy: docker.css (Docker+Plugins) only loads via page-specific hooks
+   (Menu="Docker"/"Plugins"), Shares.css/Header.css/THIS sheet load via Menu="Buttons" (every page) —
+   none of these stylesheets share scope, so falling back to var(...,10px) here would silently ignore
+   the Header-area 15px case (docker.css's copy is simply absent on /Settings and /Tools). 10px is the
+   native menu TEXT edge; 15px is the CC Header area's PILL edge (nav-tile 12px padding + nav-item>a 3px
+   margin, border-box left) once that area turns the first menu item into a pill. This sheet never wired
+   any of this, which is EXACTLY why the category-group heading badges sat 5-10px off the menu-bar edge
+   while every other area's badges lined up. Gate the anchor on cc-settingsgrid-heads-on (live whenever
+   this is a grid page + theming is on, INDEPENDENT of the tile badge/tint mode), not cc-settingsgrid-on.
+   div.title's own native left padding is already zeroed by the heading-badge reset below
+   (`padding: 0 !important`), so no separate div.title override is needed here. */
+html.cc-settingsgrid-heads-on { --cc-align-left: 10px; }
+html.cc-settingsgrid-heads-on.cc-header-on { --cc-align-left: 15px; }
+html.cc-settingsgrid-heads-on:not(.Theme--sidebar) #displaybox { padding-left: var(--cc-align-left, 10px); }
+
 /* the tile's icon wrapper <span> -> the big square badge */
 html.cc-settingsgrid-on #displaybox .Panel > a > span {
   display: inline-flex !important; align-items: center; justify-content: center;

@@ -440,11 +440,16 @@ html.cc-shares-on.cc-on-share-detail #displaybox .ui-dropdownchecklist-item .ui-
    and dress each section as a settings-style card. shares.js prepends a header per card. */
 html.cc-shares-on.cc-on-share-detail #displaybox section[role="tabpanel"] {
   display: block !important;                 /* beats the inline style.display:none AND .tab-content{display:none} */
-  max-width: 960px; margin: 0 auto 16px;     /* clone-less panels: wider than the old 760, still centered */
-  background: #222; border-radius: 12px; padding: 16px 20px 20px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, .35);
+  max-width: 960px; margin: 0 auto 28px;     /* PLAIN SECTION, not a card (v2.16.0: user preferred the Settings/Tools
+    look — a badge heading over flowing content, no boxed frame — over the old boxed-card treatment; matches
+    section[role=tabpanel]:has(.cc-split-row) below, which needs the wider variant for its two-column content). */
+  background: none; border-radius: 0; padding: 0; box-shadow: none;
   overflow: visible !important;              /* the open dropdown overlay must NOT grow a card scrollbar — beats .content{overflow-x:auto} which forces both axes to auto; only the list scrolls */
 }
+html.cc-shares-on.cc-on-share-detail #displaybox section[role="tabpanel"]:last-child { margin-bottom: 0; }
+/* a section that HOSTS a Hauptcard/Nebencard split needs the wider variant (its content is genuinely
+   two columns) — handled below by the `.tab-content:has(.cc-split-row)` rule, since Unraid's tabpanel
+   carries BOTH role="tabpanel" and class="tab-content" on the one element. */
 html.cc-shares-on.cc-on-share-detail #displaybox nav.tabs button[role="tab"] { display: none !important; }
 html.cc-shares-on.cc-on-share-detail #displaybox nav.tabs { border: none; min-height: 0; }
 /* the prev/next arrows stay flowed so nav.tabs keeps a height (they were position:absolute) */
@@ -465,41 +470,38 @@ html.cc-shares-on.cc-on-share-detail #displaybox .cc-card-head img.icon { color:
 /* SMB "User Access": its native sub-heading is converted into an in-card title badge, so hide the
    native one; its "guests have … access" note is kept as a small muted line under the badge. */
 html.cc-shares-on.cc-on-share-detail #displaybox .title.cc-carded { display: none !important; }
-html.cc-shares-on.cc-on-share-detail #displaybox .cc-card-note { color: #9a9a9a; font-size: 12px; font-style: italic; margin: -4px 0 12px; }
-/* card body text: the section is now a dark #222 card, so make the form's default field labels + help
-   text light enough to read on it (the theme-default label colour would otherwise be dark-on-dark).
-   Accent headers, inputs and the SMB bar span.left keep their own more-specific colours. */
-html.cc-shares-on.cc-on-share-detail #displaybox section[role="tabpanel"] { color: #d5d5d5; }
-html.cc-shares-on.cc-on-share-detail #displaybox section[role="tabpanel"] dt,
-html.cc-shares-on.cc-on-share-detail #displaybox section[role="tabpanel"] dd,
-html.cc-shares-on.cc-on-share-detail #displaybox section[role="tabpanel"] .inline_help,
-html.cc-shares-on.cc-on-share-detail #displaybox section[role="tabpanel"] blockquote { color: #d5d5d5; }
+/* dim relative to whatever the (now theme-native) surrounding text colour is, rather than a hardcoded
+   grey — the same theme-neutral technique as above, just via opacity instead of an explicit colour. */
+html.cc-shares-on.cc-on-share-detail #displaybox .cc-card-note { color: inherit; opacity: .7; font-size: 12px; font-style: italic; margin: -4px 0 12px; }
+/* THEME-NEUTRAL ON PURPOSE (v2.16.0): the old boxed card forced a dark #222 fill, so a hardcoded light
+   grey (#d5d5d5) label colour was correct there — but now that the card fill is gone (see below), that
+   same hardcoded colour would sit on Unraid's OWN page background, which is WHITE on Theme--white/azure.
+   Light-grey-on-white is the exact contrast bug the Browse restyle already taught us (v2.15.0 review):
+   forcing an ink colour only works paired with a fill we ALSO force. With no fill forced any more, we
+   let the native theme supply the label colour — Unraid's own forms are legible on all 4 themes by
+   construction. Accent headers, inputs and the SMB bar span.left keep their own explicit colours. */
 
-/* ═══ clone-settings "Einstellungen übernehmen von" (Read/Write settings from) -> a small Nebencard
-   BESIDE the Hauptcard (user: clone = Nebencard, the settings form = Hauptcard, DECOUPLED — "nicht mit
-   einem umschließenden Rahmen umgeben", and "die Hintergründe gleich einfärben"). shares.js REUSES the
-   native .relative as the flex row (.cc-split-row) holding [.cc-main-col = Hauptcard, .cc-side-card =
-   Nebencard]; whole forms/blocks move as units. When a panel holds a split it is NO LONGER the card —
-   it becomes a transparent flex HOST, so its own card fill/shadow/radius must be fully removed (that
-   left-over section shadow WAS the "umschließender Rahmen" the user saw around both cards). The two
-   cards get the SAME #222 fill; no border lines ([[cc-standardize-widget-style-systemwide]]) — they
-   read as two separate cards via fill + shadow + the gap between them. */
+/* ═══ clone-settings "Einstellungen übernehmen von" (Read/Write settings from) -> a Nebencard COLUMN
+   beside the Hauptcard COLUMN (v2.16.0: converted from boxed cards to plain, badge-headed sections —
+   matching the Settings/Tools look the user preferred: a section badge over flowing content, no
+   enclosing frame/fill/shadow anywhere on this page). shares.js REUSES the native .relative as the
+   flex row (.cc-split-row) holding [.cc-main-col = Hauptcard, .cc-side-card = Nebencard]; whole forms/
+   blocks move as units. No border lines ([[cc-standardize-widget-style-systemwide]]) — the two columns
+   read as separate simply via their own .cc-card-head badge + the gap between them. */
 html.cc-shares-on.cc-on-share-detail #displaybox .tab-content:has(.cc-split-row) {
   max-width: 1480px;                                 /* wider: the Hauptcard + Nebencard use the page (user: cards too narrow) */
   background: none; box-shadow: none; border-radius: 0; padding: 0;   /* host, not a card -> NO enclosing frame */
 }
 html.cc-shares-on.cc-on-share-detail #displaybox .cc-split-row {
-  display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start;   /* Nebencard stacks below on narrow screens */
-  margin-bottom: 16px;   /* vertical spacing between STACKED crows (SMB settings crow + SMB user-access crow) — the hidden .title.cc-carded between them breaks `+` adjacency, so use a per-crow bottom margin */
+  display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start;   /* wider gap than the old card gap (16px) — with no card edge to read as a boundary, the two columns need more air between them */
+  margin-bottom: 28px;   /* vertical spacing between STACKED crows (SMB settings crow + SMB user-access crow) — the hidden .title.cc-carded between them breaks `+` adjacency, so use a per-crow bottom margin */
 }
 html.cc-shares-on.cc-on-share-detail #displaybox .cc-split-row:last-child { margin-bottom: 0; }
 html.cc-shares-on.cc-on-share-detail #displaybox .cc-main-col {
-  flex: 1 1 620px; min-width: 0;                     /* wider Hauptcard basis (host 1480 - side 360 - gap -> ~1100px) */
-  background: #222; border: none; border-radius: 12px; padding: 16px 20px; box-shadow: 0 1px 4px rgba(0, 0, 0, .35);
+  flex: 1 1 620px; min-width: 0;                     /* wider Hauptcard basis (host 1480 - side 460 - gap -> ~950px) */
 }
 html.cc-shares-on.cc-on-share-detail #displaybox .cc-side-card {
-  flex: 0 1 540px; min-width: 0; align-self: flex-start;   /* Nebencard basis 460 -> 540 (user: still too small); can shrink on narrow, no grow */
-  background: #222; border: none; border-radius: 12px; padding: 16px 18px; box-shadow: 0 1px 4px rgba(0, 0, 0, .35);
+  flex: 0 1 460px; min-width: 0; align-self: flex-start;   /* can shrink on narrow, never grows past its basis */
 }
 /* the two columns ARE the cards now -> drop every inner .shade fill, and NEUTRALIZE the native float:
    div.clone-settings is position:absolute; width:40rem; top:0; right:0 (a top-right float inside its

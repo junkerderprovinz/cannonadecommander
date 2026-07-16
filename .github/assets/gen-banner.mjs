@@ -1,10 +1,15 @@
 /**
- * Generates the CannonadeCommand README banner:
- *   cannonadecommand-banner.svg / .png : white 1600x500; the cannon logo on the
- *   left (embedded VERBATIM from logo.svg), the "CannonadeCommand" wordmark
- *   (Bree Serif) to the right, and the claim below it (Lato). Wordmark + claim
- *   are converted to SVG paths (opentype.js) so the SVG needs NO font and
- *   renders identically with resvg or a browser.
+ * Generates the CannonadeCommand README banners (1600x500):
+ *   cannonadecommand-banner.svg / .png       light: dunkel logo on white
+ *   cannonadecommand-banner-dark.svg / .png  dark:  hell logo on #0d1117 (GitHub dark)
+ *   cannonadecommand-banner-logo.svg / .png  text-free, dunkel on white (support thread)
+ *
+ * Theme-flip like ShipLog: the README serves a <picture> pair so the banner is
+ * light in light mode and dark in dark mode. Each theme embeds the matching logo
+ * variant VERBATIM (no recolour): light -> cannonadecommand-dunkel.svg (dark ring),
+ * dark -> cannonadecommand-hell.svg (white ring). The "CannonadeCommand" wordmark
+ * (Bree Serif) + the claim (Lato) are converted to SVG paths (opentype.js) so the
+ * SVG needs NO font and renders identically with resvg or a browser.
  *
  * Deps (global): opentype.js, @resvg/resvg-js. Bree Serif + Lato (both OFL) are
  * fetched at runtime to the OS temp dir — NOT committed.
@@ -28,16 +33,20 @@ const __dir = dirname(fileURLToPath(import.meta.url));
 // ---- content + styling -----------------------------------------------------
 const NAME_A = "Cannonade";
 const NAME_B = "Command";
-const CLAIM1 = "Firepower and finish for Unraid's";
-const CLAIM2 = "Docker, Plugins and VM tabs.";
+const CLAIM1 = "Firepower and finish for your whole";
+const CLAIM2 = "Unraid dashboard. Fire when ready.";
 const W = 1600, H = 500;
 const maxTextW = 900; // wordmark + claim must fit between textX and the right margin
-const nameFill = "#242626"; // ONE colour for the whole wordmark (user call)
-const claimFill = "#5a5d5e";
 const logoBox = 400;                 // rendered logo size (square)
 const logoX = 120, logoY = (H - logoBox) / 2;
 const textX = 590;                   // left edge of wordmark + claim
 const nameBaseline = 235, claim1Baseline = 320, claim2Baseline = 385;
+
+// Each theme embeds the logo variant that reads on its background (no recolour).
+const THEMES = [
+  { suffix: "", bg: "#ffffff", name: "#242626", claim: "#5a5d5e", logo: "cannonadecommand-dunkel.svg" },
+  { suffix: "-dark", bg: "#0d1117", name: "#e6edf3", claim: "#9aa4ad", logo: "cannonadecommand-hell.svg" },
+];
 // ---------------------------------------------------------------------------
 
 async function font(file, url) {
@@ -70,42 +79,50 @@ const nameFit = cleanPaths(bree, [[NAME_A + NAME_B, textX, nameBaseline]],
   Math.floor(100 * maxTextW / bree.getAdvanceWidth(NAME_A + NAME_B, 100)));
 const claimFit = cleanPaths(lato, [[CLAIM1, textX + 4, claim1Baseline], [CLAIM2, textX + 4, claim2Baseline]],
   Math.min(52, Math.floor(100 * maxTextW / Math.max(lato.getAdvanceWidth(CLAIM1, 100), lato.getAdvanceWidth(CLAIM2, 100)))));
-const nameSize = nameFit.size, claimSize = claimFit.size;
-const namePath = nameFit.paths[0];
-const claim1Path = claimFit.paths[0], claim2Path = claimFit.paths[1];
+const claimSize = claimFit.size;
+const namePath = nameFit.paths[0].toPathData(2);
+const claim1Path = claimFit.paths[0].toPathData(2), claim2Path = claimFit.paths[1].toPathData(2);
 
-// the logo artwork goes in VERBATIM — only wrapped in a scaling group
-const logoSrc = readFileSync(join(__dir, "logo.svg"), "utf8");
-const inner = logoSrc.replace(/^[\s\S]*?<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "");
-const vb = logoSrc.match(/viewBox="[\d.\-]+\s+[\d.\-]+\s+([\d.]+)\s+([\d.]+)"/);
-const vbW = vb ? parseFloat(vb[1]) : 994.78;
-const scale = logoBox / vbW;
+// read a logo master VERBATIM -> inner markup + scale factor for its own viewBox
+function embed(logoFile) {
+  const src = readFileSync(join(__dir, logoFile), "utf8");
+  const inner = src.replace(/^[\s\S]*?<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "");
+  const m = src.match(/viewBox="[\d.\-]+\s+[\d.\-]+\s+([\d.]+)\s+([\d.]+)"/);
+  const vbW = m ? parseFloat(m[1]) : 960.28;
+  return { inner, scale: logoBox / vbW };
+}
 
-const svg = `<?xml version="1.0" encoding="UTF-8"?>
+// README banners (both themes): logo (left) + wordmark + 2-line claim.
+for (const t of THEMES) {
+  const { inner, scale } = embed(t.logo);
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="CannonadeCommand">
-  <rect width="${W}" height="${H}" fill="#ffffff"/>
+  <rect width="${W}" height="${H}" fill="${t.bg}"/>
   <g transform="translate(${logoX},${logoY}) scale(${scale.toFixed(6)})">
 ${inner}
   </g>
-  <path d="${namePath.toPathData(2)}" fill="${nameFill}"/>
-  <path d="${claim1Path.toPathData(2)}" fill="${claimFill}"/>
-  <path d="${claim2Path.toPathData(2)}" fill="${claimFill}"/>
+  <path d="${namePath}" fill="${t.name}"/>
+  <path d="${claim1Path}" fill="${t.claim}"/>
+  <path d="${claim2Path}" fill="${t.claim}"/>
 </svg>
 `;
+  writeFileSync(join(__dir, `cannonadecommand-banner${t.suffix}.svg`), svg);
+  const png = new Resvg(svg, { fitTo: { mode: "width", value: W } }).render().asPng();
+  writeFileSync(join(__dir, `cannonadecommand-banner${t.suffix}.png`), png);
+  console.log(`banner${t.suffix} ok: ${W}x${H}, png ${png.length} bytes`);
+}
 
-writeFileSync(join(__dir, "cannonadecommand-banner.svg"), svg);
-const png = new Resvg(svg, { fitTo: { mode: "width", value: W } }).render().asPng();
-writeFileSync(join(__dir, "cannonadecommand-banner.png"), png);
-// text-free support banner (logo only, on white) — house-standard "-banner-logo" name (support thread)
+// text-free support banner (logo only, dunkel on white) — house-standard "-banner-logo" name.
+const { inner: dInner, scale: dScale } = embed("cannonadecommand-dunkel.svg");
 const logoOnly = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="CannonadeCommand">
   <rect width="${W}" height="${H}" fill="#ffffff"/>
-  <g transform="translate(${(W - logoBox) / 2},${logoY}) scale(${scale.toFixed(6)})">
-${inner}
+  <g transform="translate(${(W - logoBox) / 2},${logoY}) scale(${dScale.toFixed(6)})">
+${dInner}
   </g>
 </svg>
 `;
 writeFileSync(join(__dir, "cannonadecommand-banner-logo.svg"), logoOnly);
 const pngLogo = new Resvg(logoOnly, { fitTo: { mode: "width", value: W } }).render().asPng();
 writeFileSync(join(__dir, "cannonadecommand-banner-logo.png"), pngLogo);
-console.log(`banner ok: ${W}x${H}, claim ${claimSize}px, png ${png.length} bytes`);
+console.log(`banner-logo ok, claim ${claimSize}px`);

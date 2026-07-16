@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/.github/assets/cannonadecommand-banner.png" alt="CannonadeCommand" width="100%">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/.github/assets/cannonadecommand-banner-dark.png">
+    <img src="https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/.github/assets/cannonadecommand-banner.png" alt="CannonadeCommand" width="100%">
+  </picture>
 </p>
 
 <p align="center">
@@ -67,7 +70,7 @@ menu bar** (opt-in) and turn the **Settings page** category icons into large squ
 badges. A **Bereiche** (Areas) tab in the settings lets you turn each area — menu bar,
 Docker, Plugins, VMs, Settings — on or off independently, each with its own style tab.
 
-**Firepower and finish for Unraid's Docker, Plugins and VM tabs.**
+**Firepower and finish for your whole Unraid dashboard. Fire when ready.**
 
 <br>
 

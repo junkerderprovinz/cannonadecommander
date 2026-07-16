@@ -1,0 +1,18 @@
+Menu="Buttons:98"
+Title="CannonadeCommand"
+Icon="cannonadecommand.png"
+Link="cc-vmtab-hook"
+---
+<?php
+/* CannonadeCommand GLOBAL hook for the VM-tab stylesheet. Registered under
+   Menu="Buttons" so Unraid AUTO-INJECTS the same-basename sheet
+   (sheets/CannonadeCommand.VmTab.css) into the <head> of EVERY page — exactly like
+   the Header/Shares/SettingsGrid hooks. That is the ONLY reliable way to load it:
+   the VM area's own CannonadeCommand.VMs.page is Menu="VMs" (title-less injector for
+   vms.js) and a manual <link> there does NOT load, which is why the VM-tab CSS
+   (badges + alignment) never applied. All rules are gated behind html.cc-vms-on,
+   which vms.js sets only when the VM area + master theming are on, so this sheet is
+   inert on every other page. Link="cc-vmtab-hook" renders a bare <div> instead of a
+   visible CC menu icon (we only restyle, never add an icon). No script here — vms.js
+   still loads via CannonadeCommand.VMs.page on /VMs. */
+?>

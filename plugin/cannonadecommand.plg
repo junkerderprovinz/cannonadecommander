@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.19.0">
+  <!ENTITY version   "2.19.1">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,12 @@
 </ICON>
 
 <CHANGES>
+### 2.19.1
+1. VM-Tab: die in 2.19.0 angekuendigten CC-Aenderungen (Badges, Ausrichtung, Autostart-Schalter,
+   Buttons, Kontextmenue) waren gar nicht sichtbar, weil das VM-Stylesheet nicht geladen wurde. Es
+   wird jetzt ueber denselben globalen Mechanismus geladen wie die anderen Bereiche und greift wie
+   vorgesehen.
+
 ### 2.19.0
 1. VM-Tab (/VMs) in den CC-Stil gebracht, aehnlich zum Docker-Tab: die Zeilen richten sich an der
    Hauptmenueleiste aus, vCPU und RAM erscheinen als Badges, der Autostart-Schalter, die Aktions-Buttons
@@ -612,7 +618,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>12560763e330da20edbbd5441ae8653599d35e19060c4f439842d2206f466daa</SHA256>
+  <SHA256>f44374a85bf12c206ff40e2e69e63b107372149f50a2df7c391556448b0e3a51</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

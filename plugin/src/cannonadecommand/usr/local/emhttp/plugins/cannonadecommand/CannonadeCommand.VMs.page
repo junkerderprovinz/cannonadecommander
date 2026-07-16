@@ -11,5 +11,4 @@ Tag="rocket"
    tab, which is only needed to load on pre-7.1 builds that don't have the inline-eval
    branch; there VM-icon tinting simply won't apply.) */
 ?>
-<link type="text/css" rel="stylesheet" href="<?autov('/plugins/cannonadecommand/sheets/CannonadeCommand.VMs.css')?>">
 <script defer src="<?autov('/plugins/cannonadecommand/scripts/vms.js')?>"></script>

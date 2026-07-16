@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.16.0">
+  <!ENTITY version   "2.17.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,17 @@
 </ICON>
 
 <CHANGES>
+### 2.17.0
+1. CC Settings, Bereich "Einstellungen und Werkzeuge": die Logo-Vorschau war leer. Die Kacheln dort
+   nutzen Schrift-Symbole (keine Bild-Logos), daher zeigt die Vorschau jetzt Beispiel-Symbole
+   (Zahnrad/Globus/Stern) und faerbt sie live wie die echten Kacheln.
+2. Ausrichtung an der Hauptmenueleiste ist jetzt SELBSTMESSEND statt geschaetzt: der Header misst die
+   echte linke Kante der Menueleiste zur Laufzeit und richtet alle Bereiche exakt darauf aus -- immun
+   gegen Theme, Schriftgroesse und Header-an/aus. Das behebt den Versatz der Abschnittsbadges im
+   Einstellungen-Tab.
+3. Gleicher senkrechter Abstand von der Menueleiste zu den Untertabs auf allen Haupttabs (vorher war
+   er je Tab unterschiedlich, am auffaelligsten im Plugins-Tab).
+
 ### 2.16.0
 1. Freigaben (Detailseite, SMB/NFS-Einstellungen): auf CC-Wunsch vereinheitlicht mit Settings/Werkzeuge --
    statt Karten jetzt Abschnitte mit Titelbadge, keine umschliessende Box mehr. Dabei einen echten
@@ -581,7 +592,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>2dbfe40f20d84db44e35a865ebe14998eb21b252dfca4020f144ca26cb0230b4</SHA256>
+  <SHA256>1d12f3809f0ef8991d3b26ce36531c06530f1268f004fa83c7da21f221a0fbb5</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

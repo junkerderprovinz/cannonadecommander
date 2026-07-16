@@ -647,15 +647,41 @@
       st2.appendChild(sl2); cB.appendChild(st2);
       // live logo preview with real icons of this tab
       cB.appendChild(el("div", "cc-set-lbl", T("Vorschau", "Preview")));
-      var tpw = el("div", "cc-set-prev"); var tpImgs = [];
+      var tpw = el("div", "cc-set-prev"); var tpImgs = [], tpGlyphs = [];
+      // A sample beginning with "fa-"/"icon-" is a FONT GLYPH (the Settings/Tools tiles use FA/Unraid
+      // font icons, not raster PNGs) — render it as an <i> coloured via CSS. Anything else is a raster
+      // logo <img> tinted via the SVG feColorMatrix filter below. This is why ccs. showed no preview:
+      // its samples were empty because there are no PNGs; now it passes glyph classes instead.
       (samples || []).forEach(function (s9) {
-        var im9 = el("img"); im9.src = s9; im9.alt = "";
-        im9.style.width = "48px"; im9.style.height = "48px"; im9.style.objectFit = "contain";
-        im9.onerror = function () { this.style.display = "none"; };
-        tpImgs.push(im9); tpw.appendChild(im9);
+        if (/^(fa-|icon-)/.test(s9)) {
+          var gi9 = el("i", "fa " + s9);
+          gi9.style.cssText = "width:48px;height:48px;display:inline-flex;align-items:center;justify-content:center;font-size:26px;box-sizing:border-box";
+          tpGlyphs.push(gi9); tpw.appendChild(gi9);
+        } else {
+          var im9 = el("img"); im9.src = s9; im9.alt = "";
+          im9.style.width = "48px"; im9.style.height = "48px"; im9.style.objectFit = "contain";
+          im9.onerror = function () { this.style.display = "none"; };
+          tpImgs.push(im9); tpw.appendChild(im9);
+        }
       });
       var fid = "cc-set-tint-" + P.replace(/[^a-z]/g, "");
       function tp() {
+        // FONT-GLYPH samples (Settings/Tools): recolour via CSS (color/background), NOT the SVG filter
+        // — a font glyph has no raster to matrix. Mirrors the tile treatment: background ON => a filled
+        // accent badge with contrast glyph; colourise ON => tinted glyph; neither => native.
+        tpGlyphs.forEach(function (gi9) {
+          if (ibg) {
+            var gbg9 = /^#[0-9a-f]{6}$/i.test(icol) ? icol : acc;
+            gi9.style.background = gbg9; gi9.style.color = idealText(gbg9);
+            // same square-badge radius family as the real tiles (SettingsGrid.css min(--cc-b-radius,16px))
+            var brm9 = { pill: "999px", rounded: "6px", square: "0px" }[get("cc.badgeshape", "pill")] || "999px";
+            gi9.style.borderRadius = "min(" + brm9 + ", 16px)"; gi9.style.padding = "";
+          } else if (/^#[0-9a-f]{6}$/i.test(icol)) {
+            gi9.style.background = "none"; gi9.style.color = icol; gi9.style.borderRadius = "";
+          } else {
+            gi9.style.background = "none"; gi9.style.color = ""; gi9.style.borderRadius = "";
+          }
+        });
         if (ibg) {
           var bg8 = /^#[0-9a-f]{6}$/i.test(icol) ? icol : acc;
           // badge colour + mono-inked logo composited inside ONE filter (feColorMatrix
@@ -695,7 +721,7 @@
     wrapHeader.appendChild(cH); wrapShares.appendChild(cSh); wrapPlugin.appendChild(cP); wrapVms.appendChild(cV); wrapSettings.appendChild(cSet);
     buildStyleCards("cch.", wrapHeader, [], true); // Hauptmenueleiste: pill/badge settings only
     buildStyleCards("ccsh.", wrapShares, [], true); // Freigaben: tab pills use FA glyphs -> badges only, no logo card
-    buildStyleCards("ccs.", wrapSettings, [], false); // Einstellungs-Tab: badges + logo-tint + Logo-Hintergrund cards (shape is global now; font-glyph icons → empty preview)
+    buildStyleCards("ccs.", wrapSettings, ["fa-cog", "fa-globe", "fa-star"], false); // Einstellungs-Tab: badges + logo-tint + Logo-Hintergrund cards; the tiles use FA glyphs, so the preview shows sample glyphs (cog/globe/star = System/Network/User category icons), coloured via CSS not the raster filter
     buildStyleCards("ccp.", wrapPlugin, ["/plugins/dynamix.plugin.manager/images/dynamix.plugin.manager.png", "/plugins/dynamix.docker.manager/images/dynamix.docker.manager.png", "/plugins/cannonadecommand/images/cannonadecommand.png"]);
     buildStyleCards("ccv.", wrapVms, ["/plugins/dynamix.vm.manager/templates/images/linux.png", "/plugins/dynamix.vm.manager/templates/images/windows.png", "/plugins/cannonadecommand/images/cannonadecommand.png"]);
     refreshTabs();

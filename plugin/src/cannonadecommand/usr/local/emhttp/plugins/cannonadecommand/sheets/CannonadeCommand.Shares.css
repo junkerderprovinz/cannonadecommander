@@ -114,6 +114,17 @@ html.cc-shares-on:not(.Theme--sidebar):is(.cc-on-shares, .cc-on-share-detail, .c
    isn't cramped against the edge; tabs/title/buttons stay flush at the anchor. */
 html.cc-shares-on #displaybox table.unraid.share_status tr > td:first-child { padding-left: 12px; }
 
+/* ═══ CONSISTENT VERTICAL GAP from the main menu bar to the sub-tabs, across EVERY main tab (v2.17.0,
+   user: the gap differed per tab, most visibly on Plugins). cc-shares-on rides on every page, so
+   `#displaybox:has(> nav.tabs)` matches every TABBED page (Plugins, Docker, Freigaben, Stats, ...) and
+   pins ONE padding-top for all of them — native per-page padding variation can no longer leak through.
+   nav.tabs' own margin is zeroed so the gap is exactly this padding, nothing added on top. Sidebar theme
+   excluded (its #displaybox layout differs). NB: if a page still reads uneven after this, the extra gap
+   comes from a page-specific element BETWEEN the menu and nav.tabs, not from padding — flagged for a
+   live-DOM check. */
+html.cc-shares-on:not(.Theme--sidebar) #displaybox:has(> nav.tabs) { padding-top: 12px; }
+html.cc-shares-on:not(.Theme--sidebar) #displaybox > nav.tabs { margin-top: 0 !important; }
+
 /* ═══ roomier rows (user: "nicht so gedrungen") ═══ a bit more vertical breathing room per body row */
 html.cc-shares-on #displaybox table.unraid.share_status tbody td { padding-top: 7px; padding-bottom: 7px; }
 

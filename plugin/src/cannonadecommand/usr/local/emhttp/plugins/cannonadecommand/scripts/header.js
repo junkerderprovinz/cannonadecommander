@@ -76,6 +76,36 @@
       }
     } catch (e) {}
   }
+  // ── SELF-MEASURING alignment anchor (v2.17.0). Every CC area lines its left edge up with the main
+  // menu bar (rule cc-align-everything-to-menu-bar). We used to GUESS the offset with a header-gated
+  // px constant (10px native text edge / 15px CC-pill edge) — which was fragile and drifted (Settings
+  // sat 5-10px off). Instead MEASURE it: the first menu item's real left edge minus #displaybox's own
+  // left, written once to the shared --cc-align-left custom property on <html>. Every area's sheet
+  // already reads `padding-left: var(--cc-align-left)`, so ONE measured value aligns them all — correct
+  // for any theme, font size, and header-on/off, with no per-area guessing. Runs on every apply() +
+  // resize; the static per-sheet 10/15px stays as a no-JS fallback.
+  function measureAlign() {
+    try {
+      var root = document.documentElement;
+      if (root.classList.contains("Theme--sidebar")) return;   // vertical left menu — the horizontal-edge model doesn't apply (sheets exclude it too)
+      var box = document.getElementById("displaybox");
+      var tile = document.querySelector("#menu .nav-tile:not(.right)");
+      var a = tile && tile.querySelector(".nav-item > a");
+      if (!box || !a) return;                                  // no menu/content here -> leave the CSS fallback in place
+      var aRect = a.getBoundingClientRect(), boxRect = box.getBoundingClientRect();
+      // compensate for horizontal scroll INSIDE the menu tile (many tabs) so the value is stable
+      var scroll = tile.scrollLeft || 0;
+      var edge;
+      if (root.classList.contains("cc-header-on")) {
+        edge = aRect.left + scroll;                            // CC pill: its background box IS the visible left edge
+      } else {
+        var cs = getComputedStyle(a);                         // native text menu: the visible edge is the TEXT, i.e. past the anchor's own padding/border
+        edge = aRect.left + scroll + (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.borderLeftWidth) || 0);
+      }
+      var align = Math.round(edge - boxRect.left);
+      if (align >= 0 && align < 200) root.style.setProperty("--cc-align-left", align + "px");  // sanity-bounded; overrides the sheets' static fallback inline
+    } catch (e) {}
+  }
   function apply() {
     try {
       var root = document.documentElement;
@@ -86,7 +116,7 @@
       // paintNav() with cc-header-on now removed => rb=false => it removeProperty's every
       // lingering rainbow inline colour, so a live theming-OFF (even with Rainbow on) fully
       // reverts the menu bar instead of leaving the coloured tabs behind.
-      if (!on) { paintNav(); return; }
+      if (!on) { paintNav(); measureAlign(); return; }   // measure even when the header area is off: OTHER areas (shares/settings) still align to the native menu-text edge
       var a = accent();
       // ISOLATED accent var — NOT the shared --cc-accent. Other global enhancers (shares.js,
       // the page-specific docker/plugins/vms) also write --cc-accent on documentElement and
@@ -97,6 +127,7 @@
       root.style.setProperty("--cc-b-radius", shape());
       root.classList.toggle("cc-header-rb", rbOn());
       paintNav();
+      measureAlign();   // after the pill geometry is live -> measure the real left edge
     } catch (e) {}
   }
   // gui_search() prepends #guiSearchBoxSpan at the FAR-LEFT of .nav-tile.right, focuses
@@ -159,6 +190,13 @@
   function boot() {
     try { window.ccHeaderApply = apply; } catch (e) {} // let the Settings page live-update this bar same-page
     apply();
+    // re-measure the alignment anchor after fonts settle + on resize (the pill edge shifts with the
+    // viewport/font). rAF catches the post-layout pass; the load event catches late web-font swaps.
+    try {
+      if (window.requestAnimationFrame) window.requestAnimationFrame(measureAlign);
+      window.addEventListener("resize", measureAlign);
+      window.addEventListener("load", measureAlign);
+    } catch (e) {}
     watchSearch();
     wireSearchToggle();
     // the Settings page (or the Docker tab) writes cc.* AND section-specific keys (cch./ccs./

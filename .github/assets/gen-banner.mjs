@@ -40,7 +40,7 @@ const maxTextW = 900; // wordmark + claim must fit between textX and the right m
 const logoBox = 400;                 // rendered logo size (square)
 const logoX = 120, logoY = (H - logoBox) / 2;
 const textX = 590;                   // left edge of wordmark + claim
-const nameBaseline = 235, claim1Baseline = 320, claim2Baseline = 385;
+const D1 = 85, D2 = 65;              // baseline steps: name -> claim line 1, claim line 1 -> 2
 
 // Each theme embeds the logo variant that reads on its background (no recolour).
 const THEMES = [
@@ -75,13 +75,25 @@ function cleanPaths(fnt, runs, size) {
   }
   throw new Error("no NaN-free size found");
 }
-const nameFit = cleanPaths(bree, [[NAME_A + NAME_B, textX, nameBaseline]],
+const nameFit = cleanPaths(bree, [[NAME_A + NAME_B, textX, 0]],
   Math.floor(100 * maxTextW / bree.getAdvanceWidth(NAME_A + NAME_B, 100)));
-const claimFit = cleanPaths(lato, [[CLAIM1, textX + 4, claim1Baseline], [CLAIM2, textX + 4, claim2Baseline]],
+const claimFit = cleanPaths(lato, [[CLAIM1, textX + 4, 0], [CLAIM2, textX + 4, 0]],
   Math.min(52, Math.floor(100 * maxTextW / Math.max(lato.getAdvanceWidth(CLAIM1, 100), lato.getAdvanceWidth(CLAIM2, 100)))));
-const claimSize = claimFit.size;
-const namePath = nameFit.paths[0].toPathData(2);
-const claim1Path = claimFit.paths[0].toPathData(2), claim2Path = claimFit.paths[1].toPathData(2);
+const nameSize = nameFit.size, claimSize = claimFit.size;
+
+// Vertically CENTRE the whole text block (wordmark + 2 claim lines) on H/2 so it always
+// lines up with the logo, which is also centred at H/2. Derive the baselines from the
+// real font metrics + line steps, then regenerate the final paths at those baselines.
+const sc = (fnt, s) => s / fnt.unitsPerEm;
+const nameAsc = bree.ascender * sc(bree, nameSize);
+const claimDesc = -lato.descender * sc(lato, claimSize);
+const blockH = nameAsc + D1 + D2 + claimDesc;
+const nameBaseline = Math.round(H / 2 - blockH / 2 + nameAsc);
+const claim1Baseline = nameBaseline + D1;
+const claim2Baseline = claim1Baseline + D2;
+const namePath = bree.getPath(NAME_A + NAME_B, textX, nameBaseline, nameSize).toPathData(2);
+const claim1Path = lato.getPath(CLAIM1, textX + 4, claim1Baseline, claimSize).toPathData(2);
+const claim2Path = lato.getPath(CLAIM2, textX + 4, claim2Baseline, claimSize).toPathData(2);
 
 // read a logo master VERBATIM -> inner markup + scale factor for its own viewBox
 function embed(logoFile) {

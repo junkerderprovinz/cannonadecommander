@@ -678,6 +678,7 @@
         for (var r = 0; r < rows.length; r++) enhanceMainRow(rows[r]);
       }
       if (box) enhanceArrayOps(box);   // Array-Vorgang form: CC buttons + (i) info-bubbles, separator lines removed via CSS
+      ccLocalizeMain();   // s3-sleep button / UD strings / Internal-Boot sentence in the UI language
     } catch (e) {}
   }
   // ── /Main "Array-Vorgang" (ArrayOperation.page: table.ArrayOperation-Table.array_status). Each control
@@ -747,10 +748,31 @@
     else btnCell.appendChild(ccInfoIcon(tip));                                        // (i) bubble beside the button
     tr.setAttribute("data-cc-aop", "1");
   }
+  // Array-state ("Gestartet") + parity ("Paritaet ist gueltig.") status cells -> two LARGE badges coloured
+  // by status (user request). Language-INDEPENDENT colour sources (never match translated text): the native
+  // status_indicator() orb class in the cell (green-orb = running, yellow-orb = unprotected, grey-orb =
+  // stopped); the icon-less parity cell is identified by its ROW's controls (input[name=cmdCheck] = the
+  // parity-VALID branch of ArrayOperation.page -> green; the pause/cancel pair = check running -> amber).
+  // Cells that are neither (e.g. the Unmountable-disks list) stay native. The orb's a.info tooltip moves
+  // INTO the pill and stays live.
+  function aopStatusBadge(tr) {
+    var td = tr.children[0]; if (!td || td.classList.contains("cc-aop-st")) return;
+    if (td.querySelector(".cc-b")) return;
+    var orb = td.querySelector("a.info i.orb");
+    var isCheck = !!tr.querySelector('input[name="cmdCheck"]');
+    var isRun = !!tr.querySelector("#pauseButton, #cancelButton");
+    if (!orb && !isCheck && !isRun) return;
+    var txt = (td.textContent || "").replace(/\s+/g, " ").trim(); if (!txt) return;   // empty status cell (e.g. Read-Check/Sync branch)
+    var cls = orb ? (orb.classList.contains("green-orb") ? "cc-aop-ok" : orb.classList.contains("yellow-orb") ? "cc-aop-warn" : "cc-aop-off")
+                  : (isRun ? "cc-aop-warn" : "cc-aop-ok");
+    var b = el("span", "cc-b cc-aop-status " + cls), v = el("span", "cc-b-v");
+    while (td.firstChild) v.appendChild(td.firstChild);
+    b.appendChild(v); td.appendChild(b); td.classList.add("cc-aop-st");
+  }
   function enhanceArrayOps(box) {
     try {
       var tables = box.querySelectorAll("table.array_status");
-      for (var i = 0; i < tables.length; i++) { var rows = tables[i].rows; for (var r = 0; r < rows.length; r++) enhanceArrayOpRow(rows[r]); }
+      for (var i = 0; i < tables.length; i++) { var rows = tables[i].rows; for (var r = 0; r < rows.length; r++) { aopStatusBadge(rows[r]); enhanceArrayOpRow(rows[r]); } }
     } catch (e) {}
   }
   function aopTeardown() {
@@ -762,8 +784,111 @@
       // un-fold mixed-cell prose: unwrap our text-node wrappers, strip the hide class off in-place elements
       var hid = document.querySelectorAll("#displaybox table.array_status .cc-aop-hide");
       for (var h = 0; h < hid.length; h++) { var n = hid[h]; if (n.tagName === "SPAN" && n.getAttribute("data-cc-aop-w") === "1") ccUnwrap(n); else n.classList.remove("cc-aop-hide"); }
+      // un-badge the state/parity status pills (children move back into the cell, orb tooltip intact)
+      var stb = document.querySelectorAll("#displaybox table.array_status td.cc-aop-st");
+      for (var s = 0; s < stb.length; s++) {
+        var bb = stb[s].querySelector(":scope > .cc-b.cc-aop-status");
+        if (bb) { var vv = bb.querySelector(":scope > .cc-b-v"); if (vv) ccUnwrap(vv); ccUnwrap(bb); }
+        stb[s].classList.remove("cc-aop-st");
+      }
       var marked = document.querySelectorAll("#displaybox table.array_status tr[data-cc-aop]");
       for (var m = 0; m < marked.length; m++) marked[m].removeAttribute("data-cc-aop");
+    } catch (e) {}
+  }
+  // ── /Main UI-LANGUAGE localisation (user: ALLES in der eingestellten Sprache). Three foreign sources
+  // ship English on a non-English UI: (1) dynamix.s3.sleep — Sleep.php renders <input type="button"
+  // value="Sleep" onclick="sleepS3()"> with the value NOT _()-wrapped (verified bergware/dynamix source),
+  // and NOTHING reads the value back (sleepNow() only writes $('#sleepbutton').val(), an id this markup
+  // doesn't even carry) -> a visual value swap is safe; (2) Unassigned Devices — headings/toggles/ADD
+  // buttons/table heads are _()-wrapped upstream but missing from the user's pack, so plain text-node
+  // replacement (onclick attrs untouched) is safe; (3) device_list's Internal-Boot placeholder sentence
+  // (two text nodes around the wizard <a>). Same locale STRUCTURE as T/t() above (exact-English keys) —
+  // add MAIN_T.<lang> for a new locale. Already-translated text never matches a key = no-op. Idempotent
+  // via data-cc-i18n; reversible via data-cc-i18n-orig (ccI18nTeardown restores). Text-node writes are
+  // characterData mutations -> invisible to the childList-only MutationObserver, so this can never loop.
+  var MAIN_T = {
+    de: {
+      "Sleep": "Ruhezustand",
+      "Unassigned Disks/Remote Shares/Historical Unassigned Devices": "Nicht zugewiesene Geräte/Remote-Freigaben/Historische Geräte",
+      "Unassigned Disk Devices": "Nicht zugewiesene Datenträger",
+      "Historical Unassigned Devices": "Historische nicht zugewiesene Geräte",
+      "SMB Shares |": "SMB-Freigaben |",
+      "NFS Shares |": "NFS-Freigaben |",
+      "ISO File Shares": "ISO-Datei-Freigaben",
+      "Add Remote SMB/NFS Share": "Remote-SMB/NFS-Freigabe hinzufügen",
+      "Add ISO File Share": "ISO-Datei-Freigabe hinzufügen",
+      "Add Root Share": "Root-Freigabe hinzufügen",
+      "Disks": "Datenträger",
+      "Shares": "Freigaben",
+      "Historical": "Historisch",
+      "Share Type": "Freigabetyp",
+      "Source": "Quelle",
+      "Mount Point": "Einhängepunkt",
+      "Serial Number (Mount Point)": "Seriennummer (Einhängepunkt)",
+      "No internal boot setup detected. Launch": "Kein internes Boot-Setup erkannt.",
+      "to configure one.": "starten, um eines einzurichten."
+    }
+  };
+  function mt(k) { var m = LANG !== "en" && MAIN_T[LANG]; return (m && m[k]) || null; }
+  // translate the direct TEXT NODES of a host element (exact match after NBSP/whitespace normalisation);
+  // child elements (icons, the wizard <a>, the UD imgs) stay untouched.
+  function ccTr(host) {
+    if (!host || host.nodeType !== 1 || host.getAttribute("data-cc-i18n")) return;
+    var keys = [];
+    for (var c = host.firstChild; c; c = c.nextSibling) {
+      if (c.nodeType !== 3) continue;
+      var raw = c.textContent;
+      var lead = (raw.match(/^\s*/) || [""])[0], trail = (raw.match(/\s*$/) || [""])[0];
+      var core = raw.slice(lead.length, raw.length - trail.length); if (!core) continue;
+      var k = core.replace(/ /g, " ").replace(/\s+/g, " "), tr = mt(k);
+      if (!tr) continue;
+      c.textContent = lead + tr + trail;
+      keys.push(k);
+    }
+    if (keys.length) { host.setAttribute("data-cc-i18n", "1"); host.setAttribute("data-cc-i18n-orig", keys.join("")); }
+  }
+  function ccLocalizeMain() {
+    try {
+      if (pn() !== "/Main") return;
+      if (LANG === "en" || !MAIN_T[LANG]) return;
+      // (1) s3-sleep: relabel the VALUE only — the onclick handler chain never reads it (see header note)
+      var sl = document.querySelectorAll('#displaybox table.array_status input[type="button"][onclick^="sleepS3"]');
+      for (var s = 0; s < sl.length; s++) {
+        var b = sl[s], tr = mt(b.value);
+        if (tr && !b.getAttribute("data-cc-i18n")) { b.setAttribute("data-cc-i18n", "1"); b.setAttribute("data-cc-i18n-orig", b.value); b.value = tr; }
+      }
+      // (2) UD: section headings (div.title span.left incl. the SMB|NFS|ISO segments), the three ADD
+      // <button>s (text nodes only, onclick attr untouched), the switchButton labels, the table heads
+      // (exact-map-keyed, so native German disk_status heads can never match).
+      var els = document.querySelectorAll(
+        "#displaybox div.title span.left, " +
+        "#displaybox button[onclick^='add_samba_share'], #displaybox button[onclick^='add_iso_share'], #displaybox button[onclick^='add_root_share'], " +
+        "#displaybox span.switch-button-label, " +
+        "#displaybox table thead td, #displaybox table thead th");
+      for (var i = 0; i < els.length; i++) ccTr(els[i]);
+      // (3) Internal-Boot sentence: the two text nodes AROUND the wizard link (device_list). parentNode,
+      // NOT closest("td"): mainBadgeCell may have wrapped the cell text into .cc-b-v — the <a>'s parent
+      // is the direct text-node container in both the wrapped and unwrapped case.
+      var links = document.querySelectorAll('#displaybox a[href*="InternalBootWizard"]');
+      for (var l = 0; l < links.length; l++) { var host = links[l].parentNode; if (host && host.nodeType === 1) ccTr(host); }
+    } catch (e) {}
+  }
+  function ccI18nTeardown() {
+    try {
+      var els = document.querySelectorAll("#displaybox [data-cc-i18n]");
+      for (var i = 0; i < els.length; i++) {
+        var el2 = els[i], keys = (el2.getAttribute("data-cc-i18n-orig") || "").split("");
+        if (el2.tagName === "INPUT") { if (keys[0]) el2.value = keys[0]; }
+        else {
+          for (var k = 0; k < keys.length; k++) {
+            var tr = mt(keys[k]); if (!tr) continue;
+            for (var c = el2.firstChild; c; c = c.nextSibling) {
+              if (c.nodeType === 3 && c.textContent.replace(/ /g, " ").trim() === tr) { c.textContent = c.textContent.replace(tr, keys[k]); break; }
+            }
+          }
+        }
+        el2.removeAttribute("data-cc-i18n"); el2.removeAttribute("data-cc-i18n-orig");
+      }
     } catch (e) {}
   }
   function apply() {
@@ -842,6 +967,7 @@
           var mname = document.querySelectorAll("#displaybox table.unraid.disk_status a.cc-b-name");
           for (var mn = 0; mn < mname.length; mn++) { mname[mn].classList.remove("cc-b"); mname[mn].classList.remove("cc-b-name"); }
           aopTeardown();   // Array-Vorgang: pull (i) info-bubbles, un-hide description cells, drop markers
+          ccI18nTeardown();   // restore the original English strings (sleep value + UD/native text nodes)
         } catch (e) {}
         return;
       }

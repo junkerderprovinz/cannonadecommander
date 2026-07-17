@@ -22,12 +22,13 @@
  */
 
 /* CC badge size system — MIRRORED from styles/docker.css (keep in sync). This sheet
-   is standalone (docker.css never loads here), so the sm tier (list-cell badges) + md
-   tier (tab pills, bottom action buttons) need their own copy of the tokens, or they
-   render too small (the ad-hoc padding this replaces was the root cause). The lg tier is
-   the share-NAME headline badge — bigger than docker.css's button-lg (11px/4px 14px), so
-   the share name reads as the row's headline (~15px, taller pill) above the sm value pills. */
-:root { --cc-sm-fs: 11px; --cc-sm-pad: 3px 11px; --cc-md-fs: 13px; --cc-md-h: 30px; --cc-md-pad: 0 20px; --cc-lg-fs: 15px; --cc-lg-pad: 6px 16px; }
+   is standalone (docker.css never loads here), so the tiers need their own copy of the
+   tokens. DELIBERATE DIVERGENCE (v2.24.3): the /Shares + /Main LIST badges use ONE
+   uniform md badge tier (--cc-bmd-pad, 13px) — the user wants every non-name badge the
+   SAME size — while docker.css's own list keeps its sm tier. --cc-md-pad (0 20px) is the
+   30px tab-pill metric, NOT for table pills. The lg tier is the share/disk-NAME headline
+   badge (~15px, taller pill) above the uniform value pills. */
+:root { --cc-sm-fs: 11px; --cc-sm-pad: 3px 11px; --cc-md-fs: 13px; --cc-md-h: 30px; --cc-md-pad: 0 20px; --cc-bmd-pad: 4px 12px; --cc-lg-fs: 15px; --cc-lg-pad: 6px 16px; }
 
 /* ═══ sub-page tabs -> badges ═══ */
 html.cc-shares-on #displaybox nav.tabs .tabs-container { gap: 6px; }
@@ -151,15 +152,16 @@ html.cc-shares-on.cc-on-shares #displaybox table.unraid.share_status tr > td:nth
    like the standalone .cc-plug variant. "-" / empty values stay un-badged (JS skips). */
 html.cc-shares-on #displaybox table.unraid.share_status .cc-b {
   display: inline-flex; align-items: center; gap: 5px; border: none;
-  border-radius: var(--cc-b-radius, 999px); padding: var(--cc-sm-pad, 3px 11px);
-  font-size: var(--cc-sm-fs, 11px); font-weight: 600; line-height: 1.35;
+  border-radius: var(--cc-b-radius, 999px); padding: var(--cc-bmd-pad, 4px 12px);
+  font-size: var(--cc-md-fs, 13px); font-weight: 600; line-height: 1.35;
   white-space: nowrap; text-decoration: none; vertical-align: middle;
   background: var(--cc-shr-accent, #2f6feb); color: var(--cc-shr-accent-text, #fff);
 }
 html.cc-shares-on #displaybox table.unraid.share_status .cc-b .cc-b-v { font-family: inherit; }
 /* the wrapped value keeps its own links/icons/orbs working, just recoloured to fit */
 html.cc-shares-on #displaybox table.unraid.share_status .cc-b a,
-html.cc-shares-on #displaybox table.unraid.share_status .cc-b i { color: inherit; }
+html.cc-shares-on #displaybox table.unraid.share_status .cc-b a:hover,
+html.cc-shares-on #displaybox table.unraid.share_status .cc-b i { color: inherit; text-decoration: none; }   /* kill the native default-base.css a:hover underline on the badge-wrapped Berechnen/Compute link — CC badges never underline */
 html.cc-shares-on #displaybox table.unraid.share_status .cc-b em { font-style: italic; opacity: .82; }
 
 /* ═══ share NAME -> a LARGE (lg) headline badge ═══
@@ -186,8 +188,8 @@ html.cc-shares-on #displaybox table.unraid.share_status a.cc-b-name:hover { text
 html.cc-shares-on #displaybox table.unraid.share_status td.cc-status-col { white-space: nowrap; }
 html.cc-shares-on #displaybox table.unraid.share_status .cc-b-status {
   display: inline-flex; align-items: center; gap: 5px; border: none;
-  border-radius: var(--cc-b-radius, 999px); padding: var(--cc-sm-pad, 3px 11px);
-  font-size: var(--cc-sm-fs, 11px); font-weight: 600; line-height: 1.35;
+  border-radius: var(--cc-b-radius, 999px); padding: var(--cc-bmd-pad, 4px 12px);
+  font-size: var(--cc-md-fs, 13px); font-weight: 600; line-height: 1.35;
   white-space: nowrap; vertical-align: middle;
 }
 html.cc-shares-on #displaybox table.unraid.share_status .cc-b-prot { background: #3fae6a; color: #08240f; }
@@ -207,8 +209,8 @@ html.cc-shares-on #displaybox table.unraid.share_status td.cc-browse-col { white
    icon-font the a.view carried; the td's overflow:visible is belt-and-suspenders for the 10% column. */
 html.cc-shares-on #displaybox table.unraid.share_status a.cc-b-browse {
   display: inline-flex !important; width: auto !important; align-items: center; justify-content: center;
-  border-radius: var(--cc-b-radius, 999px) !important; padding: var(--cc-sm-pad, 3px 11px) !important;
-  font-family: inherit !important; font-size: var(--cc-sm-fs, 11px) !important; font-weight: 600 !important;
+  border-radius: var(--cc-b-radius, 999px) !important; padding: var(--cc-bmd-pad, 4px 12px) !important;
+  font-family: inherit !important; font-size: var(--cc-md-fs, 13px) !important; font-weight: 600 !important;
   line-height: 1.35; white-space: nowrap; text-decoration: none !important; vertical-align: middle;
   background: var(--cc-shr-accent, #2f6feb) !important; color: var(--cc-shr-accent-text, #fff) !important;
   transition: filter .12s;
@@ -221,22 +223,36 @@ html.cc-shares-on #displaybox table.unraid.share_status a.cc-b-browse:hover { fi
    enhanceMain() wraps text value cells in .cc-b>.cc-b-v and lifts a.view into a td.cc-browse-col pill. ═══ */
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status .cc-b {
   display: inline-flex; align-items: center; gap: 5px; border: none;
-  border-radius: var(--cc-b-radius, 999px); padding: var(--cc-sm-pad, 3px 11px);
-  font-size: var(--cc-sm-fs, 11px); font-weight: 600; line-height: 1.35;
+  border-radius: var(--cc-b-radius, 999px); padding: var(--cc-bmd-pad, 4px 12px);
+  font-size: var(--cc-md-fs, 13px); font-weight: 600; line-height: 1.35;
   white-space: nowrap; text-decoration: none; vertical-align: middle;
   background: var(--cc-shr-accent, #2f6feb); color: var(--cc-shr-accent-text, #fff);
 }
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status .cc-b .cc-b-v { font-family: inherit; }
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status .cc-b a,
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status .cc-b a:hover,
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status .cc-b i { color: inherit; text-decoration: none; }   /* disk_status had NO .cc-b a rule, so wrapped links showed native blue + hover underline */
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status td.cc-browse-col { white-space: nowrap; overflow: visible; }
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status a.cc-b-browse {
   display: inline-flex !important; width: auto !important; align-items: center; justify-content: center;
-  border-radius: var(--cc-b-radius, 999px) !important; padding: var(--cc-sm-pad, 3px 11px) !important;
-  font-family: inherit !important; font-size: var(--cc-sm-fs, 11px) !important; font-weight: 600 !important;
+  border-radius: var(--cc-b-radius, 999px) !important; padding: var(--cc-bmd-pad, 4px 12px) !important;
+  font-family: inherit !important; font-size: var(--cc-md-fs, 13px) !important; font-weight: 600 !important;
   line-height: 1.35; white-space: nowrap; text-decoration: none !important; vertical-align: middle;
   background: var(--cc-shr-accent, #2f6feb) !important; color: var(--cc-shr-accent-text, #fff) !important;
   transition: filter .12s;
 }
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status a.cc-b-browse:hover { filter: brightness(1.14); }
+
+/* ═══ interactive vs static badges (user: klickbare Badges leuchten beim Hover) ═══
+   A .cc-b that WRAPS a live link (the Berechnen/Compute a[href='#'][onclick], the disk-row recompute
+   refresh link) is interactive -> cursor + the canonical brightness lift, matching a.cc-b-name /
+   a.cc-b-browse. Static value pills (and tooltip-only a.info anchors, which carry neither href nor
+   onclick) get NO hover change. :has() is fine — this sheet already requires it elsewhere; without
+   it the glow simply doesn't happen (the link itself still works). */
+html.cc-shares-on #displaybox table.unraid.share_status .cc-b:has(a[href], a[onclick]),
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status .cc-b:has(a[href], a[onclick]) { cursor: pointer; transition: filter .12s; }
+html.cc-shares-on #displaybox table.unraid.share_status .cc-b:has(a[href], a[onclick]):hover,
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status .cc-b:has(a[href], a[onclick]):hover { filter: brightness(1.14); }
 /* table-layout:auto (min-width override below) sizes each column to its content: the numeric headers
    (GESCHRIEBEN/FEHLER) size to their full label so nothing truncates, and the POOL/BOOT colspan rows
    (pool_header + the showFsInfo=false device sub-rows, both ending in <td colspan=4> per native
@@ -244,7 +260,7 @@ html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status a.cc-b-browse:
    colspan-shifted row and squeezed the pool/boot Identification cell (the v2.24.1 overlap bug: the
    unbreakable underscore model+serial token then spilled over the neighbour cells). Only bias
    Identification wider so the model string gets the leftover space; every other column self-sizes. */
-html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status td.desc { width: 30%; }
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status td.desc { width: 34%; }   /* bias the freed (un-caged) width to the only prose column */
 
 /* Let the disk MODEL (Identification cell, td.desc) show in FULL instead of the native ellipsis-clip.
    table.unraid td is overflow:hidden + text-overflow:ellipsis + white-space:nowrap. white-space:normal
@@ -267,7 +283,7 @@ html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status td.desc .cc-b-
    a gap before the Reads/Writes count pill, and CC action buttons. --cc-shr-accent is set by shares.js
    to the START area's own accent on /Main, so these paint in the Start colour. ═══ */
 /* (c) roomier rows — disk_status had no per-row padding (user: "zu kompakt/gedrungen"). */
-html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status tbody td { padding-top: 9px; padding-bottom: 9px; }
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status tbody td { padding: 9px 14px; }   /* roomy read: native was 8px left only — 14px horizontal gives the lists the generous grid the user demands */
 /* (b) disk NAME -> a LARGE headline badge, same lg tier as the share name (.cc-b.cc-b-name wins on specificity). */
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status .cc-b.cc-b-name {
   padding: var(--cc-lg-pad, 6px 16px); font-size: var(--cc-lg-fs, 15px);
@@ -282,9 +298,13 @@ html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status td span.diskio
    `.TableContainer table{min-width:1000px}`, forcing the overflow-x:auto container to scroll below 1000px.
    Kill it .cc-on-main-scoped so /Shares/Docker/Device/Disk/Browse keep their native scroll. */
 html.cc-shares-on.cc-on-main #displaybox .TableContainer table.unraid.disk_status { min-width: 0 !important; width: 100%; table-layout: auto; }
+/* NATIVE sub-tab mode: rhythm between the device groups inside one panel (div.title bars are the
+   group separators there; native margin is 2rem 0). Harmless in sections mode (panels carry their
+   own 36px margin; any residual div.title inside a panel benefits equally). */
+html.cc-shares-on.cc-on-main #displaybox div.title { margin-top: 32px; }
 /* header tint, matching the /Shares share_status header (consistency). */
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status thead td,
-html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status thead th { background: rgba(128, 128, 128, .14); font-weight: 600; white-space: nowrap; }   /* full header labels (GESCHRIEBEN/FEHLER) = each column's min-content under auto layout -> never ellipsis-clipped again */
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status thead th { background: rgba(128, 128, 128, .14); font-weight: 600; white-space: nowrap; padding: 8px 14px; }   /* full header labels (GESCHRIEBEN/FEHLER) = each column's min-content under auto layout -> never ellipsis-clipped again; 14px horizontal matches the body cells */
 /* Füllstandsanzeigen (Used/Free usage bars) -> CC look (user: "Die Füllstandsanzeigen auch im CC Style"):
    accent fill on a subtle rounded track, like the header array meter. Native (device_list): div.usage-disk >
    span:first-child (fill, greenbar/orangebar/redbar, inline width:X%) + span:last-child (label). NB this
@@ -366,15 +386,41 @@ html.cc-shares-on.cc-on-main #displaybox input[type="checkbox"] { accent-color: 
 /* ═══ /Main "Array-Vorgang" (table.array_status): no separator lines, buttons flush + equal spacing, inline
    descriptions folded into (i) info-bubbles (shares.js/enhanceArrayOps). User: "alle buttons bündig
    untereinander mit gleichem Abstand, keine Linien, alle Infotexte in I-Bubbles". ═══ */
-html.cc-shares-on.cc-on-main #displaybox table.array_status { border-collapse: collapse; }
-html.cc-shares-on.cc-on-main #displaybox table.array_status td { border: none !important; vertical-align: top; padding: 6px 8px !important; }   /* TOP-align (v2.24.1): a kept checkbox description row is taller than a button-only row; middle-align floated its button lower -> uneven. Top-align puts every button at the same row-top offset (user: "bündig untereinander mit gleichem Abstand"). */
+html.cc-shares-on.cc-on-main #displaybox table.array_status { border-collapse: collapse; table-layout: auto; width: 100%; }   /* native array_status is table-layout:fixed with a hard 22% button column — why the (i) bubble wrapped BELOW the Shutdown button. auto guarantees every column >= its min-content (the nowrap button cell below can never be squeezed into wrapping); width:100% keeps status/desc absorbing the surplus. */
+html.cc-shares-on.cc-on-main #displaybox table.array_status td { border: none !important; vertical-align: middle; padding: 8px 10px !important; }   /* UNIFORM GRID (supersedes the v2.24.1 top-align): with the prose folded into (i) bubbles every row's content is one 30px control line, so equal padding + middle-align = identical row heights and evenly spaced buttons. Revisit if a future Unraid adds a multi-line always-visible desc control. */
 html.cc-shares-on.cc-on-main #displaybox table.array_status td.line { border: none !important; padding: 0 !important; height: 0 !important; line-height: 0 !important; font-size: 0 !important; }
+/* the separator ROW's leading empty <td> (ArrayOperation.page: <tr><td></td><td class="line" colspan="2"></td></tr>)
+   still carried the uniform td padding -> phantom rows = uneven gaps. Collapse the WHOLE row
+   (:has-capable browsers; the td.line rule above stays as the graceful fallback). */
+html.cc-shares-on.cc-on-main #displaybox table.array_status tr:has(> td.line) { display: none; }
 html.cc-shares-on.cc-on-main #displaybox table.array_status tr > td:first-child { padding-left: 0 !important; }
+/* BUTTON cell = a never-wrapping control row: button(s) + the (i) bubble ALWAYS side by side on one
+   line (the bubble is btnCell-appended by enhanceArrayOpRow; in the Reboot/Shutdown row BOTH buttons
+   live in one span.buttons-spaced in this cell — native ArrayOperation.page). Under table-layout:auto
+   (rule above) nowrap makes buttons+bubble the column's min-content, so the cell can never get narrow
+   enough to wrap. height acts as min-height in a table cell -> every button row is at least one
+   md-control tall = uniform grid. */
+html.cc-shares-on.cc-on-main #displaybox table.array_status tr > td:nth-child(2) { white-space: nowrap; height: var(--cc-md-h, 30px); }
+html.cc-shares-on.cc-on-main #displaybox table.array_status tr > td:nth-child(2) .buttons-spaced { display: inline-flex; align-items: center; gap: 10px; vertical-align: middle; }
 html.cc-shares-on.cc-on-main #displaybox table.array_status td.cc-aop-desc { display: none !important; }   /* text now lives in the (i) bubble */
 /* MIXED array-op description cells: shares.js/ccFoldDesc tags each PROSE node .cc-aop-hide and folds its
    text into the (i) bubble; hide only that prose — the optionCorrect/safemode checkbox + its label and
    the (Planung)/Wiki link stay visible + functional. Reversible via aopTeardown(). */
 html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-aop-hide { display: none !important; }
+/* Array-state + parity status -> two LARGE status pills (user: "zwei grosse badges ... in der farbe nach
+   status"). Colours = the CC docker state palette (running #1f9d55, warn #e0912a, stopped #3c3c3c). The
+   native orb icon + its a.info tooltip live INSIDE the pill; the icon follows the pill's text colour so it
+   never vanishes against the fill. shares.js/aopStatusBadge picks the class language-independently. */
+html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-b.cc-aop-status {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: var(--cc-lg-pad, 6px 16px); font-size: var(--cc-lg-fs, 15px); font-weight: 700;
+  border-radius: var(--cc-b-radius, 999px); white-space: nowrap; line-height: 1.35;
+}
+html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-aop-status.cc-aop-ok   { background: #1f9d55; color: #fff; }
+html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-aop-status.cc-aop-warn { background: #e0912a; color: #1a1a1a; }
+html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-aop-status.cc-aop-off  { background: #3c3c3c; color: #cfcfcf; }
+html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-aop-status .orb { color: currentColor !important; }
+html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-aop-status a.info { color: inherit; text-decoration: none; }
 /* §9 (i) info-bubble — MIRRORED from styles/docker.css (not loaded on /Main). Neutral (currentColor, NEVER
    accent); hover/focus reveals a pure-CSS tooltip from data-tip. */
 html.cc-shares-on.cc-on-main #displaybox .cc-info {
@@ -650,6 +696,17 @@ html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-main.cc-secti
   overflow: visible !important;              /* the open dropdown overlay must NOT grow a card scrollbar */
 }
 html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox section[role="tabpanel"]:last-child { margin-bottom: 0; }
+/* /Main (START) sections are full-width DATA TABLES, not settings forms: never cap them to the
+   960px form-card width (that cap is share-DETAIL geometry that leaked through the merged :is()
+   gate above — the "LISTEN ZU SCHMAL" root cause: every /Main panel sat centered in a 960px cage,
+   ending ~80-90px short of the right edge). Full-bleed to the #displaybox content edge, plus more
+   vertical rhythm between the stacked sections. MUST stay AFTER the merged rule: equal specificity
+   (1,4,2), source order decides; the :last-child rule above (1,5,2) still out-specifies this —
+   correct (final section keeps margin-bottom 0). */
+html.cc-shares-on.cc-on-main.cc-sections-main #displaybox section[role="tabpanel"] {
+  max-width: none;
+  margin: 0 0 36px;
+}
 html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox nav.tabs button[role="tab"] { display: none !important; }
 html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox nav.tabs { border: none; min-height: 0; }
 /* the prev/next arrows stay flowed so nav.tabs keeps a height (share-detail only; /Main has none) */

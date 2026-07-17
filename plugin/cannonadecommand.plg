@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.24.2">
+  <!ENTITY version   "2.24.3">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,28 @@
 </ICON>
 
 <CHANGES>
+### 2.24.3
+#1 Start-Tab: Die Listen sind jetzt WIRKLICH breit -- die eigentliche Ursache ist gefunden: die
+   960px-Formularkarten-Breite der Freigabe-Detailseite galt versehentlich auch fuer alle
+   Start-Tab-Abschnitte (deshalb endeten die Tabellen ca. 90px vor dem rechten Rand). Alle
+   Abschnitte laufen jetzt ueber die volle Inhaltsbreite, mit grosszuegigeren Zellabstaenden.
+#2 Start-Tab: Groesserer Abstand zwischen den Abschnitten (Array/Pool/Boot/Unassigned/Array-Vorgang).
+#3 Array-Vorgang: Alle Buttons stehen in einem gleichmaessigen Raster untereinander (einheitliche
+   Zeilenhoehen, Trennzeilen komplett entfernt) und die (i)-Info-Bubble sitzt IMMER direkt rechts
+   neben ihrem Button, ohne je darunter zu rutschen.
+#4 Array-Vorgang: Der Array-Status ("Gestartet") und der Paritaets-Status ("Paritaet ist gueltig")
+   sind jetzt zwei GROSSE Status-Badges in der Farbe nach Zustand: gruen bei gestartet/gueltig,
+   amber bei ungeschuetzt/laufender Pruefung, grau bei gestoppt.
+#5 Start-Tab: Alle Texte in der eingestellten UI-Sprache -- der SLEEP-Button heisst auf Deutsch
+   jetzt RUHEZUSTAND, die englischen Unassigned-Devices-Texte (Ueberschriften, HISTORICAL/DISKS-
+   Schalter, ADD-SHARE-Buttons, Tabellenkoepfe) und der Internal-Boot-Hinweis werden uebersetzt.
+#6 Freigaben-Tab: Alle Badges ausser dem Freigabe-Namen haben jetzt exakt DIE GLEICHE Groesse
+   (einheitliche mittlere Stufe); der Namens-Badge bleibt groesser. Gilt genauso im Start-Tab.
+#7 Freigaben-/Start-Tab: Badges mit Funktion oder Link (z. B. Berechnen, Durchsuchen, Name)
+   leuchten beim Mouseover auf; reine Wert-Badges nicht.
+#8 Freigaben-Tab: Der Berechnen-Link bekommt keine Unterstreichung mehr -- Linien auf Badges sind
+   jetzt ueberall stringent abgeschaltet.
+
 ### 2.24.2
 #1 Start-Tab: Die Identifikation der Pool- und Boot-Datentraeger ueberlagerte sich unlesbar. Ursache war
    das feste Spaltenraster, das nur zur Array-Tabelle passte -- Pool-/Boot-Zeilen haben eine andere
@@ -748,7 +770,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>b30e94385afe19c0bbbbfc1788ba0bc97d2356da8ee2ada892bd196c35b54ef9</SHA256>
+  <SHA256>5aef28a44678bc394ef14bac41f14ccca9efd5536ae499d9386439909f5423ea</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

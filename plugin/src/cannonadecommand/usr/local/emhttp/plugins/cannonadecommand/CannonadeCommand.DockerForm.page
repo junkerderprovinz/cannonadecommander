@@ -1,0 +1,19 @@
+Menu="Buttons:98"
+Title="CannonadeCommand"
+Icon="cannonadecommand.png"
+Link="cc-dockerform-hook"
+---
+<?php
+/* CannonadeCommand — Docker-FORM hook. /Docker/AddContainer and /Docker/UpdateContainer are
+   Title-only .page files (no Menu=): DefaultPageLayout merges Menu-hook pages only for Type=xmenu
+   parents (find_pages), so the Menu="Docker" hook (CannonadeCommand.Docker.page) never loads there.
+   This Buttons hook runs on EVERY page but emits its assets ONLY on the two container-form URLs, so
+   every other page pays nothing. docker.js detects the form (onCtForm) and boots its light
+   form-mode branch — no API polling, no timers. Link="..." keeps the nav bar icon-free, exactly
+   like the cc-shares-hook. */
+$ccReq = strtok($_SERVER['REQUEST_URI'] ?? '', '?');
+if (preg_match('#^/Docker/(AddContainer|UpdateContainer)/?$#', $ccReq)):
+?>
+<link type="text/css" rel="stylesheet" href="<?autov('/plugins/cannonadecommand/styles/docker.css')?>">
+<script defer src="<?autov('/plugins/cannonadecommand/scripts/docker.js')?>"></script>
+<?php endif; ?>

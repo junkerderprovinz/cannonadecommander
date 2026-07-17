@@ -2117,8 +2117,109 @@
   function updateGearHealth() {
     try { var bad = daemonUp === false; Array.prototype.slice.call(document.querySelectorAll(".cc-hgear")).forEach(function (g) { g.classList.toggle("cc-hgear-down", bad); }); } catch (e) {}
   }
+  // ───────────────────────── /Docker/AddContainer + /Docker/UpdateContainer — CC FORM MODE
+  // (user: "Docker zufügen Menü komplett in den CC Style, auch die Dropdownlisten wie in den
+  // Einstellungen der Shares"). Loaded here by the URL-gated Buttons hook
+  // CannonadeCommand.DockerForm.page (these pages have NO Menu= — see that file's header). boot()
+  // takes the early branch: gate classes + select overlays ONLY, none of the container-list
+  // machinery. Native ground truth (dynamix.docker.manager/include/CreateDocker.php): #canvas >
+  // form[onsubmit="return prepareConfig(this)"] rendered as markdown dl/dt/dd; single <select>s
+  // (#TemplateSelect, contNetwork, netCONT, contShell, TS*) — #catSelect is [multiple]
+  // (dropdownchecklist, CSS-only); .switch-on-off checkboxes are switchButton'd; CPU pinning =
+  // label.checkbox > input#boxN + span.checkmark; config rows append to #configLocation[Advanced]
+  // (makeConfig); the Add/Edit-Config popup is a jQuery-UI dialog whose #dialogAddConfig content is
+  // re-set on every open — hence the body-level observer; its selects stay native-filled (the dialog
+  // would clip an overlay panel).
+  var ctMo = null, ctPending = false;
+  function ctPn() { try { return location.pathname.replace(/\/+$/, ""); } catch (e) { return ""; } }
+  function onCtForm() {
+    try { return /^\/Docker\/(AddContainer|UpdateContainer)$/.test(ctPn()) && !!document.querySelector('#canvas form[onsubmit^="return prepareConfig"]'); } catch (e) { return false; }
+  }
+  // cc-dsel = the shares.js ccWrapSelect mechanism under DISTINCT class/marker names, so shares.js's
+  // global "#displaybox .cc-sel" teardown (that script loads on every page) can never unwrap ours.
+  // The real <select> stays (display:none) as the source of truth; we write selectedIndex back and
+  // dispatch change so the inline onchange chain (loadTemplate/showSubnet/showTailscale/…) fires.
+  function ctWrapSelect(sel) {
+    sel.setAttribute("data-cc-dsel", "1");                 // set FIRST -> observer re-fire is a no-op
+    var wrap = el("span", "cc-dsel"); sel.parentNode.insertBefore(wrap, sel);
+    sel.style.display = "none"; wrap.appendChild(sel);
+    var trig = el("span", "cc-dsel-trigger"); wrap.appendChild(trig);
+    var panel = el("div", "cc-dsel-panel"); wrap.appendChild(panel);
+    var lastGroup = null;
+    for (var k = 0; k < sel.options.length; k++) {
+      var o = sel.options[k], gl = o.parentNode && o.parentNode.tagName === "OPTGROUP" ? o.parentNode.label : null;
+      if (gl && gl !== lastGroup) { panel.appendChild(el("div", "cc-dsel-group", gl)); lastGroup = gl; }   // TemplateSelect's "[ Default templates ]" headers survive
+      var chip = el("div", "cc-dsel-opt", o.text); chip.setAttribute("data-i", k);
+      chip.addEventListener("click", (function (idx) {
+        return function (ev) {
+          ev.stopPropagation();
+          if (sel.options[idx].disabled) return;
+          sel.selectedIndex = idx;
+          sel.dispatchEvent(new Event("change", { bubbles: true }));
+          ctSyncOne(sel);
+          wrap.classList.remove("cc-open");
+        };
+      })(k));
+      panel.appendChild(chip);
+    }
+    trig.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      if (sel.disabled) return;
+      ctSyncOne(sel);                                       // reflect live disabled/selected BEFORE opening
+      var open = wrap.classList.toggle("cc-open");
+      if (open) { var o2 = document.querySelectorAll(".cc-dsel.cc-open"); for (var j = 0; j < o2.length; j++) if (o2[j] !== wrap) o2[j].classList.remove("cc-open"); }
+    });
+    ctSyncOne(sel);
+  }
+  function ctSyncOne(sel) {
+    var w = sel.parentNode; if (!w || !w.classList || !w.classList.contains("cc-dsel")) return;
+    w.classList.toggle("cc-dsel-disabled", !!sel.disabled);
+    var t2 = w.querySelector(".cc-dsel-trigger"), c = w.querySelectorAll(".cc-dsel-opt");
+    var label = sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : "";
+    if (t2 && t2.textContent !== label) t2.textContent = label;   // GUARDED writes: no childList churn -> the body observer cannot loop
+    for (var k = 0; k < c.length; k++) {
+      var o = sel.options[+c[k].getAttribute("data-i")]; if (!o) continue;
+      if (c[k].textContent !== o.text) c[k].textContent = o.text;
+      c[k].classList.toggle("is-selected", o.selected);
+      c[k].classList.toggle("is-disabled", !!o.disabled);
+    }
+  }
+  function ctSelectsTeardown() {
+    try {
+      var wraps = document.querySelectorAll(".cc-dsel");
+      for (var i = 0; i < wraps.length; i++) {
+        var w = wraps[i], sel = w.querySelector("select");
+        if (sel) { sel.style.display = ""; sel.removeAttribute("data-cc-dsel"); w.parentNode.insertBefore(sel, w); }
+        if (w.parentNode) w.parentNode.removeChild(w);
+      }
+    } catch (e) {}
+  }
+  function ctApply() {
+    try {
+      var root = document.documentElement;
+      var on2 = localStorage.getItem("cc.enable.docker") !== "0" && themingOn();
+      root.classList.toggle("cc-docker-on", on2);
+      root.classList.toggle("cc-on-addct", on2 && onCtForm());   // page gate: every docker.css form rule requires BOTH classes
+      if (!on2) { ctSelectsTeardown(); return; }
+      applySettings();                                           // --cc-accent/-text + --cc-b-radius (+ rainbow vars) — same chokepoint as list mode
+      var sels = document.querySelectorAll('#canvas select:not([multiple]):not([data-cc-dsel])');
+      for (var i = 0; i < sels.length; i++) ctWrapSelect(sels[i]);
+      var done = document.querySelectorAll('#canvas select[data-cc-dsel]');
+      for (var j = 0; j < done.length; j++) ctSyncOne(done[j]);  // Unraid re-selects/re-labels at runtime (loadTemplate/showSubnet)
+    } catch (e) {}
+  }
+  function bootCtForm() {
+    try {
+      ctApply();
+      ctMo = new MutationObserver(function () { if (ctPending) return; ctPending = true; setTimeout(function () { ctPending = false; ctApply(); }, 150); });
+      ctMo.observe(document.body, { childList: true, subtree: true });   // config rows (#configLocation[Advanced]) + the re-filled jQuery-UI dialog land under body
+      document.addEventListener("click", function () { var o = document.querySelectorAll(".cc-dsel.cc-open"); for (var i = 0; i < o.length; i++) o[i].classList.remove("cc-open"); });
+      window.addEventListener("storage", function (e) { try { if (e && e.key && e.key !== "cc.stateCache" && /^ccd?\./.test(e.key)) ctApply(); } catch (e2) {} });
+    } catch (e) {}
+  }
   function boot() {
     if (localStorage.getItem("cc.enable.docker") === "0") return; // area disabled in CC settings
+    if (onCtForm()) { bootCtForm(); return; } // /Docker/AddContainer|UpdateContainer: form styling only — none of the list machinery, API polling or timers below
     try {
       applySettings();
       // INSTANT first paint: the last known engine state seeds the badges right away;

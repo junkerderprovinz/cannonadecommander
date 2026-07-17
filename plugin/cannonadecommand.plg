@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.24.3">
+  <!ENTITY version   "2.25.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,41 @@
 </ICON>
 
 <CHANGES>
+### 2.25.0
+#1 Array-Vorgang: ALLE Buttons stehen jetzt in EINER linksbuendigen Spalte exakt untereinander --
+   auch Hochfahren/Herunterfahren, die vorher weit rechts landeten (versteckte Beschreibungszellen
+   hatten die Spalten der einzelnen Tabellen unterschiedlich skaliert; jetzt feste Spaltenbreiten
+   ueber alle Tabellen). Button-Paare stapeln sauber vertikal.
+#2 Array-Vorgang: Die Buttons sind groesser (36px, breitere Mindestbreite).
+#3 Array-Vorgang: (Planung)- und Wiki-Links sitzen als kleine Badges direkt neben der (i)-Bubble.
+#4 Array-Vorgang: Die Checkboxen (Korrekturen auf Paritaet schreiben, Neustart im abgesicherten
+   Modus) sind echte CC-Checkboxen (Akzent-Rahmen, Akzent-Fuellung mit weissem Haken).
+#5 Der Gestartet-Badge zeigt keinen Statuspunkt mehr -- die Farbe ist der Status.
+#6 Unassigned Devices: Die Kopfzeile ist jetzt DREI Badges nebeneinander (Nicht zugewiesene
+   Geraete / Remote-Freigaben / Historische Geraete), der Balken dahinter ist weg; Zahnrad- und
+   Aktualisieren-Symbol sind CC-Buttons und bleiben mit den Schaltern vertikal zentriert.
+#7 Unassigned Devices: Auch die Unterabschnitts-Titel und die Geraete-/Share-Zeilen selbst sind
+   jetzt im CC-Badge-Look (Name als grosses Badge, Werte als Badges, Zahnrad als CC-Icon-Button).
+#8 Pool-Datentraeger: Jetzt wirklich alles in Badges -- Pool-Name, Data Partition, Dateisystem
+   und Groesse der Pool-Kopfzeilen.
+#9 Identifikation ist einzeilig (kein Zweizeilen-Umbruch des Modellnamens mehr).
+#10 Fuellstandsanzeigen: Ueberall EINE einheitliche Groesse und wieder ZUSTANDSFARBEN --
+   gruen/amber/rot je nach Fuellstand statt der Akzentfarbe; gilt auch fuer die
+   Unassigned-Devices-Balken.
+#11 Rainbow-Modus gilt jetzt im gesamten Start-Tab: Disk-Zeilen und Array-Vorgang-Buttons rotieren
+   durch die Palette; Status-Badges und die roten Neustart/Herunterfahren-Buttons bleiben bewusst
+   semantisch gefaerbt.
+#12 Hauptmenueleiste: Lange gedrueckt halten + Verschieben (mit Wackel-Animation) funktioniert
+   jetzt auch fuer die Utility-Icons UND die Fuellstandsanzeige rechts; eigene gespeicherte
+   Reihenfolge, Nutzermenue und Suchfeld bleiben fest.
+#13 Der Lese-/Schreib-Umschalter oben rechts ist ein echter CC-Schalter und sitzt exakt auf der
+   Hoehe des Abschnitts-Badges.
+#14 Disk-Badges stehen linksbuendig exakt untereinander (der unsichtbare Platzhalter der
+   Paritaets-Zeile ist ausgeblendet).
+#15 Docker: Das komplette Container-hinzufuegen/-bearbeiten-Formular ist im CC-Style -- gefuellte
+   Eingabefelder, CC-Dropdowns wie in den Freigabe-Einstellungen, Akzent-Buttons (Fertig neutral),
+   CC-Schalter und Akzent-CPU-Pins.
+
 ### 2.24.3
 #1 Start-Tab: Die Listen sind jetzt WIRKLICH breit -- die eigentliche Ursache ist gefunden: die
    960px-Formularkarten-Breite der Freigabe-Detailseite galt versehentlich auch fuer alle
@@ -770,7 +805,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>5aef28a44678bc394ef14bac41f14ccca9efd5536ae499d9386439909f5423ea</SHA256>
+  <SHA256>75edd9fa3e5946de515d26669b2586cfe85daff4c61bf6f713f787544b9494e6</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

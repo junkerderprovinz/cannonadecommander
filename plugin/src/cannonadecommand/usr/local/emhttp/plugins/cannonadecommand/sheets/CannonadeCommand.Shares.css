@@ -28,7 +28,7 @@
    SAME size — while docker.css's own list keeps its sm tier. --cc-md-pad (0 20px) is the
    30px tab-pill metric, NOT for table pills. The lg tier is the share/disk-NAME headline
    badge (~15px, taller pill) above the uniform value pills. */
-:root { --cc-sm-fs: 11px; --cc-sm-pad: 3px 11px; --cc-md-fs: 13px; --cc-md-h: 30px; --cc-md-pad: 0 20px; --cc-bmd-pad: 4px 12px; --cc-lg-fs: 15px; --cc-lg-pad: 6px 16px; }
+:root { --cc-sm-fs: 11px; --cc-sm-pad: 3px 11px; --cc-md-fs: 13px; --cc-md-h: 30px; --cc-md-pad: 0 20px; --cc-bmd-pad: 4px 12px; --cc-lg-fs: 15px; --cc-lg-pad: 6px 16px; --cc-lgb-h: 36px; --cc-lgb-fs: 14px; --cc-lgb-minw: 170px; --cc-aop-c1: 380px; --cc-aop-c2: 560px; }
 
 /* ═══ sub-page tabs -> badges ═══ */
 html.cc-shares-on #displaybox nav.tabs .tabs-container { gap: 6px; }
@@ -233,6 +233,11 @@ html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status .cc-b a,
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status .cc-b a:hover,
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status .cc-b i { color: inherit; text-decoration: none; }   /* disk_status had NO .cc-b a rule, so wrapped links showed native blue + hover underline */
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status td.cc-browse-col { white-space: nowrap; overflow: visible; }
+/* disks linksbuendig (user): rows WITHOUT a Browse target (Parity, unformatted) carry an EMPTY
+   <a class='view'></a> placeholder (device_info line 504/508) that enhanceMainRow cannot lift (no href);
+   its native 20px width pushed those name badges right of the others. Hide the empty placeholder so every
+   device badge starts at the same left edge. */
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status td:first-child a.view:not([href]) { display: none !important; }
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status a.cc-b-browse {
   display: inline-flex !important; width: auto !important; align-items: center; justify-content: center;
   border-radius: var(--cc-b-radius, 999px) !important; padding: var(--cc-bmd-pad, 4px 12px) !important;
@@ -262,22 +267,19 @@ html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status .cc-b:has(a[hr
    Identification wider so the model string gets the leftover space; every other column self-sizes. */
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status td.desc { width: 34%; }   /* bias the freed (un-caged) width to the only prose column */
 
-/* Let the disk MODEL (Identification cell, td.desc) show in FULL instead of the native ellipsis-clip.
-   table.unraid td is overflow:hidden + text-overflow:ellipsis + white-space:nowrap. white-space:normal
-   alone is NOT enough: the model+serial is one underscore-joined UNBREAKABLE token
-   (Samsung_SSD_9100_PRO_2TB_S7YFNJ0K…), so with overflow:visible it spilled horizontally across the
-   neighbour cells on the squeezed pool/boot tables (the v2.24.1 overlap). overflow-wrap:anywhere +
-   word-break force the token to wrap INSIDE the column; flex-wrap + max-width on the .cc-b pill and
-   min-width:0 on its flex child let the badge wrap to compact multi-line instead of overflowing. This
-   also keeps the table's min-content tiny -> no horizontal scrollbar under table-layout:auto. */
+/* Identification (td.desc) EINZEILIG (user): the model badge stays on ONE line. The old
+   overflow-wrap:anywhere fix targeted the table-layout:fixed squeeze; under the current
+   table-layout:auto + full-bleed min-width:0 the column gets its min-content, so nowrap is safe at
+   desktop widths. TRADEOFF (user-flagged): below ~1000-1100px viewport the unbreakable model_serial
+   token makes the table's min-content exceed the container -> native .TableContainer overflow-x:auto
+   re-introduces a horizontal scrollbar (accepted; add a media-query anywhere-wrap fallback if needed). */
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status td.desc,
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status td.desc .cc-b,
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status td.desc .cc-b-v {
-  white-space: normal !important; overflow: visible !important; text-overflow: clip !important;
-  overflow-wrap: anywhere !important; word-break: break-word !important;
+  white-space: nowrap !important; overflow: visible !important; text-overflow: clip !important;
+  overflow-wrap: normal !important; word-break: normal !important;
 }
-html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status td.desc .cc-b { flex-wrap: wrap; max-width: 100%; }
-html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status td.desc .cc-b-v { min-width: 0; }
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status td.desc .cc-b { flex-wrap: nowrap; max-width: none; }
 
 /* ═══ /Main (START) disk_status polish: roomier rows, a large disk-NAME headline badge (Shares size),
    a gap before the Reads/Writes count pill, and CC action buttons. --cc-shr-accent is set by shares.js
@@ -305,15 +307,30 @@ html.cc-shares-on.cc-on-main #displaybox div.title { margin-top: 32px; }
 /* header tint, matching the /Shares share_status header (consistency). */
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status thead td,
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status thead th { background: rgba(128, 128, 128, .14); font-weight: 600; white-space: nowrap; padding: 8px 14px; }   /* full header labels (GESCHRIEBEN/FEHLER) = each column's min-content under auto layout -> never ellipsis-clipped again; 14px horizontal matches the body cells */
-/* Füllstandsanzeigen (Used/Free usage bars) -> CC look (user: "Die Füllstandsanzeigen auch im CC Style"):
-   accent fill on a subtle rounded track, like the header array meter. Native (device_list): div.usage-disk >
-   span:first-child (fill, greenbar/orangebar/redbar, inline width:X%) + span:last-child (label). NB this
-   overrides Unraid's semantic warning/critical colours by design (the user asked for the CC accent look). */
-html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status .usage-disk {
-  background-color: rgba(128, 128, 128, .18) !important; border-radius: var(--cc-b-radius, 999px);
+/* Füllstandsanzeigen (REVERSES the v2.24.0 accent-fill, user: "sollen ihre zustandsfarbe behalten"):
+   SEMANTIC state colours mapped to the CC palette (native usage_color classes greenbar/orangebar/redbar
+   -> green/amber/danger) + ONE uniform geometry for EVERY /Main usage bar — disk rows, pool/boot
+   pool_header rows, tr_last totals AND the UD Used/Free bars (identical native markup: div.usage-disk >
+   span[width:X%].{green,orange,red}bar + label span). Scope is page-wide .cc-on-main, not per-table, so
+   one rule covers all; .sys/.mm are the dashboard/menu meter variants and stay native. */
+html.cc-shares-on.cc-on-main #displaybox .usage-disk:not(.sys):not(.mm) {
+  position: relative; height: 20px !important; margin: 0; overflow: hidden;
+  background-color: rgba(128, 128, 128, .18) !important;
+  border-radius: var(--cc-b-radius, 999px);
 }
-html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status .usage-disk > span:first-child {
-  background: var(--cc-shr-accent, #2f6feb) !important; border-radius: var(--cc-b-radius, 999px) !important; box-shadow: none !important;
+html.cc-shares-on.cc-on-main #displaybox .usage-disk:not(.sys):not(.mm) > span:first-child {
+  position: absolute; left: 0; top: 0; height: 100% !important;
+  border-radius: var(--cc-b-radius, 999px) !important; box-shadow: none !important;
+  background: var(--cc-shr-accent, #2f6feb) !important;   /* fallback: usage_color() returns '' in text-display mode */
+}
+html.cc-shares-on.cc-on-main #displaybox .usage-disk:not(.sys):not(.mm) > span:first-child.greenbar  { background: #1f9d55 !important; }
+html.cc-shares-on.cc-on-main #displaybox .usage-disk:not(.sys):not(.mm) > span:first-child.orangebar { background: #e0912a !important; }
+html.cc-shares-on.cc-on-main #displaybox .usage-disk:not(.sys):not(.mm) > span:first-child.redbar    { background: #d9433f !important; }
+/* label: native puts it in-flow with top:-0.4rem — pin it centred-right INSIDE the 20px bar instead */
+html.cc-shares-on.cc-on-main #displaybox .usage-disk:not(.sys):not(.mm) > span:last-child {
+  position: absolute; top: 0; right: 0; bottom: 0; z-index: 1;
+  display: inline-flex; align-items: center; padding-right: 10px;
+  font-size: 12px; font-weight: 600; line-height: 1; text-shadow: 0 1px 2px rgba(0, 0, 0, .35);
 }
 /* (d) /Main action buttons (Start/Stop/Format/Check/Sync/Clear/History/Move/Pause/Cancel/Reboot/Shutdown)
    -> CC accent pills. The /Shares form[name=share_form] + cc-on-share-detail rules do NOT reach /Main.
@@ -344,6 +361,14 @@ html.cc-shares-on.cc-on-main #displaybox input[type="submit"]:disabled,
 html.cc-shares-on.cc-on-main #displaybox input[type="button"]:disabled {
   background: #3a3a3a !important; color: #8a8a8a !important; opacity: .55 !important; filter: none !important; cursor: not-allowed !important;
 }
+/* (A2) array-op buttons -> lg control tier (user: groesser). Higher specificity (adds
+   table.array_status) beats the generic md pill above; colours/danger-red rules unchanged. */
+html.cc-shares-on.cc-on-main #displaybox table.array_status input[type="submit"],
+html.cc-shares-on.cc-on-main #displaybox table.array_status input[type="button"],
+html.cc-shares-on.cc-on-main #displaybox table.array_status a.button {
+  height: var(--cc-lgb-h, 36px) !important; font-size: var(--cc-lgb-fs, 14px) !important;
+  min-width: var(--cc-lgb-minw, 170px) !important; padding: 0 18px !important;
+}
 /* ALLE /Main-Buttons in CC (user: "Alle buttons und schalter in den CC Style!!!"): the Unassigned-Devices
    "ADD REMOTE SMB/NFS SHARE" / "ADD ISO FILE SHARE" / "ADD ROOT SHARE" controls are <button> elements
    (verified UD source: <button onclick='add_samba_share()'> inside <div id='remotes-buttons'>), plus other
@@ -362,6 +387,69 @@ html.cc-shares-on.cc-on-main #displaybox button:not([role="tab"]) {
 html.cc-shares-on.cc-on-main #displaybox button:not([role="tab"]):hover:not(:disabled) { filter: brightness(1.14); }
 html.cc-shares-on.cc-on-main #displaybox button:not([role="tab"]):disabled {
   background: #3a3a3a !important; color: #8a8a8a !important; opacity: .55 !important; filter: none !important; cursor: not-allowed !important;
+}
+/* ═══ Unassigned Devices B1: heading BARS gone, badges instead. Native div.title is ALREADY
+   display:flex; align-items:center (default-base.css), so stripping only fill+line keeps the
+   gear/refresh icons and the three CC toggles exactly vertically centred where the bar was. Scoped to
+   the four UD title bars only — native /Main group titles stay as they are. */
+html.cc-shares-on.cc-on-main #displaybox div.title.ud,
+html.cc-shares-on.cc-on-main #displaybox .show-disks > div.title.shift,
+html.cc-shares-on.cc-on-main #displaybox .show-shares > div.title.shift,
+html.cc-shares-on.cc-on-main #displaybox .show-historical > div.title.shift {
+  background: none !important; border-bottom: none !important;
+}
+/* the split heading badges (shares.js/ccUdSplitHeading): md-tier accent pills side by side */
+html.cc-shares-on.cc-on-main #displaybox div.title span.left { display: inline-flex; align-items: center; gap: 8px; letter-spacing: .3px; }
+html.cc-shares-on.cc-on-main #displaybox div.title span.left .cc-b {
+  display: inline-flex; align-items: center; gap: 6px; border: none;
+  border-radius: var(--cc-b-radius, 999px); padding: var(--cc-bmd-pad, 4px 12px);
+  font-size: var(--cc-md-fs, 13px); font-weight: 600; line-height: 1.35; white-space: nowrap;
+  background: var(--cc-shr-accent, #2f6feb); color: var(--cc-shr-accent-text, #fff);
+}
+html.cc-shares-on.cc-on-main #displaybox div.title span.left .cc-b img.icon { height: 16px; width: auto; padding: 0; }
+/* gear + refresh -> CC icon buttons. :not(:empty): the three toggle spans carry an EMPTY a.tooltip
+   that must not pill. */
+html.cc-shares-on.cc-on-main #displaybox div.title.ud span.right.ud a.tooltip:not(:empty) {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: var(--cc-md-h, 30px); height: var(--cc-md-h, 30px); box-sizing: border-box;
+  background: var(--cc-shr-accent, #2f6feb) !important; color: var(--cc-shr-accent-text, #fff) !important;
+  border-radius: var(--cc-b-radius, 999px); cursor: pointer; transition: filter .12s; text-decoration: none !important;
+}
+html.cc-shares-on.cc-on-main #displaybox div.title.ud span.right.ud a.tooltip:not(:empty):hover { filter: brightness(1.14); }
+html.cc-shares-on.cc-on-main #displaybox div.title.ud span.right.ud a.tooltip:not(:empty) i { color: inherit; }
+/* ═══ Unassigned Devices B2: the three UD tables in the /Main list look (mirror of the disk_status
+   block above — UD tables are usb_mounts/samba_mounts/usb_absent, NOT table.unraid.disk_status). */
+html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mounts, table.usb_absent) thead td {
+  background: rgba(128, 128, 128, .14); font-weight: 600; white-space: nowrap; padding: 8px 14px;
+}
+html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mounts, table.usb_absent) tbody td { padding: 9px 14px; }
+html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mounts, table.usb_absent) .cc-b {
+  display: inline-flex; align-items: center; gap: 5px; border: none;
+  border-radius: var(--cc-b-radius, 999px); padding: var(--cc-bmd-pad, 4px 12px);
+  font-size: var(--cc-md-fs, 13px); font-weight: 600; line-height: 1.35;
+  white-space: nowrap; text-decoration: none; vertical-align: middle;
+  background: var(--cc-shr-accent, #2f6feb); color: var(--cc-shr-accent-text, #fff);
+}
+html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mounts, table.usb_absent) .cc-b a,
+html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mounts, table.usb_absent) .cc-b a:hover,
+html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mounts, table.usb_absent) .cc-b i { color: inherit; text-decoration: none; }
+html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mounts, table.usb_absent) .cc-b.cc-b-name {
+  padding: var(--cc-lg-pad, 6px 16px); font-size: var(--cc-lg-fs, 15px); font-weight: 700; letter-spacing: .2px;
+}
+html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mounts, table.usb_absent) a.cc-b-name,
+html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mounts, table.usb_absent) a.cc-b-name:hover { text-decoration: none; }
+/* the per-device settings gear (a.info > i.fa-gears, JS-skipped from badging) -> small CC icon button */
+html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mounts, table.usb_absent) a.info i.fa-gears {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: var(--cc-b-radius, 999px);
+  background: var(--cc-shr-accent, #2f6feb); color: var(--cc-shr-accent-text, #fff); transition: filter .12s;
+}
+html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mounts, table.usb_absent) a.info:hover i.fa-gears { filter: brightness(1.14); }
+html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mounts, table.usb_absent) i.fa-gears[disabled],
+html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mounts, table.usb_absent) i.fa-gears.disabled {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: var(--cc-b-radius, 999px);
+  background: #3a3a3a; color: #8a8a8a; opacity: .55;
 }
 /* Schalter in CC: the UD HISTORICAL / FREIGABEN / DISKS toggles are native jQuery switchButtons
    ($('.historical-switch').switchButton(...) -> .switch-button-background track (.checked = ON) +
@@ -383,30 +471,62 @@ html.cc-shares-on.cc-on-main #displaybox .switch-button-background.checked .swit
 /* the real inline checkboxes (optionCorrect "Korrekturen auf Parität schreiben", safemode, confirm*) ->
    CC accent tick. switchButton hides its own source checkbox, so this paints only visible ones. */
 html.cc-shares-on.cc-on-main #displaybox input[type="checkbox"] { accent-color: var(--cc-shr-accent, #2f6feb); }
+/* (A4) FULL CC checkbox in the array-op tables (optionCorrect/safemode/confirm*): appearance:none
+   square, accent border, accent fill + white tick when checked. name/POST untouched. */
+html.cc-shares-on.cc-on-main #displaybox table.array_status input[type="checkbox"] {
+  -webkit-appearance: none; appearance: none;
+  width: 18px; height: 18px; box-sizing: border-box; flex: 0 0 auto;
+  border: 2px solid var(--cc-shr-accent, #2f6feb); border-radius: 4px;
+  background-color: transparent; display: inline-block; vertical-align: middle;
+  margin: 0 8px 0 0; cursor: pointer; transition: background-color .12s;
+}
+html.cc-shares-on.cc-on-main #displaybox table.array_status input[type="checkbox"]:checked {
+  background-color: var(--cc-shr-accent, #2f6feb);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M3 8.5l3.2 3.2L13 5' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-position: center; background-size: 12px 12px; background-repeat: no-repeat;
+}
+html.cc-shares-on.cc-on-main #displaybox table.array_status input[type="checkbox"]:focus-visible { outline: 2px solid var(--cc-shr-accent, #2f6feb); outline-offset: 2px; }
+html.cc-shares-on.cc-on-main #displaybox table.array_status label,
+html.cc-shares-on.cc-on-main #displaybox table.array_status input[type="checkbox"] + small,
+html.cc-shares-on.cc-on-main #displaybox table.array_status input[type="checkbox"] ~ small { font-size: var(--cc-md-fs, 13px); font-weight: 600; letter-spacing: .2px; vertical-align: middle; }
 /* ═══ /Main "Array-Vorgang" (table.array_status): no separator lines, buttons flush + equal spacing, inline
    descriptions folded into (i) info-bubbles (shares.js/enhanceArrayOps). User: "alle buttons bündig
    untereinander mit gleichem Abstand, keine Linien, alle Infotexte in I-Bubbles". ═══ */
-html.cc-shares-on.cc-on-main #displaybox table.array_status { border-collapse: collapse; table-layout: auto; width: 100%; }   /* native array_status is table-layout:fixed with a hard 22% button column — why the (i) bubble wrapped BELOW the Shutdown button. auto guarantees every column >= its min-content (the nowrap button cell below can never be squeezed into wrapping); width:100% keeps status/desc absorbing the surplus. */
+html.cc-shares-on.cc-on-main #displaybox table.array_status { border-collapse: collapse; table-layout: fixed; width: 100%; }   /* fixed + our own px cols on td1/td2 (rules below) = identical geometry across ALL separate array_status tables (main/keyfile/spin/mover/shutdown/sleep); auto let each table re-derive widths from its own content/column count -> the tables mis-aligned against each other (the far-right Spin pair). */
 html.cc-shares-on.cc-on-main #displaybox table.array_status td { border: none !important; vertical-align: middle; padding: 8px 10px !important; }   /* UNIFORM GRID (supersedes the v2.24.1 top-align): with the prose folded into (i) bubbles every row's content is one 30px control line, so equal padding + middle-align = identical row heights and evenly spaced buttons. Revisit if a future Unraid adds a multi-line always-visible desc control. */
 html.cc-shares-on.cc-on-main #displaybox table.array_status td.line { border: none !important; padding: 0 !important; height: 0 !important; line-height: 0 !important; font-size: 0 !important; }
 /* the separator ROW's leading empty <td> (ArrayOperation.page: <tr><td></td><td class="line" colspan="2"></td></tr>)
    still carried the uniform td padding -> phantom rows = uneven gaps. Collapse the WHOLE row
    (:has-capable browsers; the td.line rule above stays as the graceful fallback). */
 html.cc-shares-on.cc-on-main #displaybox table.array_status tr:has(> td.line) { display: none; }
-html.cc-shares-on.cc-on-main #displaybox table.array_status tr > td:first-child { padding-left: 0 !important; }
+html.cc-shares-on.cc-on-main #displaybox table.array_status tr > td:first-child { padding-left: 0 !important; width: var(--cc-aop-c1, 380px); }   /* px out-specifies default-base.css's 33%/22% per-cell widths — the root fix for the cross-table drift */
 /* BUTTON cell = a never-wrapping control row: button(s) + the (i) bubble ALWAYS side by side on one
    line (the bubble is btnCell-appended by enhanceArrayOpRow; in the Reboot/Shutdown row BOTH buttons
    live in one span.buttons-spaced in this cell — native ArrayOperation.page). Under table-layout:auto
    (rule above) nowrap makes buttons+bubble the column's min-content, so the cell can never get narrow
    enough to wrap. height acts as min-height in a table cell -> every button row is at least one
    md-control tall = uniform grid. */
-html.cc-shares-on.cc-on-main #displaybox table.array_status tr > td:nth-child(2) { white-space: nowrap; height: var(--cc-md-h, 30px); }
-html.cc-shares-on.cc-on-main #displaybox table.array_status tr > td:nth-child(2) .buttons-spaced { display: inline-flex; align-items: center; gap: 10px; vertical-align: middle; }
-html.cc-shares-on.cc-on-main #displaybox table.array_status td.cc-aop-desc { display: none !important; }   /* text now lives in the (i) bubble */
+html.cc-shares-on.cc-on-main #displaybox table.array_status tr > td:nth-child(2) { white-space: nowrap; height: var(--cc-lgb-h, 36px); width: var(--cc-aop-c2, 560px); }
+/* button pairs (Spin Up/Down, Reboot/Shutdown, Pause/Cancel) stack VERTICALLY at one x (user: ALLE
+   untereinander); flex-wrap:nowrap neutralises native .buttons-spaced{flex-wrap:wrap} */
+html.cc-shares-on.cc-on-main #displaybox table.array_status tr > td:nth-child(2) .buttons-spaced { display: inline-flex; flex-direction: column; flex-wrap: nowrap; align-items: flex-start; gap: 16px; vertical-align: middle; }
+/* td.cc-aop-desc retired (v2.25.0): hiding the CELL removed the 3rd column from the spin/keyfile tables
+   and rescaled the native 33%/22% cols to ~60/40 (the far-right Spin pair). enhanceArrayOpRow now folds
+   prose IN PLACE via ccFoldDesc in every row, so the cell always stays in the grid. */
 /* MIXED array-op description cells: shares.js/ccFoldDesc tags each PROSE node .cc-aop-hide and folds its
    text into the (i) bubble; hide only that prose — the optionCorrect/safemode checkbox + its label and
    the (Planung)/Wiki link stay visible + functional. Reversible via aopTeardown(). */
 html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-aop-hide { display: none !important; }
+/* (A3) relocated (Planung)/(Schedule)/Wiki links -> small accent badge directly beside the (i)
+   bubble (moved into the button cell by enhanceArrayOpRow). */
+html.cc-shares-on.cc-on-main #displaybox table.array_status a.cc-aop-link {
+  display: inline-flex; align-items: center; margin-left: 8px; vertical-align: middle;
+  background: var(--cc-shr-accent, #2f6feb); color: var(--cc-shr-accent-text, #fff);
+  border-radius: var(--cc-b-radius, 999px); padding: var(--cc-sm-pad, 3px 11px);
+  font-size: var(--cc-sm-fs, 11px); font-weight: 600; text-transform: uppercase; letter-spacing: .5px;
+  text-decoration: none !important; white-space: nowrap; transition: filter .12s;
+}
+html.cc-shares-on.cc-on-main #displaybox table.array_status a.cc-aop-link:hover { filter: brightness(1.14); }
 /* Array-state + parity status -> two LARGE status pills (user: "zwei grosse badges ... in der farbe nach
    status"). Colours = the CC docker state palette (running #1f9d55, warn #e0912a, stopped #3c3c3c). The
    native orb icon + its a.info tooltip live INSIDE the pill; the icon follows the pill's text colour so it
@@ -414,13 +534,12 @@ html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-aop-hide { displ
 html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-b.cc-aop-status {
   display: inline-flex; align-items: center; gap: 8px;
   padding: var(--cc-lg-pad, 6px 16px); font-size: var(--cc-lg-fs, 15px); font-weight: 700;
-  border-radius: var(--cc-b-radius, 999px); white-space: nowrap; line-height: 1.35;
+  border-radius: var(--cc-b-radius, 999px); white-space: normal; line-height: 1.35;   /* normal: GESTARTET - WARTUNGSMODUS may wrap inside the fixed 380px status column */
 }
 html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-aop-status.cc-aop-ok   { background: #1f9d55; color: #fff; }
 html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-aop-status.cc-aop-warn { background: #e0912a; color: #1a1a1a; }
 html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-aop-status.cc-aop-off  { background: #3c3c3c; color: #cfcfcf; }
-html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-aop-status .orb { color: currentColor !important; }
-html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-aop-status a.info { color: inherit; text-decoration: none; }
+html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-aop-status a.info { display: none !important; }   /* user: Badge OHNE Statuspunkt — the pill's colour already IS the state, the orb dot is redundant (its a.info tooltip goes with it) */
 /* §9 (i) info-bubble — MIRRORED from styles/docker.css (not loaded on /Main). Neutral (currentColor, NEVER
    accent); hover/focus reveals a pure-CSS tooltip from data-tip. */
 html.cc-shares-on.cc-on-main #displaybox .cc-info {
@@ -449,6 +568,28 @@ html.cc-shares-on.cc-on-main #displaybox .cc-info:hover::before,
 html.cc-shares-on.cc-on-main #displaybox .cc-info:focus::before { opacity: 1; }
 /* the array-op panel must let the bubble overflow (Tab-Ansicht panels already do; native sub-tabs may clip) */
 html.cc-shares-on.cc-on-main #displaybox section:has(table.array_status) { overflow: visible !important; }
+/* (A5/P9) reads/writes toggle -> CC switch. State mirrors the diskio cookie via the i.toggle class
+   native toggle_diskio() maintains (fa-tachometer = OFF/rates, fa-list = ON/counts); clicking the
+   track IS the native <a onclick="toggle_diskio()"> — no behaviour change. :has() degrades to a grey
+   track (knob still moves). display:block !important on i.toggle deliberately undoes the native
+   $('i.toggle').hide() (tab0 cookie). */
+html.cc-shares-on.cc-on-main #displaybox span.status a.tooltip_diskio {
+  display: inline-flex; width: 44px; height: 24px; border-radius: 999px; background: #3a3a3a;
+  position: relative; vertical-align: middle; box-sizing: border-box; transition: background .15s;
+}
+html.cc-shares-on.cc-on-main #displaybox span.status a.tooltip_diskio:has(i.fa-list) { background: var(--cc-shr-accent, #2f6feb); }
+html.cc-shares-on.cc-on-main #displaybox span.status a.tooltip_diskio i.toggle {
+  display: block !important; position: absolute; left: 3px; top: 3px; width: 18px; height: 18px;
+  border-radius: 50%; background: #fff; transition: left .15s; font-size: 0 !important; line-height: 0;
+}
+html.cc-shares-on.cc-on-main #displaybox span.status a.tooltip_diskio i.toggle::before { content: none !important; }
+html.cc-shares-on.cc-on-main #displaybox span.status a.tooltip_diskio i.toggle.fa-list { left: 23px; }
+/* placement: far right of the FIRST section-badge row (sections mode; ccDiskioMove parked span.status
+   inside the first .cc-card-head; absolute vs the position:relative section = the head's row, full width) */
+html.cc-shares-on.cc-on-main.cc-sections-main #displaybox section[data-cc-card] { position: relative; }
+html.cc-shares-on.cc-on-main.cc-sections-main #displaybox .cc-card-head > span.status { position: absolute; right: 0; top: 5px; }
+/* native-tabs fallback (Tab-Ansicht off): the control stays in nav.tabs -> pin it right */
+html.cc-shares-on.cc-on-main:not(.cc-sections-main) #displaybox nav.tabs > span.status { margin-left: auto; align-self: center; float: right; }
 
 /* ═══ bottom action buttons -> CC action buttons ═══
    Mirror the Docker footer bar (div.js-actions input[type=button]) — accent bg, md
@@ -849,6 +990,17 @@ html.cc-shares-on.cc-shares-rbneutral.cc-on-shares #displaybox table.unraid.shar
 /* tab bar: also gate on .cc-on-shares so a live area/theming disable (which removes cc-on-shares but
    NOT the lingering cc-shares-rbneutral) stops the hover recolour immediately. */
 html.cc-shares-rbneutral.cc-on-shares #displaybox nav.tabs button[role="tab"]:not([aria-selected="true"]):hover {
+  background: var(--cc-rb-c, var(--cc-shr-accent, #2f6feb)) !important; color: var(--cc-rb-ct, var(--cc-shr-accent-text, #fff)) !important;
+}
+/* ═══ rainbow "active only" on /Main (START): mirror of the .cc-on-shares block above for the
+   disk_status badges paintMain() paints. Scoped to disk_status so the semantic .cc-aop-status pills
+   (table.array_status) and the Reboot/Shutdown danger buttons are untouched. The Browse pill's base
+   rule is !important, so its neutral rule matches that prefix + adds the two gate classes to
+   out-specify it; the whole ROW recolours on hover via the tr-stamped --cc-rb-c/--cc-rb-ct. */
+html.cc-shares-rbneutral.cc-on-main #displaybox table.unraid.disk_status .cc-b { background: rgba(128, 128, 128, .18) !important; color: #cfcfcf !important; }
+html.cc-shares-on.cc-shares-rbneutral.cc-on-main #displaybox table.unraid.disk_status a.cc-b-browse { background: rgba(128, 128, 128, .18) !important; color: #cfcfcf !important; }
+html.cc-shares-rbneutral.cc-on-main #displaybox table.unraid.disk_status tr:hover .cc-b,
+html.cc-shares-on.cc-shares-rbneutral.cc-on-main #displaybox table.unraid.disk_status tr:hover a.cc-b-browse {
   background: var(--cc-rb-c, var(--cc-shr-accent, #2f6feb)) !important; color: var(--cc-rb-ct, var(--cc-shr-accent-text, #fff)) !important;
 }
 

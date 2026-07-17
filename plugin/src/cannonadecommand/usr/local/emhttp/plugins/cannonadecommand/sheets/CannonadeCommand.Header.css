@@ -153,8 +153,8 @@ html.cc-shape-circle.cc-header-on #menu .nav-tile.right .nav-item.util > a { bor
    hand. Draggability is armed by a press-and-HOLD (~450ms, in header.js): the bar enters reorder mode and
    every tab jiggles (cc-nav-wiggle) to signal it can be moved, then a drag reorders it and the order
    persists to cc.navorder. The pill being dragged dims and drops its own jiggle. Header area only. */
-html.cc-header-on #menu .nav-tile:not(.right) .nav-item.cc-navdrag > a { cursor: pointer; }
-html.cc-header-on #menu .nav-tile:not(.right) .nav-item.cc-dragging { opacity: .45; animation: none; }
+html.cc-header-on #menu .cc-navdrag > a { cursor: pointer; }
+html.cc-header-on #menu .cc-dragging { opacity: .45; animation: none !important; }
 @keyframes cc-nav-wiggle {
   0%   { transform: rotate(-1.6deg) translateY(0); }
   25%  { transform: rotate(1.4deg)  translateY(-0.5px); }
@@ -162,10 +162,12 @@ html.cc-header-on #menu .nav-tile:not(.right) .nav-item.cc-dragging { opacity: .
   75%  { transform: rotate(1.6deg)  translateY(0.5px); }
   100% { transform: rotate(-1.6deg) translateY(0); }
 }
-html.cc-header-on #menu .nav-tile:not(.right) .nav-item.cc-nav-wiggle {
+/* one wiggle rule for BOTH zones: the left tab pills AND the right utility icons + usage meter
+   (user: das Verschieben/Zittern auch fuer die Fuellstandsanzeige und die Icons) */
+html.cc-header-on #menu .cc-nav-wiggle {
   animation: cc-nav-wiggle .32s ease-in-out infinite;
   transform-origin: 50% 50%;
 }
 @media (prefers-reduced-motion: reduce) {
-  html.cc-header-on #menu .nav-tile:not(.right) .nav-item.cc-nav-wiggle { animation: none; outline: 2px dashed var(--cc-accent, #70b8ff); outline-offset: 2px; }
+  html.cc-header-on #menu .cc-nav-wiggle { animation: none; outline: 2px dashed var(--cc-hdr-accent, #70b8ff); outline-offset: 2px; }
 }

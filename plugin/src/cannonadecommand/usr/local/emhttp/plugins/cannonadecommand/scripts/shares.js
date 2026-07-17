@@ -327,6 +327,63 @@
       }
     } catch (e) {}
   }
+  // Rainbow on /Main (user: "gesamter Start-Tab ist nicht im Rainbowmode eingepflegt"): tint each
+  // disk_status row's badges (.cc-b value pills incl. the lg .cc-b-name, plus the a.cc-b-browse pill)
+  // ONE rotated palette colour per row — the exact paintRows contract — and give each Array-Vorgang
+  // control ROW's action buttons a palette colour. SEMANTIC elements stay untouched: the
+  // .cc-aop-status pills (they carry .cc-b, but live in table.array_status which the badge loop never
+  // visits), the danger-red Reboot/Shutdown inputs (skipped BY NAME, style guide §12) and DISABLED
+  // buttons (an inline !important would beat the sheet's :disabled inert grey). Inline writes with
+  // priority "important" beat the sheet's !important accent defaults; clearing them restores the
+  // accent. Attribute-only writes -> the childList observer can never loop.
+  function paintMain() {
+    try {
+      if (g("cc.enable.main", "0") === "0") return;
+      if (!onMain()) return;
+      var rb = rbOn(), neutral = rb && rbNeutral();
+      document.documentElement.classList.toggle("cc-shares-rbneutral", neutral);
+      var tbs = document.querySelectorAll("#displaybox table.unraid.disk_status");
+      for (var j = 0; j < tbs.length; j++) {
+        var rows = tbs[j].querySelectorAll("tbody > tr"), ri = 0;
+        for (var r = 0; r < rows.length; r++) {
+          var tr = rows[r];
+          var bs = tr.querySelectorAll(".cc-b, a.cc-b-browse");
+          if (!bs.length) continue;                                  // rows without badges (placeholders) skip
+          if (!rb) {
+            tr.style.removeProperty("--cc-rb-c"); tr.style.removeProperty("--cc-rb-ct");
+            for (var k = 0; k < bs.length; k++) { bs[k].style.removeProperty("background"); bs[k].style.removeProperty("color"); }
+            ri++; continue;
+          }
+          var c = rbColor(ri), tc = idealText(c);
+          tr.style.setProperty("--cc-rb-c", c); tr.style.setProperty("--cc-rb-ct", tc);   // row-stamped: inherits to badges + drives the neutral-mode :hover
+          for (var k2 = 0; k2 < bs.length; k2++) {
+            if (!neutral) { bs[k2].style.setProperty("background", c, "important"); bs[k2].style.setProperty("color", tc, "important"); }
+            else { bs[k2].style.removeProperty("background"); bs[k2].style.removeProperty("color"); }
+          }
+          ri++;
+        }
+      }
+      // Array-Vorgang action buttons: one palette colour per control ROW (every array_status table,
+      // incl. Mover/Sleep/Clear-Stats). Reboot/Shutdown keep their semantic danger red; disabled
+      // buttons keep the inert grey; neutral sub-mode leaves buttons on the accent sheet default.
+      var aops = document.querySelectorAll("#displaybox table.array_status"), bi = 0;
+      for (var a2 = 0; a2 < aops.length; a2++) {
+        var arows = aops[a2].rows;
+        for (var r2 = 0; r2 < arows.length; r2++) {
+          var btns = arows[r2].querySelectorAll('input[type="submit"], input[type="button"], a.button, button:not([role="tab"])');
+          if (!btns.length) continue;
+          for (var b2 = 0; b2 < btns.length; b2++) {
+            var bt = btns[b2], nm = (bt.getAttribute("name") || "").toLowerCase();
+            if (nm === "reboot" || nm === "shutdown") continue;      // semantic danger red stays (§12)
+            if (!rb || neutral || bt.disabled) { bt.style.removeProperty("background"); bt.style.removeProperty("color"); continue; }
+            var c2 = rbColor(bi), tc2 = idealText(c2);
+            bt.style.setProperty("background", c2, "important"); bt.style.setProperty("color", tc2, "important");
+          }
+          bi++;
+        }
+      }
+    } catch (e) {}
+  }
   // ── Convert native <select> to the CC disk-dropdown look (user: "alle dropdownlisten ... alle
   // listen!"). A native <select>'s OPEN popup is OS-rendered and unreachable by CSS, so we build a
   // small overlay (.cc-sel) mirroring the options into the disk-chip look. The REAL <select> stays
@@ -650,7 +707,19 @@
     var first = tr.children[0]; if (!first) return;
     // structural rows (colspan placeholder / pool header / total / offline) -> just widen for the new col
     if (first.hasAttribute("colspan") || tr.classList.contains("pool_header") || tr.classList.contains("tr_last") || tr.querySelector(":scope > td.empty")) {
-      var span = tr.querySelector("td[colspan]"); if (span) span.colSpan = (span.colSpan || 1) + 1; return;
+      var span = tr.querySelector("td[colspan]"); if (span) span.colSpan = (span.colSpan || 1) + 1;
+      // POOL/BOOT summary rows (tr.pool_header, native pool_function_row): badge them too (user: "es ist
+      // noch nicht alles in badges"). Name link is picked from td:first-child ONLY — td.desc can carry a
+      // pool_status_html "(ONLINE)" link (/Main/Device?name=X#poolsummary) that must NOT become the lg
+      // badge. td.desc ("Data Partition") + fs-type + size become value badges via mainBadgeCell; the
+      // widened colspan cell and the Used/Free usage-disk bars self-skip inside mainBadgeCell.
+      if (tr.classList.contains("pool_header")) {
+        var pnl = first.querySelector('a[href*="/Main/Device?name="], a[href*="/Main/Boot?name="]');
+        if (pnl && !pnl.classList.contains("cc-b-name")) { pnl.classList.add("cc-b"); pnl.classList.add("cc-b-name"); }
+        var pc = tr.children;
+        for (var p = 1; p < pc.length; p++) mainBadgeCell(pc[p]);
+      }
+      return;
     }
     var bt = el("td", "cc-browse-col");                      // Browse cell, inserted AFTER the Device cell
     var view = first.querySelector("a.view");
@@ -670,7 +739,7 @@
       if (g("cc.enable.main", "0") === "0") return;   // Start (/Main) is its OWN area now (was cc.enable.shares)
       if (!onMain()) return;
       var box = document.getElementById("displaybox");
-      if (box) { if (g("cc.sections.main", "0") !== "0") cardPanels(box); else flattenTeardown(); }   // Tab-Ansicht default OFF (native sub-tabs)
+      if (box) { if (g("cc.sections.main", "0") !== "0") { cardPanels(box); ccDiskioMove(box); } else { ccDiskioHome(); flattenTeardown(); } }   // Tab-Ansicht default OFF (native sub-tabs); ccDiskioHome BEFORE flattenTeardown — it deletes every .cc-card-head incl. the one hosting the diskio switch
       var tbs = document.querySelectorAll("#displaybox table.unraid.disk_status");
       for (var i = 0; i < tbs.length; i++) {
         enhanceMainHead(tbs[i]);
@@ -679,6 +748,7 @@
       }
       if (box) enhanceArrayOps(box);   // Array-Vorgang form: CC buttons + (i) info-bubbles, separator lines removed via CSS
       ccLocalizeMain();   // s3-sleep button / UD strings / Internal-Boot sentence in the UI language
+      enhanceUD();   // AFTER ccLocalizeMain: the heading split consumes the already-translated text; ccTr guards on data-cc-i18n and no-ops once the span holds badges
     } catch (e) {}
   }
   // ── /Main "Array-Vorgang" (ArrayOperation.page: table.ArrayOperation-Table.array_status). Each control
@@ -736,16 +806,33 @@
     var tds = tr.children; if (tds.length < 3) return;
     var btnCell = tds[1], descCell = tds[2];
     if (!btnCell.querySelector("input, button, a")) return;                          // must hold a control
-    var tip;
-    if (!descCell.querySelector("input, select, a, button, label")) {                // PURE-TEXT description -> fold the whole cell
-      tip = (descCell.textContent || "").replace(/\s+/g, " ").trim(); if (!tip) return;
-      descCell.classList.add("cc-aop-desc");                                         // CSS hides the redundant inline text
-    } else {                                                                          // MIXED cell -> fold prose only, keep the checkbox/link live
-      tip = ccFoldDesc(descCell); if (!tip) return;
+    // EVERY desc cell folds IN PLACE now (pure-text included): hiding the whole <td> removed the 3rd
+    // column from the spin/keyfile tables and rescaled the native 33%/22% cols to ~60/40 (the far-right
+    // Spin pair). ccFoldDesc keeps the cell in the grid, so all tables share the same 3-col geometry.
+    var fresh = !descCell.querySelector(".cc-aop-hide");   // first pass OR a rewritten cell (#mover-text .html() refill)
+    var tip = ccFoldDesc(descCell);
+    // (A3) (Planung)/(Schedule)/Wiki links -> button cell, directly beside the (i) bubble. Purge stale
+    // moved badges only on a freshly (re)written cell that carries prose or links (guards a link-only
+    // cell from purge-without-replace). Loop-safe: once moved, descCell has no a[href] -> next tick no-ops.
+    var links = descCell.querySelectorAll("a[href]");
+    if (fresh && (tip || links.length)) {
+      var stale = btnCell.querySelectorAll(":scope > a.cc-aop-link");
+      for (var s0 = 0; s0 < stale.length; s0++) stale[s0].parentNode.removeChild(stale[s0]);
     }
     var info = btnCell.querySelector(":scope > .cc-info");
-    if (info) { if (info.getAttribute("data-tip") !== tip) { info.setAttribute("data-tip", tip); info.setAttribute("aria-label", tip); } }
-    else btnCell.appendChild(ccInfoIcon(tip));                                        // (i) bubble beside the button
+    if (tip) {
+      if (info) { if (info.getAttribute("data-tip") !== tip) { info.setAttribute("data-tip", tip); info.setAttribute("aria-label", tip); } }
+      else btnCell.appendChild(ccInfoIcon(tip));                                      // (i) bubble beside the button
+    }
+    for (var l0 = 0; l0 < links.length; l0++) {
+      var lk = links[l0];
+      if (!lk.classList.contains("cc-aop-link")) {
+        lk.classList.add("cc-aop-link"); lk.setAttribute("data-cc-aop-moved", "1");
+        var lt = (lk.textContent || "").trim(), m0 = /^\((.+)\)$/.exec(lt);          // "(Planung)" -> "Planung"
+        if (m0) { lk.setAttribute("data-cc-aop-orig", lt); lk.textContent = m0[1]; }
+      }
+      btnCell.appendChild(lk);                                                        // AFTER the (i) bubble -> badge beside it
+    }
     tr.setAttribute("data-cc-aop", "1");
   }
   // Array-state ("Gestartet") + parity ("Paritaet ist gueltig.") status cells -> two LARGE badges coloured
@@ -779,6 +866,14 @@
     try {
       var infos = document.querySelectorAll("#displaybox table.array_status .cc-info");
       for (var i = 0; i < infos.length; i++) infos[i].parentNode.removeChild(infos[i]);
+      // moved (Planung)/Wiki link badges -> back into their row's desc cell, original "(...)" text restored
+      var mvd = document.querySelectorAll("#displaybox table.array_status a.cc-aop-link[data-cc-aop-moved]");
+      for (var v = 0; v < mvd.length; v++) {
+        var a2 = mvd[v], row2 = a2.closest("tr"), home = row2 && row2.children[2];
+        var o2 = a2.getAttribute("data-cc-aop-orig"); if (o2) a2.textContent = o2;
+        a2.classList.remove("cc-aop-link"); a2.removeAttribute("data-cc-aop-moved"); a2.removeAttribute("data-cc-aop-orig");
+        if (home) home.appendChild(a2);
+      }
       var descs = document.querySelectorAll("#displaybox table.array_status td.cc-aop-desc");
       for (var d = 0; d < descs.length; d++) descs[d].classList.remove("cc-aop-desc");
       // un-fold mixed-cell prose: unwrap our text-node wrappers, strip the hide class off in-place elements
@@ -793,6 +888,115 @@
       }
       var marked = document.querySelectorAll("#displaybox table.array_status tr[data-cc-aop]");
       for (var m = 0; m < marked.length; m++) marked[m].removeAttribute("data-cc-aop");
+    } catch (e) {}
+  }
+  // ── (A5/P9) diskio toggle relocation. ArrayOperation.page appends span.status>a.tooltip_diskio into
+  // nav.tabs in Tabbed mode ($('.tabs').append(ctrl)); CC's sections mode collapses that bar, so move the
+  // WHOLE span.status into the FIRST .cc-card-head (ARRAY-DATENTRAEGER row). One unit: toggle_diskio()/
+  // tooltipster stay bound. Idempotent (once moved the nav.tabs query misses). ccDiskioHome MUST run
+  // BEFORE any teardown that deletes .cc-card-head (flattenTeardown / apply()'s stray sweep), else the
+  // native control would be destroyed with the head. Marker is data-cc-dio-moved, NOT data-cc-moved —
+  // statsControlsTeardown queries span.status[data-cc-moved] and must never grab this one.
+  function ccDiskioMove(box) {
+    try {
+      var st = box.querySelector("nav.tabs span.status"); if (!st || !st.querySelector("a.tooltip_diskio")) return;
+      var head = box.querySelector('section[data-cc-card] .cc-card-head'); if (!head) return;
+      head.appendChild(st); st.setAttribute("data-cc-dio-moved", "1");
+    } catch (e) {}
+  }
+  function ccDiskioHome() {
+    try {
+      var st = document.querySelector("#displaybox .cc-card-head span.status[data-cc-dio-moved]"); if (!st) return;
+      var tabs = document.querySelector("#displaybox nav.tabs");
+      if (tabs) tabs.appendChild(st);
+      st.removeAttribute("data-cc-dio-moved");
+    } catch (e) {}
+  }
+  // ── Unassigned Devices (dlandon, third-party): B1 headings -> CC badges, B2 rows -> CC value badges.
+  // Verified UD DOM: div.title.ud > span.left (ONE slash-joined text) + span.right.ud x5 (gear/refresh
+  // anchors with an <i>, three toggle spans whose a.tooltip is EMPTY); sections .show-disks/.show-shares/
+  // .show-historical each hold a div.title.shift > span.left (img.icon + text, the SMB line pipe-joined);
+  // tables usb_mounts / samba_mounts / usb_absent with tbodies #disk-table-body / #remotes-table-body /
+  // #historical-table-body, tbody-only .html()-replaced every 3s by UD's refreshPage(). Headings are
+  // STATIC markup -> split once (idempotent data-cc-ud, reversible data-cc-ud-orig snapshot; safe: these
+  // spans hold no bound listeners — gear/refresh/toggles live in SIBLING span.right elements). The split
+  // runs on the CURRENT text so it works after ccLocalizeMain()'s translation (call order in enhanceMain).
+  function ccUdSplitHeading(host) {
+    if (!host || host.getAttribute("data-cc-ud")) return;
+    var kids = Array.prototype.slice.call(host.childNodes), parts = [], cur = null;
+    function flush(img) { cur = { img: img || null, txt: "" }; parts.push(cur); }
+    for (var i = 0; i < kids.length; i++) {
+      var n = kids[i];
+      if (n.nodeType === 1 && n.tagName === "IMG") { flush(n); continue; }
+      if (n.nodeType !== 3) continue;
+      var segs = n.textContent.split(/[\/|]/);   // top bar joins with "/", the SMB line with "&nbsp;|&nbsp;"
+      for (var s = 0; s < segs.length; s++) {
+        var txt = segs[s].replace(/ /g, " ").trim();
+        if (s > 0) flush(null);
+        if (!txt) continue;
+        if (!cur) flush(null);
+        cur.txt += (cur.txt ? " " : "") + txt;
+      }
+    }
+    if (!parts.length) return;
+    host.setAttribute("data-cc-ud-orig", host.innerHTML);   // snapshot BEFORE clearing
+    host.setAttribute("data-cc-ud", "1");
+    host.textContent = "";
+    for (var p = 0; p < parts.length; p++) {
+      if (!parts[p].txt && !parts[p].img) continue;
+      var b = el("span", "cc-b cc-ud-h");
+      if (parts[p].img) b.appendChild(parts[p].img);
+      if (parts[p].txt) b.appendChild(el("span", "cc-b-v", parts[p].txt));
+      host.appendChild(b);
+    }
+  }
+  // UD value cell -> badge. Extra guards vs mainBadgeCell: button/input (mount + remove controls),
+  // td.mount, and the settings-gear cell (i.fa-gears -> CSS icon-button, its hidden span.help-title
+  // text would otherwise leak into a pill).
+  function ccUdBadgeCell(td) {
+    if (!td || td.classList.contains("cc-bcell")) return;
+    if (td.hasAttribute("colspan") || td.classList.contains("mount")) return;
+    if (td.querySelector(".usage-disk, button, select, input, i.fa-gears")) return;
+    if (td.querySelector("a.cc-b-name")) return;
+    var txt = (td.textContent || "").trim(); if (txt === "" || txt === "-" || txt === "*") return;
+    var b = el("span", "cc-b"), v = el("span", "cc-b-v");
+    while (td.firstChild) v.appendChild(td.firstChild);   // disklog icon / toggle-hdd / links stay live (moved, not cloned)
+    b.appendChild(v); td.appendChild(b); td.classList.add("cc-bcell");
+  }
+  function enhanceUD() {
+    try {
+      if (!onMain()) return;
+      var heads = document.querySelectorAll("#displaybox div.title.ud > span.left, #displaybox :is(.show-disks, .show-shares, .show-historical) > div.title.shift > span.left");
+      for (var h = 0; h < heads.length; h++) ccUdSplitHeading(heads[h]);
+      var tbs = document.querySelectorAll("#displaybox #disk-table-body, #displaybox #remotes-table-body, #displaybox #historical-table-body");
+      for (var t = 0; t < tbs.length; t++) {
+        var rows = tbs[t].children;
+        for (var r = 0; r < rows.length; r++) {
+          var tr = rows[r]; if (tr.tagName !== "TR" || tr.getAttribute("data-cc-ud")) continue;
+          tr.setAttribute("data-cc-ud", "1");   // set-and-bail: rows are re-created fresh on every 3s refill
+          var nl = tr.querySelector('td:first-child a[href^="/Main/"]');   // /Main/Device?name= or /Main/New?name=
+          if (nl && !nl.classList.contains("cc-b-name")) { nl.classList.add("cc-b"); nl.classList.add("cc-b-name"); }
+          var tds = tr.children;
+          for (var c = 1; c < tds.length; c++) ccUdBadgeCell(tds[c]);
+        }
+      }
+    } catch (e) {}
+  }
+  function udTeardown() {
+    try {
+      var hs = document.querySelectorAll("#displaybox [data-cc-ud-orig]");
+      for (var i = 0; i < hs.length; i++) { hs[i].innerHTML = hs[i].getAttribute("data-cc-ud-orig"); hs[i].removeAttribute("data-cc-ud-orig"); hs[i].removeAttribute("data-cc-ud"); }
+      var cells = document.querySelectorAll("#displaybox :is(table.usb_mounts, table.samba_mounts, table.usb_absent) td.cc-bcell");
+      for (var c2 = 0; c2 < cells.length; c2++) {
+        var b2 = cells[c2].querySelector(":scope > .cc-b"), v2 = b2 && b2.querySelector(":scope > .cc-b-v");
+        if (v2) { while (v2.firstChild) cells[c2].insertBefore(v2.firstChild, b2); }
+        if (b2) cells[c2].removeChild(b2);
+        cells[c2].classList.remove("cc-bcell");
+      }
+      var nn = document.querySelectorAll("#displaybox :is(table.usb_mounts, table.samba_mounts, table.usb_absent) a.cc-b-name");
+      for (var n2 = 0; n2 < nn.length; n2++) { nn[n2].classList.remove("cc-b"); nn[n2].classList.remove("cc-b-name"); }
+      var mk = document.querySelectorAll("#displaybox tr[data-cc-ud]");
+      for (var m2 = 0; m2 < mk.length; m2++) mk[m2].removeAttribute("data-cc-ud");
     } catch (e) {}
   }
   // ── /Main UI-LANGUAGE localisation (user: ALLES in der eingestellten Sprache). Three foreign sources
@@ -931,6 +1135,7 @@
         // tab-switching), but the JS-injected card headers would linger as stray unstyled divs -> pull
         // them out and clear their markers so the page is clean without a reload.
         try {
+          ccDiskioHome();   // FIRST: the diskio switch lives inside the first .cc-card-head — re-home it before the head removal below destroys it
           var stray = document.querySelectorAll("#displaybox .cc-card-head, #displaybox .cc-card-note");
           for (var s = 0; s < stray.length; s++) stray[s].parentNode.removeChild(stray[s]);
           // un-hide the native SMB "User Access" sub-heading we carded (its .cc-carded hide rule is
@@ -943,7 +1148,7 @@
           // rainbow "active only" leftovers: drop the neutral class and clear the inline rb colours
           // paintTabs/paintRows stamped (inline survives a class removal, so it must be cleared here).
           root.classList.remove("cc-shares-rbneutral");
-          var painted = document.querySelectorAll('#displaybox nav.tabs button[role="tab"], #displaybox #shareslist tr, #displaybox #disk_list tr, #displaybox .cc-b, #displaybox .cc-b-browse');
+          var painted = document.querySelectorAll('#displaybox nav.tabs button[role="tab"], #displaybox #shareslist tr, #displaybox #disk_list tr, #displaybox .cc-b, #displaybox .cc-b-browse, #displaybox table.unraid.disk_status tr, #displaybox table.array_status input[type="submit"], #displaybox table.array_status input[type="button"], #displaybox table.array_status a.button, #displaybox table.array_status button');
           for (var p = 0; p < painted.length; p++) { painted[p].style.removeProperty("background"); painted[p].style.removeProperty("color"); painted[p].style.removeProperty("--cc-rb-c"); painted[p].style.removeProperty("--cc-rb-ct"); }
           ccSelectsTeardown();   // unwrap the custom <select> overlays -> native form back, clean
           ccCardsTeardown();     // unwrap the split/side/user-access card wrappers -> native structure back
@@ -967,6 +1172,7 @@
           var mname = document.querySelectorAll("#displaybox table.unraid.disk_status a.cc-b-name");
           for (var mn = 0; mn < mname.length; mn++) { mname[mn].classList.remove("cc-b"); mname[mn].classList.remove("cc-b-name"); }
           aopTeardown();   // Array-Vorgang: pull (i) info-bubbles, un-hide description cells, drop markers
+          udTeardown();   // UD: restore the joined heading text + unwrap the UD table badges — MUST run BEFORE ccI18nTeardown so its text-node-matching restore finds the (restored) translated text nodes
           ccI18nTeardown();   // restore the original English strings (sleep value + UD/native text nodes)
         } catch (e) {}
         return;
@@ -991,6 +1197,7 @@
       enhanceShareDetail(); // inject the share-name title on /Shares/Share
       paintCards();         // rainbow (or accent) on the detail-page card title badges
       enhanceMain();        // /Main (START): stacked sections + disk_status row badges + Browse column
+      paintMain();          // /Main rainbow: per-row palette AFTER the badges exist (re-applies live on the cc.rainbow storage event)
       if (onStats()) moveStatsControls(); // /Stats: keep the control group relocated below the graphs (span.status can arrive late)
       if (onBrowse()) enhanceBrowse();    // Browse: (re-)badge the owner/perm/size cells (tbody is AJAX-replaced on navigation)
     } catch (e) {}
@@ -1014,10 +1221,10 @@
         // enhanceMain is marker-idempotent, so its own writes re-enter this callback once then no-op.
         for (var i = 0; i < recs.length; i++) {
           var tgt = recs[i].target;
-          if (tgt && (tgt.id === "array_devices" || (tgt.closest && tgt.closest("table.unraid.disk_status")))) { enhanceMain(); break; }
+          if (tgt && (tgt.id === "array_devices" || tgt.id === "disk-table-body" || tgt.id === "remotes-table-body" || tgt.id === "historical-table-body" || (tgt.closest && tgt.closest("table.unraid.disk_status")))) { enhanceMain(); paintMain(); break; }
         }
         if (moPending) return; moPending = true;
-        setTimeout(function () { moPending = false; if (g("cc.theming", "1") === "0") return; hideRedundantTabs(); paintTabs(); enhanceShares(); paintRows(); enhanceShareDetail(); paintCards(); enhanceMain(); if (g("cc.enable.shares", "0") !== "0" && onStats()) moveStatsControls(); if (g("cc.enable.shares", "0") !== "0" && onBrowse()) enhanceBrowse(); }, 150);
+        setTimeout(function () { moPending = false; if (g("cc.theming", "1") === "0") return; hideRedundantTabs(); paintTabs(); enhanceShares(); paintRows(); enhanceShareDetail(); paintCards(); enhanceMain(); paintMain(); if (g("cc.enable.shares", "0") !== "0" && onStats()) moveStatsControls(); if (g("cc.enable.shares", "0") !== "0" && onBrowse()) enhanceBrowse(); }, 150);
       });
       mo.observe(host, { childList: true, subtree: true });
     } catch (e) {}

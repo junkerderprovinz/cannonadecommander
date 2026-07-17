@@ -864,6 +864,99 @@ div.js-actions input[type=button]:hover { filter: brightness(1.14); }
 .sl-bubble .sl-pill { border-radius: var(--cc-b-radius, 999px) !important; }
 .sl-bubble .sl-x { border-radius: var(--cc-b-radius, 7px) !important; }
 
+/* ═══════════════════════════════════════════════════════════════════════════════════════════
+   /Docker/AddContainer + /Docker/UpdateContainer ("Container hinzufügen" / Edit) — gate
+   html.cc-docker-on.cc-on-addct set by docker.js ctApply(). Mirrors the /Shares detail-form look
+   (CannonadeCommand.Shares.css: filled inputs, accent/neutral buttons, cc-sel, switch recolour)
+   with the Docker area's --cc-accent. Native DOM: CreateDocker.php — #canvas markdown form (see
+   docker.js form-mode header). Nothing here can leak: every rule needs BOTH gate classes, set only
+   on the two form URLs. ═══════════════════════════════════════════════════════════════════ */
+html.cc-docker-on.cc-on-addct #canvas input[type="text"],
+html.cc-docker-on.cc-on-addct #canvas input[type="number"],
+html.cc-docker-on.cc-on-addct #canvas input[type="password"],
+html.cc-docker-on.cc-on-addct #canvas textarea,
+html.cc-docker-on.cc-on-addct #canvas select,
+html.cc-docker-on.cc-on-addct .ui-dialog input[type="text"],
+html.cc-docker-on.cc-on-addct .ui-dialog textarea,
+html.cc-docker-on.cc-on-addct .ui-dialog select {
+  background: rgba(255, 255, 255, .07) !important; border: none !important; box-shadow: none !important;
+  border-radius: 6px !important; padding: 6px 10px !important; color: #eaeaea !important;
+}
+html.cc-docker-on.cc-on-addct #canvas input:focus,
+html.cc-docker-on.cc-on-addct #canvas textarea:focus,
+html.cc-docker-on.cc-on-addct #canvas select:focus,
+html.cc-docker-on.cc-on-addct .ui-dialog input:focus,
+html.cc-docker-on.cc-on-addct .ui-dialog textarea:focus,
+html.cc-docker-on.cc-on-addct .ui-dialog select:focus { outline: 1px solid var(--cc-accent, #2f6feb) !important; }
+/* buttons: pill shape for all; ANWENDEN (submit) + config-row/dialog buttons = accent; FERTIG
+   (input[type=button], onclick=done()) = neutral secondary — the share-detail submit/non-clone
+   split, verbatim. */
+html.cc-docker-on.cc-on-addct #canvas input[type="submit"],
+html.cc-docker-on.cc-on-addct #canvas input[type="button"],
+html.cc-docker-on.cc-on-addct #canvas button:not([role="tab"]),
+html.cc-docker-on.cc-on-addct .ui-dialog .ui-dialog-buttonpane button {
+  border: none !important; box-shadow: none !important;
+  padding: 0 14px !important; height: var(--cc-md-h, 30px) !important; box-sizing: border-box !important;
+  font-size: var(--cc-md-fs, 13px) !important; font-weight: 600 !important;
+  text-transform: uppercase !important; letter-spacing: .6px !important; font-family: inherit !important;
+  border-radius: var(--cc-b-radius, 999px) !important; cursor: pointer; transition: filter .12s, opacity .12s;
+  display: inline-flex !important; align-items: center; justify-content: center;
+  background: var(--cc-accent, #2f6feb) !important; color: var(--cc-accent-text, #fff) !important;
+}
+html.cc-docker-on.cc-on-addct #canvas input[type="button"] { background: #4a4a4a !important; color: #f0f0f0 !important; }   /* FERTIG/Done = neutral */
+html.cc-docker-on.cc-on-addct #canvas input[type="submit"]:hover:not(:disabled),
+html.cc-docker-on.cc-on-addct #canvas input[type="button"]:hover:not(:disabled),
+html.cc-docker-on.cc-on-addct #canvas button:hover:not(:disabled),
+html.cc-docker-on.cc-on-addct .ui-dialog .ui-dialog-buttonpane button:hover { filter: brightness(1.14); }
+/* accent links: "Mehr Einstellungen zeigen", "Docker-Zuweisungen", "+ Weiteren Pfad, Port, ..." */
+html.cc-docker-on.cc-on-addct #canvas #readmore_toggle a,
+html.cc-docker-on.cc-on-addct #canvas #allocations_toggle a,
+html.cc-docker-on.cc-on-addct #canvas a[href="javascript:addConfigPopup()"] { color: var(--cc-accent, #2f6feb) !important; font-weight: 600; text-decoration: none; }
+/* switchButtons (Use Tailscale / Privilegierte Rechte / TSadvanced / Advanced-View) — the proven
+   recolour-only pattern from the container-list rules above: track + knob + accent-on. */
+html.cc-docker-on.cc-on-addct .switch-button-background {
+  background: #3a3a3a !important; border: none !important; box-shadow: none !important; border-radius: 999px !important;
+}
+html.cc-docker-on.cc-on-addct .switch-button-background.checked { background: var(--cc-accent, #2f6feb) !important; }
+html.cc-docker-on.cc-on-addct .switch-button-background .switch-button-button {
+  background: #dcdcdc !important; border: none !important; box-shadow: none !important; border-radius: 999px !important;
+}
+/* CPU-Zuweisung grid (label.checkbox > input#boxN + span.checkmark): accent the checked pin */
+html.cc-docker-on.cc-on-addct #canvas label.checkbox .checkmark { background: rgba(255, 255, 255, .12) !important; border: none !important; border-radius: 4px; }
+html.cc-docker-on.cc-on-addct #canvas label.checkbox input:checked ~ .checkmark { background: var(--cc-accent, #2f6feb) !important; }
+/* config rows (#ConfigNumN, makeConfig): the .boxed target/description strip loses its orange for a muted CC note */
+html.cc-docker-on.cc-on-addct #canvas .boxed span.orange-text { color: #9a9a9a !important; }
+/* ═══ cc-dsel: the CC dropdown overlay (docker.js ctWrapSelect) — the share-settings disk-dropdown
+   look (chips in a floating elevated panel, accent selected + hover), --cc-accent flavoured. */
+html.cc-docker-on.cc-on-addct .cc-dsel { position: relative; display: inline-block; }
+html.cc-docker-on.cc-on-addct .cc-dsel-trigger {
+  display: inline-flex; align-items: center; min-width: 220px;
+  background: rgba(255, 255, 255, .07); border-radius: 6px; padding: 6px 10px; color: #eaeaea; cursor: pointer;
+}
+html.cc-docker-on.cc-on-addct .cc-dsel-panel {
+  display: none; position: absolute; z-index: 20; margin-top: 4px; flex-direction: column; gap: 6px;
+  padding: 8px; width: max-content; min-width: 160px; max-width: min(92vw, 420px);
+  max-height: 50vh; overflow-y: auto; overflow-x: hidden;
+  background: #303030; border: none; border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .6);   /* NO border line */
+}
+html.cc-docker-on.cc-on-addct .cc-dsel.cc-open .cc-dsel-panel { display: flex; }
+html.cc-docker-on.cc-on-addct .cc-dsel.cc-dsel-disabled .cc-dsel-trigger { opacity: .5; cursor: not-allowed; }
+html.cc-docker-on.cc-on-addct .cc-dsel-group { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #9a9a9a; padding: 4px 12px 0; }
+html.cc-docker-on.cc-on-addct .cc-dsel-opt {
+  display: flex; align-items: center; gap: 8px; justify-content: flex-start;
+  line-height: 1.3; margin: 0; padding: 6px 12px; cursor: pointer; border-radius: var(--cc-b-radius, 999px);
+  background: rgba(255, 255, 255, .09); border: none; color: #ececec; white-space: nowrap;
+  transition: background .12s, color .12s, box-shadow .12s;
+}
+html.cc-docker-on.cc-on-addct .cc-dsel-opt:hover { background: var(--cc-accent, #2f6feb); color: var(--cc-accent-text, #fff); }
+html.cc-docker-on.cc-on-addct .cc-dsel-opt.is-selected {
+  background: var(--cc-accent, #2f6feb); color: var(--cc-accent-text, #fff);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .55);   /* selected ring */
+}
+html.cc-docker-on.cc-on-addct .cc-dsel-opt.is-selected:hover { filter: brightness(1.12); }
+html.cc-docker-on.cc-on-addct .cc-dsel-opt.is-disabled { opacity: .4; pointer-events: none; }
+
 /* ___ badge-shape MASTER overrides: these must remain the LAST rules in this
    file, because any later rule with the same !important radius would win
    (exactly what broke the settings tabs). Covers badges, state badges, action

@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.27.0">
+  <!ENTITY version   "2.27.1">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,24 @@
 </ICON>
 
 <CHANGES>
+### 2.27.1
+#1 Plugin-Tab: Der Aktualisierungen-Button sitzt jetzt EXAKT auf der Unterreiter-Zeile -- der native
+   Reiter-Streifen (width:100%) hatte die Button-Gruppe aus der Zeile gedraengt.
+#2 Der Lese-/Schreib-Schalter sitzt wieder GANZ RECHTS auf Hoehe des Abschnitts-Badges (der Anker war
+   versehentlich auf den Badge-Rand statt auf den Abschnitts-Rand gewandert).
+#3 Pool-Liste: Der dunkle Fleck rechts ist weg (Struktur-Zeilen werden jetzt exakt auf die
+   Spaltenzahl normalisiert; verkuerzte Kopfzeilen bekommen keine eingefuegte Zelle mehr).
+#4 Boot-Datentraeger: Die superlange Identifikation erzeugt KEINEN horizontalen Scrollbalken mehr --
+   sie wird abgeschnitten und laeuft beim Mouseover wie die Volume-Zuweisungen im Docker-Tab
+   (Marquee). Die Fuellstandsanzeigen sind jetzt ueber ALLE Listen buendig (eine gemeinsame
+   Spaltengeometrie fuer Array/Pool/Boot; per Drag anpassbar wie gehabt).
+#5 Unassigned Devices: Die Schalter und Symbole sitzen sauber nebeneinander rechts auf der
+   Badge-Zeile (nichts verrutscht mehr); Zahnrad und Aktualisieren sind als Icons gestylt
+   (groesser, generischer Erkenner).
+#6 Die Seite hueppft nicht mehr und im Array-Vorgang ueberlappen keine Buttons mehr: Unraids
+   eigene Ein-/Ausblende-Animationen werden neutralisiert (Zeilen behalten immer ihre natuerliche
+   Hoehe) und die Paritaets-Card steht auf fester Position statt sich pro Tick neu zu vermessen.
+
 ### 2.27.0
 #1 Plugin-Tab: Der "Nach Aktualisierungen suchen"-Button ist ENDLICH fest auf der Reiter-Zeile --
    die wahre Ursache war Unraids eigenes Update.css, das den Button per margin-top 13px nach unten
@@ -862,7 +880,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>8067fdbd4b1f0894cb9cb79f7a30e4164e839cac49e9d0f3d530a386d9ee3434</SHA256>
+  <SHA256>eb802da6f8e0edd123114ccb0d45ff66acab2c6714d55fdb3f5783135fde36d1</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

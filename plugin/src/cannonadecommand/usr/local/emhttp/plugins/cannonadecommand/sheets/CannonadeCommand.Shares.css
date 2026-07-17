@@ -362,6 +362,9 @@ html.cc-col-dragging, html.cc-col-dragging * { user-select: none !important; cur
    layout safe WITH the colspan rows); shares.js sets the table's inline width to the column sum, so
    growing past the container uses .TableContainer's native overflow-x scroll — like Explorer. */
 html.cc-shares-on.cc-on-main #displaybox .TableContainer table.unraid.disk_status.cc-colfix { table-layout: fixed !important; }
+/* auto-derived shared widths (no user drag yet): keep the table at container width -> NO horizontal
+   scrollbar; only explicit user-dragged px keep the Explorer sum-width (which may scroll). */
+html.cc-shares-on.cc-on-main #displaybox .TableContainer table.unraid.disk_status.cc-colfix.cc-colauto { width: 100% !important; }
 /* the auto-layout guards YIELD to explicit column widths: the usage-bar min-width floor and the
    Identification width bias would fight the dragged px; the one-line model string ellipsis-clips
    inside its column instead of bleeding into the neighbour. Higher specificity (.cc-colfix) beats
@@ -461,23 +464,28 @@ html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mount
    build's fa classes differ per version, class-specific rules kept missing). Covers the controls in
    their native bar AND after relocation into the UD card-head (.cc-ud-ctrls). */
 html.cc-shares-on.cc-on-main #displaybox :is(div.title.ud :is(span.right.ud, div.right.ud), .cc-ud-ctrls) a { cursor: pointer; text-decoration: none !important; }
-html.cc-shares-on.cc-on-main #displaybox :is(div.title.ud :is(span.right.ud, div.right.ud), .cc-ud-ctrls) a i {
-  font-size: 18px; line-height: 1; color: inherit; opacity: .85; transition: color .12s, opacity .12s;
+html.cc-shares-on.cc-on-main #displaybox :is(div.title.ud :is(span.right.ud, div.right.ud), .cc-ud-ctrls) a :is(i, img, span[class*="icon"]) {
+  font-size: 20px; width: auto; height: 20px; line-height: 1; display: inline-block;
+  color: inherit; opacity: .85; transition: color .12s, opacity .12s, filter .12s;
 }
-html.cc-shares-on.cc-on-main #displaybox :is(div.title.ud :is(span.right.ud, div.right.ud), .cc-ud-ctrls) a:hover i {
+html.cc-shares-on.cc-on-main #displaybox :is(div.title.ud :is(span.right.ud, div.right.ud), .cc-ud-ctrls) a:hover :is(i, img, span[class*="icon"]) {
   color: var(--cc-shr-accent, #2f6feb); opacity: 1;
 }
 /* UD top heading GONE (user: die drei oberen Sub-Badges entfernen — die Abschnitte kommen unten
    erneut); the emptied bar hides once its controls moved to the card-head (.cc-ud-moved). */
 html.cc-shares-on.cc-on-main #displaybox div.title.ud :is(span.left, div.left, .leftTitleUD) { display: none !important; }
 html.cc-shares-on.cc-on-main #displaybox div.title.cc-ud-moved { display: none !important; }
-/* the relocated controls cluster: right end of the UNASSIGNED-DEVICES badge row */
-html.cc-shares-on.cc-on-main.cc-sections-main #displaybox .cc-card-head { position: relative; }
+/* the relocated controls cluster: right end of the UNASSIGNED-DEVICES badge ROW. Anchor = the
+   position:relative SECTION (like the diskio switch), NOT the .cc-card-head — the head IS the badge
+   pill (fit-content), so right:0 of the head landed ON the badge text (the v2.27.0 overlap). The head
+   sits at the section top, so a small fixed top puts the cluster on the badge row. */
 html.cc-shares-on.cc-on-main.cc-sections-main #displaybox .cc-card-head > .cc-ud-ctrls {
-  position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+  position: absolute; right: 0; top: 6px;
   display: inline-flex; align-items: center; gap: 14px;
 }
-html.cc-shares-on.cc-on-main #displaybox .cc-ud-ctrls :is(span.right.ud, div.right.ud) { display: inline-flex !important; align-items: center; }
+/* EVERY moved child joins the flex row (generic — the live UD build's wrapper classes vary; the
+   v2.27.0 :is(span.right.ud, div.right.ud) selector missed them -> the vertical pile-up) */
+html.cc-shares-on.cc-on-main #displaybox .cc-ud-ctrls > * { display: inline-flex !important; align-items: center; float: none !important; margin: 0 !important; position: static !important; }
 html.cc-shares-on.cc-on-main #displaybox .cc-ud-ctrls span.switch-button-label { float: none; line-height: 1; font-size: var(--cc-md-fs, 13px); font-weight: 600; letter-spacing: .4px; }
 /* ═══ Unassigned Devices B2: the three UD tables in the /Main list look (mirror of the disk_status
    block above — UD tables are usb_mounts/samba_mounts/usb_absent, NOT table.unraid.disk_status). */
@@ -579,6 +587,14 @@ html.cc-shares-on.cc-on-main #displaybox table.array_status tr > td:nth-child(2)
 /* margin kill: Smokesignal injects style="margin-left:8px" INLINE (reboot.after injection) and
    default-base.css gives loose buttons vertical margins — !important beats both */
 html.cc-shares-on.cc-on-main #displaybox table.array_status :is(input[type="submit"], input[type="button"], a.button, button:not([role="tab"])) { margin: 0 !important; }
+/* ANIMATION KILL: Unraid/jQuery .show('slow')/.hide('slow') animate INLINE height/margins on these
+   rows every state tick — against the grid rows that painted mid-animation frames as overlapping
+   buttons and made the page bounce. !important beats inline styles, so the rows always render at
+   their natural height and the animations become visual no-ops. */
+html.cc-shares-on.cc-on-main #displaybox table.array_status tr,
+html.cc-shares-on.cc-on-main #displaybox table.array_status td {
+  height: auto !important; margin: 0 !important; opacity: 1 !important; overflow: visible !important;
+}
 /* third-party tables (s3-sleep rides AFTER the literal </p> in ArrayOperation.page => unknown parent) */
 html.cc-shares-on.cc-on-main #displaybox :is(p, div, form, span, section):has(> table.array_status) { margin-left: 0 !important; padding-left: 0 !important; text-indent: 0 !important; }
 /* parity-check progress -> an OWN CARD right of the button column (user request). The rows were MOVED
@@ -587,6 +603,7 @@ html.cc-shares-on.cc-on-main #displaybox :is(p, div, form, span, section):has(> 
    Native-tabs fallback: a static block under the table, indented to the button column. */
 html.cc-shares-on.cc-on-main.cc-sections-main #displaybox .cc-aop-pcard {
   position: absolute; left: calc(var(--cc-aop-c1, 380px) + var(--cc-aop-c2, 560px) + 24px); right: 12px;
+  top: 52px;   /* STATIC top (below the section-badge row) — the old per-tick JS measurement looped against the live layout and made the page bounce */
   background: rgba(255, 255, 255, .045); border-radius: 12px; padding: 14px 18px;
   display: flex; flex-direction: column; gap: 8px; z-index: 1;
 }

@@ -727,6 +727,7 @@
     var h = table && table.querySelector("thead tr"); if (!h || h.getAttribute("data-cc-main")) return;
     h.setAttribute("data-cc-main", "1");
     var dev = h.children[0]; if (!dev) return;
+    if (h.children.length < 8) { if (dev.hasAttribute("colspan")) dev.colSpan = (dev.colSpan || 1) + 1; return; }   // divider/short head row: widen, never insert (an inserted cell painted the stray dark block)
     h.insertBefore(el("td", "cc-browse-col", t("browse")), dev.nextSibling);   // Browse header AFTER the Device cell
   }
   function enhanceMainRow(tr) {
@@ -747,6 +748,12 @@
     if (first.hasAttribute("colspan") || tr.classList.contains("pool_header") || tr.classList.contains("tr_last") || tr.querySelector(":scope > td.empty")) {
       if (first.hasAttribute("colspan")) first.colSpan = (first.colSpan || 1) + 1;
       else tr.insertBefore(el("td", "cc-browse-col"), first.nextSibling);
+      // NORMALISE to exactly 11 grid columns: an under-spanning structural row leaves the trailing
+      // columns as bare table background under colfix — the "dark fleck" at the right end of the pool
+      // spacer rows. Add the deficit to the LAST colspan cell.
+      var colsum = 0, lastSpan = null;
+      for (var cs = 0; cs < tr.children.length; cs++) { var cell = tr.children[cs]; colsum += (cell.colSpan || 1); if (cell.hasAttribute("colspan")) lastSpan = cell; }
+      if (colsum < 11 && lastSpan) lastSpan.colSpan = lastSpan.colSpan + (11 - colsum);
       // POOL/BOOT summary rows (tr.pool_header, native pool_function_row): badge them too (user: "es ist
       // noch nicht alles in badges"). Name link is picked from td:first-child ONLY — td.desc can carry a
       // pool_status_html "(ONLINE)" link (/Main/Device?name=X#poolsummary) that must NOT become the lg
@@ -824,7 +831,59 @@
       tbs[t].classList.remove("cc-colfix"); tbs[t].style.removeProperty("width");
     }
   }
-  function ccColApply() { var w = ccColRead(); if (w) ccColSet(w); else ccColClear(); }   // else-branch: a cross-tab reset (storage event -> apply -> enhanceMain) also clears THIS tab
+  // Widths are applied ALWAYS (user: die Fuellstandsanzeigen sollen ueber alle Listen immer buendig
+  // sein): stored user widths win; otherwise ONE shared set is auto-derived from the first full table's
+  // current auto-layout geometry and applied to ALL tables (not persisted) — the array/pool/boot columns
+  // line up and the super-long boot Identification can no longer stretch its own table (it ellipsis-clips
+  // + marquees instead -> no horizontal scrollbar). Deriving only from a non-colfix table prevents a
+  // measure-set feedback loop; a window resize clears the derived set so it re-fits the new width.
+  var ccColBound = false;
+  function ccColApply() {
+    var w = ccColRead();
+    if (!w) {
+      var tbs = ccColTables();
+      for (var t = 0; t < tbs.length; t++) {
+        var h = tbs[t].querySelector("thead tr");
+        if (!h || h.children.length < CCW_N) continue;
+        if (tbs[t].classList.contains("cc-colfix")) { w = null; break; }   // already derived this load -> keep as is
+        w = []; for (var k = 0; k < CCW_N; k++) w.push(Math.max(CCW_MIN, Math.round(h.children[k].getBoundingClientRect().width)));
+        break;
+      }
+      if (w) { ccColSet(w); ccColMarkAuto(true); }
+    } else { ccColSet(w); ccColMarkAuto(false); }
+    if (!ccColBound) {
+      ccColBound = true;
+      window.addEventListener("resize", function () {
+        if (ccColRead()) return;                       // user widths: keep (Explorer contract)
+        ccColClear();                                  // derived widths: drop -> next enhanceMain re-derives for the new width
+      });
+    }
+  }
+  function ccColMarkAuto(on) { var tbs = ccColTables(); for (var t = 0; t < tbs.length; t++) tbs[t].classList.toggle("cc-colauto", !!on); }   // auto-derived: table width stays 100% (no h-scroll); user px keep the Explorer sum-width
+  // Long Identification (the boot USB serial) -> hover MARQUEE like the Docker volume column (user):
+  // the pill ellipsis-clips at rest; on mouseover the value slides left just far enough to reveal the
+  // tail, and slides back on leave. Delegated once; inline transform only — the nchan refill recreates
+  // the cells clean, and teardown unwraps the pills wholesale.
+  var ccMarqBound = false;
+  function ccIdentMarq() {
+    if (ccMarqBound) return; ccMarqBound = true;
+    var host = document.getElementById("displaybox"); if (!host) return;
+    host.addEventListener("mouseover", function (e) {
+      var b = e.target && e.target.closest ? e.target.closest("table.unraid.disk_status td.desc .cc-b") : null;
+      if (!b || b.getAttribute("data-cc-marq") === "1") return;
+      var v = b.querySelector(":scope > .cc-b-v"); if (!v) return;
+      var ov = v.scrollWidth - b.clientWidth + 24;
+      if (ov > 6) { b.setAttribute("data-cc-marq", "1"); v.style.transition = "transform " + Math.min(8, Math.max(2, ov / 60)) + "s linear"; v.style.transform = "translateX(-" + ov + "px)"; }
+    });
+    host.addEventListener("mouseout", function (e) {
+      var b = e.target && e.target.closest ? e.target.closest("table.unraid.disk_status td.desc .cc-b") : null;
+      if (!b || b.getAttribute("data-cc-marq") !== "1") return;
+      if (e.relatedTarget && b.contains(e.relatedTarget)) return;   // still inside the pill
+      var v = b.querySelector(":scope > .cc-b-v");
+      if (v) v.style.transform = "translateX(0)";
+      b.removeAttribute("data-cc-marq");
+    });
+  }
   function ccColDown(e) {
     if (e.button != null && e.button !== 0) return;
     var table = this.closest("table"), h = table && table.querySelector("thead tr");
@@ -922,7 +981,8 @@
         var rows = tbs[i].querySelectorAll("tbody > tr");
         for (var r = 0; r < rows.length; r++) enhanceMainRow(rows[r]);
       }
-      ccColApply();   // re-apply persisted column px (or clear after a cross-tab reset)
+      ccColApply();   // shared column widths on ALL tables (stored user px, else auto-derived once)
+      ccIdentMarq();  // hover-marquee for over-long Identification pills (delegated, binds once)
       if (box) enhanceArrayOps(box);   // Array-Vorgang form: CC buttons + (i) info-bubbles, separator lines removed via CSS
       ccLocalizeMain();   // s3-sleep button / UD strings / Internal-Boot sentence in the UI language
       enhanceUD();   // AFTER ccLocalizeMain: the heading split consumes the already-translated text; ccTr guards on data-cc-i18n and no-ops once the span holds badges
@@ -1119,11 +1179,8 @@
         tr.setAttribute("data-cc-aop-p", "1");
         card.appendChild(tr);
       }
-      var tb = box.querySelector("table.array_status"), sec2 = card.parentNode;
-      if (tb && sec2 && sec2.getBoundingClientRect) {   // top-align the card with the hosting table (guarded write, no observer churn)
-        var top = Math.max(0, Math.round(tb.getBoundingClientRect().top - sec2.getBoundingClientRect().top));
-        var tp = top + "px"; if (card.style.top !== tp) card.style.top = tp;
-      }
+      // NO JS top-measurement: writing style.top per tick against a live-updating layout produced a
+      // feedback loop ("die Seite huepft auf und ab") — the card top is now static CSS.
     } catch (e) {}
   }
   function ccAopParityHome() {

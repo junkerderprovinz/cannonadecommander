@@ -617,7 +617,11 @@ nav.tabs .tabs-container > span.status.vhshift,
 #cc-plugbtns > span.status.vhshift { margin-top: 0 !important; margin-bottom: 0 !important; height: var(--cc-md-h, 30px) !important; line-height: var(--cc-md-h, 30px) !important; font-size: 0 !important; }
 nav.tabs .tabs-container > span.status.vhshift > input[type="button"],
 #cc-plugbtns > span.status.vhshift > input[type="button"] { height: var(--cc-md-h, 30px) !important; box-sizing: border-box !important; vertical-align: middle !important; }
-/* the relocated home: right-aligned flex group ON the tab row */
+/* the relocated home: right-aligned flex group ON the tab row. Native .tabs-container has width:100%
+   — as a flex SIBLING that pushed #cc-plugbtns off the row (the "not exactly on the sub-tab height"
+   drop): once the group exists, the strip must SHARE the row (flex-basis auto + shrinkable). */
+nav.tabs:has(> #cc-plugbtns) { flex-wrap: nowrap; }
+nav.tabs:has(> #cc-plugbtns) > .tabs-container { width: auto !important; flex: 1 1 auto; min-width: 0; }
 #cc-plugbtns { display: inline-flex; align-items: center; gap: 12px; flex: none; margin-left: auto; }
 #cc-plugbtns > span.status.vhshift { margin: 0 !important; }
 /* keep the strip itself one NOWRAP line; the buttons sit OUTSIDE it in #cc-plugbtns, so they can

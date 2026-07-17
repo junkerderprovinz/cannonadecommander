@@ -382,6 +382,33 @@
           bi++;
         }
       }
+      // Rainbow reaches the UD area + ALL /Main heading badges. UD rows: same row-counter contract
+      // as the disk_status loop (one palette colour per row, neutral sub-mode clears to accent).
+      var acc = mainAccent(), accDark = idealText(acc) !== "#fff";
+      var utbs = document.querySelectorAll("#displaybox #disk-table-body, #displaybox #remotes-table-body, #displaybox #historical-table-body");
+      for (var u = 0; u < utbs.length; u++) {
+        var urows = utbs[u].children, uri = 0;
+        for (var ur = 0; ur < urows.length; ur++) {
+          var utr = urows[ur]; if (utr.tagName !== "TR") continue;
+          var ubs = utr.querySelectorAll(".cc-b"); if (!ubs.length) continue;
+          var uc = rbColor(uri), utc = idealText(uc);
+          for (var uk = 0; uk < ubs.length; uk++) {
+            if (!rb || neutral) { ubs[uk].style.removeProperty("background"); ubs[uk].style.removeProperty("color"); ubs[uk].classList.toggle("cc-ink-dark", accDark); }
+            else { ubs[uk].style.setProperty("background", uc, "important"); ubs[uk].style.setProperty("color", utc, "important"); ubs[uk].classList.toggle("cc-ink-dark", utc !== "#fff"); }
+          }
+          uri++;
+        }
+      }
+      // heading badges: UD split pills (.cc-ud-h) + the /Main section heads (.cc-card-head) take
+      // CONSECUTIVE palette colours. paintCards contract: rainbow paints heads REGARDLESS of the
+      // neutral sub-mode — paintCards() is gated to /Shares/Share and never reaches these.
+      var hbs = document.querySelectorAll("#displaybox .cc-b.cc-ud-h, #displaybox .cc-card-head");
+      for (var hb = 0; hb < hbs.length; hb++) {
+        if (!rb) { hbs[hb].style.removeProperty("background"); hbs[hb].style.removeProperty("color"); hbs[hb].classList.toggle("cc-ink-dark", accDark); continue; }
+        var hc = rbColor(hb), htc = idealText(hc);
+        hbs[hb].style.setProperty("background", hc, "important"); hbs[hb].style.setProperty("color", htc, "important");
+        hbs[hb].classList.toggle("cc-ink-dark", htc !== "#fff");
+      }
     } catch (e) {}
   }
   // ── Convert native <select> to the CC disk-dropdown look (user: "alle dropdownlisten ... alle
@@ -790,7 +817,14 @@
     var tip = "", nodes = Array.prototype.slice.call(cell.childNodes);
     for (var i = 0; i < nodes.length; i++) {
       var n = nodes[i];
-      if (ccIsCtrl(n)) continue;                                                     // control (input/select/a/label/button) -> keep, not in tip
+      // a non-Scheduler link (s3-sleep wiki, external/registration hrefs) is PROSE, not a control:
+      // fall through to the generic element branch below (folds text into the tip + .cc-aop-hide,
+      // reversible via aopTeardown's class strip). Scheduler links + href-less a.info wrappers +
+      // anchors containing controls (confirmFormat lives inside <a class=info>) stay controls.
+      var foldA = n.nodeType === 1 && n.tagName === "A" && (n.getAttribute("href") || "") !== "" &&
+                  (n.getAttribute("href") || "").indexOf("/Main/Settings/Scheduler") === -1 &&
+                  !n.querySelector("input, select, button");
+      if (ccIsCtrl(n) && !foldA) continue;                                           // control -> keep, not in tip
       if (n.nodeType === 1 && (n.tagName === "SMALL" || n.tagName === "SPAN") && ccPrevIsCheckbox(n)) continue;  // checkbox label element -> keep
       if (n.nodeType === 3 && ccPrevIsCheckbox(n)) continue;                         // bare-text checkbox label -> keep
       if (n.nodeType === 1 && n.classList.contains("cc-aop-hide")) { var ht = (n.textContent || "").replace(/\s+/g, " ").trim(); if (ht) tip += (tip ? " " : "") + ht; continue; } // already folded
@@ -810,11 +844,11 @@
     // column from the spin/keyfile tables and rescaled the native 33%/22% cols to ~60/40 (the far-right
     // Spin pair). ccFoldDesc keeps the cell in the grid, so all tables share the same 3-col geometry.
     var fresh = !descCell.querySelector(".cc-aop-hide");   // first pass OR a rewritten cell (#mover-text .html() refill)
-    var tip = ccFoldDesc(descCell);
+    var tip = mtText(ccFoldDesc(descCell));   // bubble text ALWAYS in the UI language; German tips no-op (translate BEFORE the data-tip compare so refolds stay churn-free)
     // (A3) (Planung)/(Schedule)/Wiki links -> button cell, directly beside the (i) bubble. Purge stale
     // moved badges only on a freshly (re)written cell that carries prose or links (guards a link-only
     // cell from purge-without-replace). Loop-safe: once moved, descCell has no a[href] -> next tick no-ops.
-    var links = descCell.querySelectorAll("a[href]");
+    var links = descCell.querySelectorAll('a[href*="/Main/Settings/Scheduler"]');   // ONLY Scheduler links become the PLANUNG badge; the s3-sleep wiki anchor stays inside its folded <u> prose (text already in the bubble)
     if (fresh && (tip || links.length)) {
       var stale = btnCell.querySelectorAll(":scope > a.cc-aop-link");
       for (var s0 = 0; s0 < stale.length; s0++) stale[s0].parentNode.removeChild(stale[s0]);
@@ -829,9 +863,28 @@
       if (!lk.classList.contains("cc-aop-link")) {
         lk.classList.add("cc-aop-link"); lk.setAttribute("data-cc-aop-moved", "1");
         var lt = (lk.textContent || "").trim(), m0 = /^\((.+)\)$/.exec(lt);          // "(Planung)" -> "Planung"
-        if (m0) { lk.setAttribute("data-cc-aop-orig", lt); lk.textContent = m0[1]; }
+        if (m0) { lk.setAttribute("data-cc-aop-orig", lt); lk.textContent = mt(m0[1]) || m0[1]; }   // "(Schedule)" -> "Planung" when the pack left it English
       }
       btnCell.appendChild(lk);                                                        // AFTER the (i) bubble -> badge beside it
+    }
+    // optionCorrect/safemode -> CC toggle, relocated into the button cell AFTER bubble + badge.
+    // MOVE, never clone (POST + shutdown_now() find the checkbox by name, position-independent).
+    // Handles BOTH native markups: 7.x <label class="flex..."><input name=safemode>text</label> and
+    // legacy bare <input name=optionCorrect><small>label</small>. Reversible via data-cc-aop-tg.
+    var cb0 = descCell.querySelector('input[type="checkbox"][name="optionCorrect"], input[type="checkbox"][name="safemode"]');
+    if (cb0 && !btnCell.querySelector(".cc-aop-toggle")) {
+      var unit = cb0.closest("label");
+      if (unit && descCell.contains(unit)) {
+        unit.classList.add("cc-aop-toggle"); unit.setAttribute("data-cc-aop-tg", "1");
+        btnCell.appendChild(unit);
+      } else {
+        var lab0 = cb0.nextSibling;
+        while (lab0 && lab0.nodeType === 3 && !lab0.textContent.trim()) lab0 = lab0.nextSibling;   // skip whitespace
+        var w1 = el("label", "cc-aop-toggle"); w1.setAttribute("data-cc-aop-tg", "1"); w1.setAttribute("data-cc-aop-tgw", "1");
+        w1.appendChild(cb0);
+        if (lab0 && (lab0.nodeType === 3 || lab0.tagName === "SMALL" || lab0.tagName === "SPAN")) w1.appendChild(lab0);
+        btnCell.appendChild(w1);
+      }
     }
     tr.setAttribute("data-cc-aop", "1");
   }
@@ -874,6 +927,14 @@
         a2.classList.remove("cc-aop-link"); a2.removeAttribute("data-cc-aop-moved"); a2.removeAttribute("data-cc-aop-orig");
         if (home) home.appendChild(a2);
       }
+      // relocated optionCorrect/safemode toggles -> back into their row's desc cell
+      var tgs = document.querySelectorAll("#displaybox table.array_status .cc-aop-toggle[data-cc-aop-tg]");
+      for (var g2 = 0; g2 < tgs.length; g2++) {
+        var tg = tgs[g2], rw = tg.closest("tr"), hm = rw && rw.children[2];
+        if (!hm) continue;
+        if (tg.getAttribute("data-cc-aop-tgw") === "1") { while (tg.firstChild) hm.appendChild(tg.firstChild); tg.parentNode.removeChild(tg); }
+        else { tg.classList.remove("cc-aop-toggle"); tg.removeAttribute("data-cc-aop-tg"); hm.appendChild(tg); }
+      }
       var descs = document.querySelectorAll("#displaybox table.array_status td.cc-aop-desc");
       for (var d = 0; d < descs.length; d++) descs[d].classList.remove("cc-aop-desc");
       // un-fold mixed-cell prose: unwrap our text-node wrappers, strip the hide class off in-place elements
@@ -902,11 +963,36 @@
       var st = box.querySelector("nav.tabs span.status"); if (!st || !st.querySelector("a.tooltip_diskio")) return;
       var head = box.querySelector('section[data-cc-card] .cc-card-head'); if (!head) return;
       head.appendChild(st); st.setAttribute("data-cc-dio-moved", "1");
+      ccDiskioTip(st);   // native tooltipster balloon -> §9 bubble LEFT of the switch
+    } catch (e) {}
+  }
+  // tooltipster v4 CONSUMED the title attr at init (ArrayOperation.page inline script runs at parse
+  // time, before this defer script), so stripping title alone cannot kill the black balloon — read
+  // the stored content, DISABLE the instance (reversible via 'enable'), and prepend a §9 bubble.
+  function ccDiskioTip(st) {
+    try {
+      var a = st.querySelector("a.tooltip_diskio"); if (!a || a.getAttribute("data-cc-dio-tip")) return;
+      var tip = a.getAttribute("title") || "";                              // pre-tooltipster fallback
+      if (window.jQuery && window.jQuery.fn.tooltipster) {
+        try { var c = window.jQuery(a).tooltipster("content"); if (c && typeof c === "string") tip = c; window.jQuery(a).tooltipster("disable"); } catch (e2) {}
+      }
+      if (a.hasAttribute("title")) { a.setAttribute("data-cc-tip-orig", a.getAttribute("title")); a.removeAttribute("title"); }
+      if (!tip) tip = "Toggle reads/writes display";
+      tip = mtText(tip);
+      if (!st.querySelector(":scope > .cc-info")) { var ic = ccInfoIcon(tip); ic.classList.add("cc-info-edge"); st.insertBefore(ic, st.firstChild); }
+      a.setAttribute("data-cc-dio-tip", "1");
     } catch (e) {}
   }
   function ccDiskioHome() {
     try {
       var st = document.querySelector("#displaybox .cc-card-head span.status[data-cc-dio-moved]"); if (!st) return;
+      var ic = st.querySelector(":scope > .cc-info"); if (ic) st.removeChild(ic);   // drop the CC bubble
+      var a = st.querySelector("a.tooltip_diskio");
+      if (a) {
+        var o = a.getAttribute("data-cc-tip-orig"); if (o) { a.setAttribute("title", o); a.removeAttribute("data-cc-tip-orig"); }
+        if (window.jQuery && window.jQuery.fn.tooltipster) { try { window.jQuery(a).tooltipster("enable"); } catch (e2) {} }
+        a.removeAttribute("data-cc-dio-tip");
+      }
       var tabs = document.querySelector("#displaybox nav.tabs");
       if (tabs) tabs.appendChild(st);
       st.removeAttribute("data-cc-dio-moved");
@@ -942,11 +1028,13 @@
     host.setAttribute("data-cc-ud-orig", host.innerHTML);   // snapshot BEFORE clearing
     host.setAttribute("data-cc-ud", "1");
     host.textContent = "";
+    var inkDark = idealText(mainAccent()) !== "#fff";   // accent-fill ink for the img monochrome filter
     for (var p = 0; p < parts.length; p++) {
       if (!parts[p].txt && !parts[p].img) continue;
       var b = el("span", "cc-b cc-ud-h");
+      b.classList.toggle("cc-ink-dark", inkDark);
       if (parts[p].img) b.appendChild(parts[p].img);
-      if (parts[p].txt) b.appendChild(el("span", "cc-b-v", parts[p].txt));
+      if (parts[p].txt) { var sg = parts[p].txt; sg = mt(sg) || sg; b.appendChild(el("span", "cc-b-v", sg)); }   // per-SEGMENT mt(): already-translated segments miss the map = no-op
       host.appendChild(b);
     }
   }
@@ -966,7 +1054,24 @@
   function enhanceUD() {
     try {
       if (!onMain()) return;
-      var heads = document.querySelectorAll("#displaybox div.title.ud > span.left, #displaybox :is(.show-disks, .show-shares, .show-historical) > div.title.shift > span.left");
+      var heads = Array.prototype.slice.call(document.querySelectorAll(
+        "#displaybox div.title.ud > span.left, " +                                       // dlandon builds (<= 2025.02, span.right era)
+        "#displaybox div.title.ud > div.left, #displaybox div.title.ud .leftTitleUD, " + // unraid/unassigned.devices build: <div class='left leftTitleUD'>
+        "#displaybox :is(.show-disks, .show-shares, .show-historical) > div.title.shift > span.left"));
+      // content-anchored fallback: find the UD top bar by its OWN controls (switch inputs / rescan /
+      // settings link — never by text or native classes), then take the child that holds the
+      // separator-joined heading. Native Unraid titles can never match: they contain none of these
+      // anchors. Idempotent: ccUdSplitHeading bails on data-cc-ud, so a double-collect is a no-op.
+      var uda = document.querySelector("#displaybox input.disks-switch, #displaybox input.shares-switch, #displaybox input.historical-switch, #displaybox a[onclick^='rescan_disks'], #displaybox a[href*='UnassignedDevicesSettings']");
+      var bar = uda && uda.closest ? uda.closest("div.title") : null;
+      if (bar) {
+        var topHost = bar.querySelector("span.left, div.left, .leftTitleUD");
+        if (!topHost) for (var f0 = bar.firstElementChild; f0; f0 = f0.nextElementSibling) {
+          if (f0.querySelector("input[type='checkbox'], a[onclick^='rescan_disks'], a[href*='UnassignedDevicesSettings']")) continue; // the controls cluster
+          if (/[\/|]/.test(f0.textContent || "")) { topHost = f0; break; }              // heading = slash/pipe-joined text
+        }
+        if (topHost) heads.push(topHost);
+      }
       for (var h = 0; h < heads.length; h++) ccUdSplitHeading(heads[h]);
       var tbs = document.querySelectorAll("#displaybox #disk-table-body, #displaybox #remotes-table-body, #displaybox #historical-table-body");
       for (var t = 0; t < tbs.length; t++) {
@@ -1014,6 +1119,10 @@
     de: {
       "Sleep": "Ruhezustand",
       "Unassigned Disks/Remote Shares/Historical Unassigned Devices": "Nicht zugewiesene Geräte/Remote-Freigaben/Historische Geräte",
+      "Unassigned Disks": "Nicht zugewiesene Datenträger",
+      "Remote Shares": "Remote-Freigaben",
+      "SMB Shares": "SMB-Freigaben",
+      "NFS Shares": "NFS-Freigaben",
       "Unassigned Disk Devices": "Nicht zugewiesene Datenträger",
       "Historical Unassigned Devices": "Historische nicht zugewiesene Geräte",
       "SMB Shares |": "SMB-Freigaben |",
@@ -1030,10 +1139,45 @@
       "Mount Point": "Einhängepunkt",
       "Serial Number (Mount Point)": "Seriennummer (Einhängepunkt)",
       "No internal boot setup detected. Launch": "Kein internes Boot-Setup erkannt.",
-      "to configure one.": "starten, um eines einzurichten."
+      "to configure one.": "starten, um eines einzurichten.",
+      "Toggle reads/writes display": "Lese-/Schreibanzeige umschalten",
+      "Schedule": "Planung",
+      "Sleep will immediately put the server in sleep mode.": "Ruhezustand versetzt den Server sofort in den Ruhezustand.",
+      "Make sure your server supports S3 sleep.": "Stellen Sie sicher, dass Ihr Server S3-Ruhezustand unterstützt.",
+      "Check this wiki entry for more information.": "Weitere Informationen finden Sie im Wiki-Eintrag.",
+      "Stop will take the array offline.": "Stopp nimmt das Array offline.",
+      "Start will bring the array online.": "Start nimmt das Array in Betrieb.",
+      "Check will start Parity-Check.": "Prüfung startet die Paritätsprüfung.",
+      "Check will start Read-Check of all array disks.": "Prüfung startet den Lesetest aller Array-Datenträger.",
+      "Spin Up will immediately spin up all disks.": "Hochdrehen fährt sofort alle Datenträger hoch.",
+      "Spin Down will immediately spin down all disks.": "Herunterdrehen fährt sofort alle Datenträger herunter.",
+      "Clear Stats will immediately clear all disk statistics.": "Statistik leeren setzt sofort alle Datenträger-Statistiken zurück.",
+      "Move will immediately invoke the Mover.": "Verschieben startet sofort den Mover.",
+      "Empty will immediately invoke the Mover to Empty a disk.": "Leeren startet sofort den Mover, um einen Datenträger zu leeren.",
+      "Reboot will activate a clean system reset.": "Neustart führt einen sauberen System-Neustart aus.",
+      "Shutdown will activate a clean system power down.": "Herunterfahren führt ein sauberes Ausschalten des Systems aus.",
+      "Reboot in safe mode": "Neustart im abgesicherten Modus",
+      "Write corrections to parity": "Korrekturen auf die Parität schreiben",
+      "Disabled -- Parity operation is running": "Deaktiviert -- Paritätsvorgang läuft",
+      "Disabled -- Mover is running": "Deaktiviert -- Mover läuft",
+      "Disabled - Mover is running.": "Deaktiviert - Mover läuft.",
+      "Disabled - Mover/Empty is running.": "Deaktiviert - Mover/Leeren läuft.",
+      "Disabled -- BTRFS operation is running": "Deaktiviert -- BTRFS-Vorgang läuft",
+      "WARNING: canceling may leave the array unprotected!": "WARNUNG: Abbrechen kann das Array ungeschützt zurücklassen!"
     }
   };
   function mt(k) { var m = LANG !== "en" && MAIN_T[LANG]; return (m && m[k]) || null; }
+  // translate an ASSEMBLED bubble tip: exact-match the whole normalised tip first, else fall back
+  // to per-sentence matching. Already-German tips match no key -> returned unchanged (no-op).
+  function mtText(tip) {
+    var m = LANG !== "en" && MAIN_T[LANG]; if (!m || !tip) return tip;
+    var k = tip.replace(new RegExp(String.fromCharCode(160), "g"), " ").replace(/\s+/g, " ").trim();   // NBSP -> space via fromCharCode: transit-proof, no invisible bytes in source
+    if (m[k]) return m[k];
+    var parts = k.match(/[^.!?]+[.!?]*\s*/g); if (!parts) return tip;
+    var out = "", hit = false;
+    for (var i = 0; i < parts.length; i++) { var s2 = parts[i].trim(), tr2 = m[s2]; if (tr2) hit = true; out += (out ? " " : "") + (tr2 || s2); }
+    return hit ? out : tip;
+  }
   // translate the direct TEXT NODES of a host element (exact match after NBSP/whitespace normalisation);
   // child elements (icons, the wizard <a>, the UD imgs) stay untouched.
   function ccTr(host) {
@@ -1065,7 +1209,7 @@
       // <button>s (text nodes only, onclick attr untouched), the switchButton labels, the table heads
       // (exact-map-keyed, so native German disk_status heads can never match).
       var els = document.querySelectorAll(
-        "#displaybox div.title span.left, " +
+        "#displaybox div.title :is(span.left, div.left, .leftTitleUD), " +
         "#displaybox button[onclick^='add_samba_share'], #displaybox button[onclick^='add_iso_share'], #displaybox button[onclick^='add_root_share'], " +
         "#displaybox span.switch-button-label, " +
         "#displaybox table thead td, #displaybox table thead th");
@@ -1148,7 +1292,7 @@
           // rainbow "active only" leftovers: drop the neutral class and clear the inline rb colours
           // paintTabs/paintRows stamped (inline survives a class removal, so it must be cleared here).
           root.classList.remove("cc-shares-rbneutral");
-          var painted = document.querySelectorAll('#displaybox nav.tabs button[role="tab"], #displaybox #shareslist tr, #displaybox #disk_list tr, #displaybox .cc-b, #displaybox .cc-b-browse, #displaybox table.unraid.disk_status tr, #displaybox table.array_status input[type="submit"], #displaybox table.array_status input[type="button"], #displaybox table.array_status a.button, #displaybox table.array_status button');
+          var painted = document.querySelectorAll('#displaybox nav.tabs button[role="tab"], #displaybox #shareslist tr, #displaybox #disk_list tr, #displaybox .cc-b, #displaybox .cc-b-browse, #displaybox table.unraid.disk_status tr, #displaybox table.array_status input[type="submit"], #displaybox table.array_status input[type="button"], #displaybox table.array_status a.button, #displaybox table.array_status button, #displaybox .cc-card-head');
           for (var p = 0; p < painted.length; p++) { painted[p].style.removeProperty("background"); painted[p].style.removeProperty("color"); painted[p].style.removeProperty("--cc-rb-c"); painted[p].style.removeProperty("--cc-rb-ct"); }
           ccSelectsTeardown();   // unwrap the custom <select> overlays -> native form back, clean
           ccCardsTeardown();     // unwrap the split/side/user-access card wrappers -> native structure back
@@ -1188,6 +1332,13 @@
       root.style.setProperty("--cc-shr-accent", a);
       root.style.setProperty("--cc-shr-accent-text", idealText(a));
       root.style.setProperty("--cc-b-radius", shape());
+      // /Main column knobs (Settings > Start). Clamped; consumed only by .cc-on-main-gated rules,
+      // so a stale var after an area-disable has zero effect. Storage listener re-runs apply()
+      // cross-tab (cc.main.w.* matches the cc-key regex); same-page via window.ccSharesApply.
+      var wIdent = parseInt(g("cc.main.w.ident", "26"), 10); if (!(wIdent >= 15 && wIdent <= 45)) wIdent = 26;
+      var wUsage = parseInt(g("cc.main.w.usage", "120"), 10); if (!(wUsage >= 80 && wUsage <= 260)) wUsage = 120;
+      root.style.setProperty("--cc-main-w-ident", wIdent + "%");
+      root.style.setProperty("--cc-main-w-usage", wUsage + "px");
       root.classList.toggle("cc-shares-rb", rbOn());
       ensureTabbed();
       hideRedundantTabs();

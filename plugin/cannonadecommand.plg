@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.25.0">
+  <!ENTITY version   "2.26.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,35 @@
 </ICON>
 
 <CHANGES>
+### 2.26.0
+#1 Array-Vorgang: Der ueberfluessige Wiki-Eintrag-Badge ist weg -- der Hinweis steht in der Info-Bubble;
+   nur (Planung) bleibt als kleiner Badge.
+#2 Array-Vorgang: Alle Buttons haben jetzt EINE feste Breite -- Info-Bubbles, Planung-Badges und
+   Schalter sitzen dadurch in jeder Zeile exakt auf derselben Position; auch Ruhezustand und
+   Smokesignal stehen buendig (Fremd-Tabellen-Versatz neutralisiert).
+#3 Array-Vorgang: Die Bubble-Texte folgen jetzt immer der UI-Sprache (englische Reststrings wie die
+   Ruhezustand-Beschreibung werden uebersetzt).
+#4 Array-Vorgang: Die beiden Checkboxen (Korrekturen auf Paritaet schreiben, Neustart im abgesicherten
+   Modus) sind jetzt CC-Schalter und sitzen direkt neben Bubble und Badge.
+#5 Rainbow-Modus erreicht jetzt auch die Abschnitts-Badges (Array-/Pool-/Boot-Datentraeger usw.) und
+   den kompletten Unassigned-Devices-Bereich.
+#6 Unassigned Devices: Die Logos in den Badges sind jetzt einfarbig (weiss bzw. schwarz je nach
+   Badge-Farbe) statt bunt.
+#7 Unassigned Devices: Die obere Titelzeile (Unassigned Disks/Remote Shares/Historical) wird jetzt
+   wirklich in drei Badges nebeneinander gesplittet UND uebersetzt -- der Erkenner ist jetzt
+   strukturtolerant (der alte griff auf der neuen UD-Version nicht).
+#8 Unassigned Devices: Die drei Schalter folgen jetzt der eingestellten Badge-Form (eckig = eckig),
+   und die Beschriftungen sind vertikal zum Schalter zentriert.
+#9 Unassigned Devices: Zahnrad- und Aktualisieren-Symbol sind schlichte Icons (Akzent beim Hover),
+   kein Pill-Hintergrund.
+#10 Der Lese-/Schreib-Umschalter zeigt seine Erklaerung jetzt als (i)-Info-Bubble links daneben; die
+   native schwarze Sprechblase ist abgeschaltet.
+#11 Start-Tab: Die Identifikations-Spalte ist linksbuendig und schmaler (der grosse Leerraum ist weg);
+   die Benutzt/Frei-Spalten sind breiter und die Fuellbalken haben Badge-Hoehe und folgen der
+   Badge-Form (eckig = eckig).
+#12 NEU: Die Spaltenbreiten sind jetzt einstellbar -- in den CC-Einstellungen unter Start gibt es zwei
+   Regler (Identifikations-Breite in Prozent, Mindestbreite der Fuellbalken in Pixel), live wirksam.
+
 ### 2.25.0
 #1 Array-Vorgang: ALLE Buttons stehen jetzt in EINER linksbuendigen Spalte exakt untereinander --
    auch Hochfahren/Herunterfahren, die vorher weit rechts landeten (versteckte Beschreibungszellen
@@ -805,7 +834,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>75edd9fa3e5946de515d26669b2586cfe85daff4c61bf6f713f787544b9494e6</SHA256>
+  <SHA256>199f9b04dd12281a5db800fe6e2f0d23a565d3808cc74d2178c5123ca8953b58</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

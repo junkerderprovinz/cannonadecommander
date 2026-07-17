@@ -752,6 +752,22 @@
     function syncVmsBar() { try { if (typeof window.ccVmsApply === "function") window.ccVmsApply(); } catch (e) {} }
     wrapShares.appendChild(sectionsCard("shares", syncSharesBar));
     wrapStart.appendChild(sectionsCard("main", syncSharesBar));
+    // /Main column widths — TWO knobs only (Identification %, usage-bar min px); consumed by
+    // shares.js/apply() as --cc-main-w-ident/--cc-main-w-usage.
+    (function () {
+      var cw = card(T("Spaltenbreiten", "Column widths"), T("Breite der Identifikations-Spalte und Mindestbreite der Benutzt/Frei-Füllbalken in der Start-Geräteliste.", "Width of the Identification column and minimum width of the Used/Free usage bars in the Start device list."));
+      function widthRow(label, key, def, min, max, unit) {
+        var row = el("div", "cc-set-row");
+        row.appendChild(el("span", "cc-set-rl", label));
+        var sl = el("input"); sl.type = "range"; sl.min = String(min); sl.max = String(max); sl.value = get(key, def); sl.style.flex = "1";
+        var val = el("span", null, sl.value + unit);
+        sl.addEventListener("input", function () { set(key, sl.value); val.textContent = sl.value + unit; syncSharesBar(); });
+        row.appendChild(sl); row.appendChild(val); return row;
+      }
+      cw.appendChild(widthRow(T("Identifikation", "Identification"), "cc.main.w.ident", "26", 15, 45, "%"));
+      cw.appendChild(widthRow(T("Füllbalken min.", "Usage bar min."), "cc.main.w.usage", "120", 80, 260, "px"));
+      wrapStart.appendChild(cw);
+    })();
     wrapPlugin.appendChild(sectionsCard("plugins", syncPluginsBar));
     wrapVms.appendChild(sectionsCard("vms", syncVmsBar));
     buildStyleCards("cch.", wrapHeader, [], true); // Hauptmenueleiste: pill/badge settings only

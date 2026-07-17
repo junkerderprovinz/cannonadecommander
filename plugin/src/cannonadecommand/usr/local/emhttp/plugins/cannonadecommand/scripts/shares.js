@@ -707,6 +707,7 @@
   // (which is its own lg badge via enhanceMainName). Idempotent via .cc-bcell; reversible in teardown.
   function mainBadgeCell(td) {
     if (!td || td.classList.contains("cc-bcell")) return;
+    if (td.classList.contains("cc-browse-col")) return;      // the Browse cell already holds the a.cc-b-browse pill — wrapping it again produced the oversized double badge (pool headers)
     if (td.querySelector(".usage-disk")) return;             // usage bar -> restyled by CSS
     if (td.querySelector("select")) return;                  // array-stopped assignment dropdown stays native
     if (td.hasAttribute("colspan")) return;                  // structural spanning cell
@@ -748,12 +749,7 @@
     if (first.hasAttribute("colspan") || tr.classList.contains("pool_header") || tr.classList.contains("tr_last") || tr.querySelector(":scope > td.empty")) {
       if (first.hasAttribute("colspan")) first.colSpan = (first.colSpan || 1) + 1;
       else tr.insertBefore(el("td", "cc-browse-col"), first.nextSibling);
-      // NORMALISE to exactly 11 grid columns: an under-spanning structural row leaves the trailing
-      // columns as bare table background under colfix — the "dark fleck" at the right end of the pool
-      // spacer rows. Add the deficit to the LAST colspan cell.
-      var colsum = 0, lastSpan = null;
-      for (var cs = 0; cs < tr.children.length; cs++) { var cell = tr.children[cs]; colsum += (cell.colSpan || 1); if (cell.hasAttribute("colspan")) lastSpan = cell; }
-      if (colsum < 11 && lastSpan) lastSpan.colSpan = lastSpan.colSpan + (11 - colsum);
+      ccFill11(tr);
       // POOL/BOOT summary rows (tr.pool_header, native pool_function_row): badge them too (user: "es ist
       // noch nicht alles in badges"). Name link is picked from td:first-child ONLY — td.desc can carry a
       // pool_status_html "(ONLINE)" link (/Main/Device?name=X#poolsummary) that must NOT become the lg
@@ -788,6 +784,20 @@
     enhanceMainName(tr);                                          // disk name link -> lg headline badge (wherever it is in the row)
     var tds = Array.prototype.slice.call(tr.children);
     for (var i = 2; i < tds.length; i++) mainBadgeCell(tds[i]);   // badge EVERY value cell (usage-disk/select/name-link self-skip)
+    ccFill11(tr);
+  }
+  // NORMALISE every row to exactly 11 grid columns: an under-spanning row leaves the trailing columns
+  // as bare table background under colfix — the "dark fleck" at the right end. Deficit goes to the
+  // LAST colspan cell, or (rows with no colspan at all, e.g. short spacer rows) onto the last cell.
+  function ccFill11(tr) {
+    try {
+      var colsum = 0, lastSpan = null, cells = tr.children;
+      if (!cells.length) return;
+      for (var cs = 0; cs < cells.length; cs++) { colsum += (cells[cs].colSpan || 1); if (cells[cs].hasAttribute("colspan")) lastSpan = cells[cs]; }
+      if (colsum >= 11) return;
+      var target = lastSpan || cells[cells.length - 1];
+      target.colSpan = (target.colSpan || 1) + (11 - colsum);
+    } catch (e) {}
   }
   // ── LIVE column drag-resize for the /Main disk_status tables, Windows-Explorer style (user
   // REJECTED the settings sliders; the Spaltenbreiten card is removed from settings.js again).
@@ -1096,8 +1106,14 @@
       for (var p0 = 0; p0 < pair.length; p0++) { var pb = pair[p0]; if (KID.indexOf(pb.id) > -1 || KNM.indexOf((pb.getAttribute("name") || "").toLowerCase()) > -1) natives.push(pb); }
       if (!natives.length) natives = Array.prototype.slice.call(pair);   // future pair rows: DOM order = segment order
       for (var p1 = 0; p1 < pair.length; p1++) {
-        var bt2 = pair[p1], brow = bt2.parentNode && bt2.parentNode.classList && bt2.parentNode.classList.contains("cc-aop-brow") ? bt2.parentNode : null;
-        if (!brow) { brow = el("span", "cc-aop-brow"); brow.setAttribute("data-cc-aop-brw", "1"); bt2.parentNode.insertBefore(brow, bt2); brow.appendChild(bt2); }   // idempotent: wrapped buttons are never re-wrapped
+        // brow OWNERSHIP: a brow belongs to its FIRST button. SmokeSignal injects itself via
+        // reboot.after(...) AFTER our wrap -> it lands INSIDE the reboot brow (side-by-side bug);
+        // such a stowaway gets its OWN brow inserted right after the host brow = clean stack.
+        var bt2 = pair[p1], pn2 = bt2.parentNode, brow = null;
+        if (pn2 && pn2.classList && pn2.classList.contains("cc-aop-brow")) {
+          if (pn2.querySelector('input[type="button"], input[type="submit"], button:not([role="tab"]), a.button') === bt2) brow = pn2;
+          else { brow = el("span", "cc-aop-brow"); brow.setAttribute("data-cc-aop-brw", "1"); pn2.parentNode.insertBefore(brow, pn2.nextSibling); brow.appendChild(bt2); }
+        } else { brow = el("span", "cc-aop-brow"); brow.setAttribute("data-cc-aop-brw", "1"); pn2.insertBefore(brow, bt2); brow.appendChild(bt2); }
         var ni = natives.indexOf(bt2), st = "";
         if (ni > -1) {
           st = mtText(fold.segs[ni] || "");
@@ -1182,15 +1198,16 @@
       var card = box.querySelector(".cc-aop-pcard");
       if (!lines.length) { if (card) card.parentNode.removeChild(card); return; }
       if (!card) { card = el("div", "cc-aop-pcard"); var sec = lines[0].closest("section") || box; sec.appendChild(card); }
-      if (!card.querySelector(":scope > .cc-aop-rows")) {   // (re)build the card shell: progress bar on top, rows below
+      var rowsBox = card.querySelector(":scope > .cc-aop-rows"), pbx = card.querySelector(":scope > .cc-aop-pbar");
+      if (!rowsBox || !pbx || pbx.previousElementSibling !== rowsBox) {   // (re)build the card shell: rows on top, progress bar at the BOTTOM (user)
         card.textContent = "";
+        rowsBox = el("div", "cc-aop-rows");
+        card.appendChild(rowsBox);
         var bar = el("div", "cc-aop-pbar");
         bar.appendChild(el("span", "cc-aop-pfill"));
         bar.appendChild(el("span", "cc-aop-plab"));
         card.appendChild(bar);
-        card.appendChild(el("div", "cc-aop-rows"));
       }
-      var rowsBox = card.querySelector(":scope > .cc-aop-rows");
       var n = 0;
       for (var i = 0; i < lines.length; i++) {
         var tr = lines[i].closest("tr"); if (!tr) continue;

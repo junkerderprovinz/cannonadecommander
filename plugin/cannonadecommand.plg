@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.28.0">
+  <!ENTITY version   "2.28.1">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,20 @@
 </ICON>
 
 <CHANGES>
+### 2.28.1
+#1 Pool-Datentraeger: Das Durchsuchen-Badge der Pool-Kopfzeilen hat wieder die normale Groesse --
+   die bereits gebadgte Browse-Zelle wurde faelschlich ein zweites Mal eingewickelt (Doppel-Badge).
+#2 Der dunkle Fleck ganz rechts ist weg: JEDE Zeile wird jetzt auf die vollen 11 Grid-Spalten
+   normalisiert (Defizit wandert auf die letzte Spann-Zelle), nicht nur Zeilen mit colspan.
+#3 Unassigned Devices: Zahnrad und Aktualisieren sind jetzt FARBIGE Icons im CC-Style --
+   dauerhaft in der Akzentfarbe, 22px, beim Hover leicht aufgehellt.
+#4 Array-Vorgang: "Paritaetspruefung laeuft." steht jetzt einzeilig in der Status-Pille.
+#5 Alle Buttons in derselben Groesse korrekt untereinander -- auch der SmokeSignal-Button:
+   er wird nach dem CC-Umbau in die Reboot-Zeile injiziert und bekommt jetzt eine eigene Zeile.
+#6 Fortschrittsbalken: sitzt jetzt am UNTEREN Ende der Card, laeuft staendig (diagonale
+   Streifen-Animation INNERHALB der Fuellung -- geht nie ueber den echten Prozentwert hinaus)
+   und ist im Rainbow-Modus inbegriffen: dort gleitet zusaetzlich ein Farbverlauf durch die Fuellung.
+
 ### 2.28.0
 #1 NEU: Die Paritaetspruefungs-Card hat jetzt einen Fortschrittsbalken -- dezente Spur mit
    Akzent-Fuellung in der eingestellten Badge-Form, Prozent-Label innen rechts, sanfte Animation
@@ -903,7 +917,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>bbecb7e77b552012ea55b2a41c5ce1ddf429bb2ac0ac4ce5d205271f0d70e0f6</SHA256>
+  <SHA256>7cb67b6d08f4d6e16f2684b640995ea2e8a6c696f2b17a57ac708f20a2f01c86</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

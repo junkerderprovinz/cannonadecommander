@@ -490,11 +490,11 @@ html.cc-shares-on.cc-on-main #displaybox :is(.show-disks, .show-shares, .show-hi
    hover, !important beats the native link blue. */
 html.cc-shares-on.cc-on-main #displaybox a.cc-ud-icon,
 html.cc-shares-on.cc-on-main #displaybox a.cc-ud-icon * {
-  font-size: 20px !important; line-height: 1 !important; color: #cfcfcf !important;
-  text-decoration: none !important; opacity: .9;
+  font-size: 22px !important; line-height: 1 !important; color: var(--cc-shr-accent, #2f6feb) !important;   /* FARBIGE Icons im CC-Style (user): permanent accent ink, not grey */
+  text-decoration: none !important; opacity: 1;
 }
 html.cc-shares-on.cc-on-main #displaybox a.cc-ud-icon:hover,
-html.cc-shares-on.cc-on-main #displaybox a.cc-ud-icon:hover * { color: var(--cc-shr-accent, #2f6feb) !important; opacity: 1; }
+html.cc-shares-on.cc-on-main #displaybox a.cc-ud-icon:hover * { filter: brightness(1.2); }
 /* the relocated controls cluster: right end of the UNASSIGNED-DEVICES badge ROW. Anchor = the
    position:relative SECTION (like the diskio switch), NOT the .cc-card-head — the head IS the badge
    pill (fit-content), so right:0 of the head landed ON the badge text (the v2.27.0 overlap). The head
@@ -635,20 +635,39 @@ html.cc-shares-on.cc-on-main:not(.cc-sections-main) #displaybox .cc-aop-pcard {
 html.cc-shares-on.cc-on-main #displaybox .cc-aop-prow { display: flex; justify-content: space-between; gap: 18px; align-items: center; font-size: var(--cc-md-fs, 13px); }
 html.cc-shares-on.cc-on-main #displaybox .cc-aop-prow .cc-aop-pv { font-weight: 700; white-space: nowrap; }
 html.cc-shares-on.cc-on-main #displaybox .cc-aop-rows { display: flex; flex-direction: column; gap: 8px; }
-/* PROGRESS BAR (user: "einen schoenen progressbar"): the usage-bar look — subtle track, accent fill,
-   percent label inside-right, Badge-Form radius, smooth width transition on each tick. */
+/* PROGRESS BAR (bottom of the card): usage-bar look — subtle track, accent fill, percent label
+   inside-right, Badge-Form radius, smooth width transition. The FILL carries a perpetual diagonal
+   stripe animation ("man sieht, dass die Pruefung laeuft") that moves INSIDE the fill and can never
+   exceed the real percentage (the fill width IS the progress); in rainbow mode a colour gradient
+   additionally slides through the fill (movement + changing colours in one animation). */
 html.cc-shares-on.cc-on-main #displaybox .cc-aop-pbar {
-  position: relative; height: 22px; margin-bottom: 12px; overflow: hidden;
+  position: relative; height: 22px; margin-top: 12px; overflow: hidden;
   background: rgba(128, 128, 128, .18); border-radius: var(--cc-b-radius, 999px);
 }
+@keyframes cc-pbar-stripes { from { background-position: 0 0; } to { background-position: 34px 0; } }
+@keyframes cc-pbar-rbmove { from { background-position: 0 0, 0% 50%; } to { background-position: 68px 0, 300% 50%; } }
 html.cc-shares-on.cc-on-main #displaybox .cc-aop-pbar > .cc-aop-pfill {
   position: absolute; left: 0; top: 0; bottom: 0; width: 0;
-  background: var(--cc-shr-accent, #2f6feb); border-radius: inherit; transition: width .6s linear;
+  background-color: var(--cc-shr-accent, #2f6feb);
+  background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, .16) 0 12px, transparent 12px 24px);
+  background-size: 34px 34px;
+  border-radius: inherit; transition: width .6s linear;
+  animation: cc-pbar-stripes 1s linear infinite;
+}
+html.cc-shares-rb.cc-shares-on.cc-on-main #displaybox .cc-aop-pbar > .cc-aop-pfill {
+  background-color: transparent;
+  background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, .14) 0 12px, transparent 12px 24px),
+                    linear-gradient(90deg, #d9433f, #e0912a, #e3c51f, #1f9d55, #2f6feb, #8b5cf6, #d9433f);
+  background-size: 34px 34px, 300% 100%;
+  animation: cc-pbar-rbmove 4s linear infinite;
 }
 html.cc-shares-on.cc-on-main #displaybox .cc-aop-pbar > .cc-aop-plab {
   position: absolute; right: 10px; top: 0; bottom: 0; z-index: 1;
   display: inline-flex; align-items: center;
   font-size: 12px; font-weight: 700; line-height: 1; text-shadow: 0 1px 2px rgba(0, 0, 0, .35);
+}
+@media (prefers-reduced-motion: reduce) {
+  html.cc-shares-on.cc-on-main #displaybox .cc-aop-pbar > .cc-aop-pfill { animation: none; }
 }
 /* the native progress rows stay IN the tables (ids keep live-updating) but render only in the card
    mirror — hiding them here is refresh-proof: Unraid may rebuild these rows every parity tick. */
@@ -701,7 +720,7 @@ html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-aop-toggle input
 html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-b.cc-aop-status {
   display: inline-flex; align-items: center; gap: 8px;
   padding: var(--cc-lg-pad, 6px 16px); font-size: var(--cc-lg-fs, 15px); font-weight: 700;
-  border-radius: var(--cc-b-radius, 999px); white-space: normal; line-height: 1.35;   /* normal: GESTARTET - WARTUNGSMODUS may wrap inside the fixed 380px status column */
+  border-radius: var(--cc-b-radius, 999px); white-space: nowrap; line-height: 1.35;   /* nowrap (user: "Paritätsprüfung läuft." einzeilig) — the grid c1 track is generous enough */
 }
 html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-aop-status.cc-aop-ok   { background: #1f9d55; color: #fff; }
 html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-aop-status.cc-aop-warn { background: #e0912a; color: #1a1a1a; }

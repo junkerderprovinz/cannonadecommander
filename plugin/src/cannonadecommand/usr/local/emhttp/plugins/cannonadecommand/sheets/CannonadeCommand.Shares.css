@@ -237,31 +237,31 @@ html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status a.cc-b-browse 
   transition: filter .12s;
 }
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status a.cc-b-browse:hover { filter: brightness(1.14); }
-/* 11-column width re-map (Device, Browse, Identification, Temp, Reads, Writes, Errors, FS, Size, Used,
-   Free): the inserted Browse col shifts the native fixed-layout nth-child widths, so re-map (sum 100%).
-   Identification carries the disk MODEL string (verified against native device_desc(): a
-   <span style="font-family:bitstream">MODEL - SIZE</span>); native gives it 30%, so 16% was truncating it
-   under table-layout:fixed + ellipsis. Widened to 28% (v2.24.1, user: "listen breit genug damit alles
-   sichtbar ist"); the short numeric columns give back the width. */
-html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status tr > td:nth-child(1)  { width: 12%; } /* Device         */
-html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status tr > td:nth-child(2)  { width:  8%; } /* Browse (CC)    */
-html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status tr > td:nth-child(3)  { width: 28%; } /* Identification */
-html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status tr > td:nth-child(4)  { width:  6%; } /* Temp           */
-html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status tr > td:nth-child(5)  { width:  7%; } /* Reads          */
-html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status tr > td:nth-child(6)  { width:  7%; } /* Writes         */
-html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status tr > td:nth-child(7)  { width:  5%; } /* Errors         */
-html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status tr > td:nth-child(8)  { width:  5%; } /* FS             */
-html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status tr > td:nth-child(9)  { width:  8%; } /* Size           */
-html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status tr > td:nth-child(10) { width:  7%; } /* Used           */
-html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status tr > td:nth-child(11) { width:  7%; } /* Free           */
+/* table-layout:auto (min-width override below) sizes each column to its content: the numeric headers
+   (GESCHRIEBEN/FEHLER) size to their full label so nothing truncates, and the POOL/BOOT colspan rows
+   (pool_header + the showFsInfo=false device sub-rows, both ending in <td colspan=4> per native
+   device_list) lay out correctly — unlike table-layout:fixed, which sized every grid column from a
+   colspan-shifted row and squeezed the pool/boot Identification cell (the v2.24.1 overlap bug: the
+   unbreakable underscore model+serial token then spilled over the neighbour cells). Only bias
+   Identification wider so the model string gets the leftover space; every other column self-sizes. */
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status td.desc { width: 30%; }
 
-/* Let the disk MODEL (Identification cell, td.desc) show in FULL instead of the native ellipsis-clip
-   (v2.24.1). table.unraid td is overflow:hidden + text-overflow:ellipsis + white-space:nowrap, so even at
-   28% a long model would truncate. Unclip ONLY this cell (and the .cc-b pill mainBadgeCell wraps it in) so
-   the model wraps inside its column — everything visible, no horizontal scrollbar. */
+/* Let the disk MODEL (Identification cell, td.desc) show in FULL instead of the native ellipsis-clip.
+   table.unraid td is overflow:hidden + text-overflow:ellipsis + white-space:nowrap. white-space:normal
+   alone is NOT enough: the model+serial is one underscore-joined UNBREAKABLE token
+   (Samsung_SSD_9100_PRO_2TB_S7YFNJ0K…), so with overflow:visible it spilled horizontally across the
+   neighbour cells on the squeezed pool/boot tables (the v2.24.1 overlap). overflow-wrap:anywhere +
+   word-break force the token to wrap INSIDE the column; flex-wrap + max-width on the .cc-b pill and
+   min-width:0 on its flex child let the badge wrap to compact multi-line instead of overflowing. This
+   also keeps the table's min-content tiny -> no horizontal scrollbar under table-layout:auto. */
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status td.desc,
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status td.desc .cc-b,
-html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status td.desc .cc-b-v { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status td.desc .cc-b-v {
+  white-space: normal !important; overflow: visible !important; text-overflow: clip !important;
+  overflow-wrap: anywhere !important; word-break: break-word !important;
+}
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status td.desc .cc-b { flex-wrap: wrap; max-width: 100%; }
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status td.desc .cc-b-v { min-width: 0; }
 
 /* ═══ /Main (START) disk_status polish: roomier rows, a large disk-NAME headline badge (Shares size),
    a gap before the Reads/Writes count pill, and CC action buttons. --cc-shr-accent is set by shares.js
@@ -281,10 +281,10 @@ html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status td span.diskio
 /* NO horizontal scrollbar + wider table (user: "kein horizontaler scrollbalken"). default-base.css sets
    `.TableContainer table{min-width:1000px}`, forcing the overflow-x:auto container to scroll below 1000px.
    Kill it .cc-on-main-scoped so /Shares/Docker/Device/Disk/Browse keep their native scroll. */
-html.cc-shares-on.cc-on-main #displaybox .TableContainer table.unraid.disk_status { min-width: 0 !important; width: 100%; table-layout: fixed; }
+html.cc-shares-on.cc-on-main #displaybox .TableContainer table.unraid.disk_status { min-width: 0 !important; width: 100%; table-layout: auto; }
 /* header tint, matching the /Shares share_status header (consistency). */
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status thead td,
-html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status thead th { background: rgba(128, 128, 128, .14); font-weight: 600; }
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status thead th { background: rgba(128, 128, 128, .14); font-weight: 600; white-space: nowrap; }   /* full header labels (GESCHRIEBEN/FEHLER) = each column's min-content under auto layout -> never ellipsis-clipped again */
 /* Füllstandsanzeigen (Used/Free usage bars) -> CC look (user: "Die Füllstandsanzeigen auch im CC Style"):
    accent fill on a subtle rounded track, like the header array meter. Native (device_list): div.usage-disk >
    span:first-child (fill, greenbar/orangebar/redbar, inline width:X%) + span:last-child (label). NB this
@@ -324,6 +324,45 @@ html.cc-shares-on.cc-on-main #displaybox input[type="submit"]:disabled,
 html.cc-shares-on.cc-on-main #displaybox input[type="button"]:disabled {
   background: #3a3a3a !important; color: #8a8a8a !important; opacity: .55 !important; filter: none !important; cursor: not-allowed !important;
 }
+/* ALLE /Main-Buttons in CC (user: "Alle buttons und schalter in den CC Style!!!"): the Unassigned-Devices
+   "ADD REMOTE SMB/NFS SHARE" / "ADD ISO FILE SHARE" / "ADD ROOT SHARE" controls are <button> elements
+   (verified UD source: <button onclick='add_samba_share()'> inside <div id='remotes-buttons'>), plus other
+   native <button>s (e.g. Internal Boot) — NONE matched the input[type=submit|button]/a.button rule above.
+   Pill every /Main <button> except the sub-tab pills (role=tab has its own rule). min-width 0 (not 150px):
+   UD also has small per-device buttons; the ADD labels are long enough to read as pills anyway. */
+html.cc-shares-on.cc-on-main #displaybox button:not([role="tab"]) {
+  border: none !important; box-shadow: none !important;
+  padding: 0 16px !important; height: var(--cc-md-h, 30px) !important; box-sizing: border-box !important;
+  min-width: 0 !important; font-size: var(--cc-md-fs, 13px) !important; font-weight: 600 !important;
+  text-transform: uppercase !important; letter-spacing: .6px !important; font-family: inherit !important;
+  border-radius: var(--cc-b-radius, 999px) !important; cursor: pointer; transition: filter .12s, opacity .12s;
+  display: inline-flex !important; align-items: center; justify-content: center; text-decoration: none !important;
+  background: var(--cc-shr-accent, #2f6feb) !important; color: var(--cc-shr-accent-text, #fff) !important;
+}
+html.cc-shares-on.cc-on-main #displaybox button:not([role="tab"]):hover:not(:disabled) { filter: brightness(1.14); }
+html.cc-shares-on.cc-on-main #displaybox button:not([role="tab"]):disabled {
+  background: #3a3a3a !important; color: #8a8a8a !important; opacity: .55 !important; filter: none !important; cursor: not-allowed !important;
+}
+/* Schalter in CC: the UD HISTORICAL / FREIGABEN / DISKS toggles are native jQuery switchButtons
+   ($('.historical-switch').switchButton(...) -> .switch-button-background track (.checked = ON) +
+   .switch-button-button knob; the source checkbox is hidden). Recolour/round ONLY, never the JS-driven
+   inline geometry — same proven pattern as the Docker/VM autostart toggles (docker.css/VmTab.css). */
+html.cc-shares-on.cc-on-main #displaybox .switch-button-background {
+  width: 44px !important; height: 24px !important; border-radius: 999px !important;
+  border: none !important; outline: none !important; box-shadow: none !important;
+  background: #3a3a3a !important; transform: none !important; position: relative !important;
+  display: inline-block; vertical-align: middle; margin: 0 12px 0 3px; cursor: pointer;
+  transition: background .15s; box-sizing: border-box;
+}
+html.cc-shares-on.cc-on-main #displaybox .switch-button-background.checked { background: var(--cc-shr-accent, #2f6feb) !important; }
+html.cc-shares-on.cc-on-main #displaybox .switch-button-background .switch-button-button {
+  width: 18px !important; height: 18px !important; top: 3px !important; left: 3px !important;
+  border-radius: 50% !important; background: #fff !important; box-shadow: none !important; border: none !important; transition: left .15s;
+}
+html.cc-shares-on.cc-on-main #displaybox .switch-button-background.checked .switch-button-button { left: 21px !important; }
+/* the real inline checkboxes (optionCorrect "Korrekturen auf Parität schreiben", safemode, confirm*) ->
+   CC accent tick. switchButton hides its own source checkbox, so this paints only visible ones. */
+html.cc-shares-on.cc-on-main #displaybox input[type="checkbox"] { accent-color: var(--cc-shr-accent, #2f6feb); }
 /* ═══ /Main "Array-Vorgang" (table.array_status): no separator lines, buttons flush + equal spacing, inline
    descriptions folded into (i) info-bubbles (shares.js/enhanceArrayOps). User: "alle buttons bündig
    untereinander mit gleichem Abstand, keine Linien, alle Infotexte in I-Bubbles". ═══ */
@@ -332,6 +371,10 @@ html.cc-shares-on.cc-on-main #displaybox table.array_status td { border: none !i
 html.cc-shares-on.cc-on-main #displaybox table.array_status td.line { border: none !important; padding: 0 !important; height: 0 !important; line-height: 0 !important; font-size: 0 !important; }
 html.cc-shares-on.cc-on-main #displaybox table.array_status tr > td:first-child { padding-left: 0 !important; }
 html.cc-shares-on.cc-on-main #displaybox table.array_status td.cc-aop-desc { display: none !important; }   /* text now lives in the (i) bubble */
+/* MIXED array-op description cells: shares.js/ccFoldDesc tags each PROSE node .cc-aop-hide and folds its
+   text into the (i) bubble; hide only that prose — the optionCorrect/safemode checkbox + its label and
+   the (Planung)/Wiki link stay visible + functional. Reversible via aopTeardown(). */
+html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-aop-hide { display: none !important; }
 /* §9 (i) info-bubble — MIRRORED from styles/docker.css (not loaded on /Main). Neutral (currentColor, NEVER
    accent); hover/focus reveals a pure-CSS tooltip from data-tip. */
 html.cc-shares-on.cc-on-main #displaybox .cc-info {

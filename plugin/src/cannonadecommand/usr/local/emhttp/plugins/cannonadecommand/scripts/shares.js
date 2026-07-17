@@ -683,11 +683,14 @@
   // ── /Main "Array-Vorgang" (ArrayOperation.page: table.ArrayOperation-Table.array_status). Each control
   //    is <tr><td>[status]</td><td>[button]</td><td>[description]</td></tr>, with separator rows
   //    <tr><td></td><td class="line" colspan=2></td></tr>. User: buttons flush + equal spacing, NO lines,
-  //    all infotexts as (i) info-bubbles (style guide §9). We build a .cc-info span from the description in
-  //    the button cell and tag the description cell .cc-aop-desc (CSS hides it + the td.line lines). CRITICAL:
-  //    fold ONLY PURE-TEXT descriptions — many description cells carry FUNCTIONAL controls (confirmStart/
-  //    confirmFormat/optionCorrect/safemode checkboxes that gate Start/Format, the mover Schedule link);
-  //    hiding those would break the array. Idempotent (data-cc-aop) + reversible (aopTeardown; text is only hidden).
+  //    ALL infotexts as (i) info-bubbles (style guide §9). We build a .cc-info span from the description in
+  //    the button cell. PURE-TEXT description cells get .cc-aop-desc (CSS hides the whole cell). MIXED cells
+  //    (verified native DOM: Check = prose + Schedule <a> + optionCorrect checkbox + <small> label; Reboot/
+  //    Shutdown = prose + safemode <label>; Mover = #mover-text ASYNC-filled by JS with prose + Schedule <a>;
+  //    Sleep = prose + Wiki <a>) fold ONLY their PROSE nodes (text/<b>/<br> -> .cc-aop-hide, hidden by CSS)
+  //    while every control (input/select/a/label/button) AND a checkbox's trailing label stay inline + live —
+  //    hiding those would break Start/Format/the links. data-cc-aop is set at the END (not first-pass) so the
+  //    async #mover-text re-folds on the observer tick. Idempotent + reversible (aopTeardown un-hides/unwraps).
   function svgEl(tag, attrs) { var n = document.createElementNS("http://www.w3.org/2000/svg", tag); for (var k in attrs) if (attrs.hasOwnProperty(k)) n.setAttribute(k, attrs[k]); return n; }
   function ccInfoIcon(tip) {   // §9: span > inline-SVG (circle + top dot + rounded stem), all currentColor, NEVER accent
     var s = el("span", "cc-info"); s.setAttribute("data-tip", tip); s.setAttribute("aria-label", tip); s.setAttribute("tabindex", "0");
@@ -697,17 +700,52 @@
     svg.appendChild(svgEl("rect", { x: "7.1", y: "6.5", width: "1.8", height: "5.3", rx: ".9", fill: "currentColor" }));
     s.appendChild(svg); return s;
   }
+  function ccIsCtrl(n) { if (n.nodeType !== 1) return false; var t = n.tagName; return t === "INPUT" || t === "SELECT" || t === "A" || t === "LABEL" || t === "BUTTON"; }
+  // true when node n directly LABELS an immediately-preceding checkbox (skip whitespace / <br>) -> keep inline
+  function ccPrevIsCheckbox(n) {
+    var p = n.previousSibling;
+    while (p) {
+      if (p.nodeType === 1) { if (p.tagName === "INPUT") return /checkbox/i.test(p.getAttribute("type") || ""); if (p.tagName === "BR") { p = p.previousSibling; continue; } return false; }
+      if (p.nodeType === 3) { if (p.textContent.trim()) return false; p = p.previousSibling; continue; }
+      return false;
+    }
+    return false;
+  }
+  // Fold ONLY the descriptive PROSE of a mixed description cell into the (i)-bubble text, hiding each prose
+  // node IN PLACE (reversible) while every interactive control stays visible + functional. Re-runnable: an
+  // already-hidden node is only re-counted for the tip, never re-wrapped, so nchan refills of #mover-text
+  // simply re-fold next tick without an observer loop.
+  function ccFoldDesc(cell) {
+    var tip = "", nodes = Array.prototype.slice.call(cell.childNodes);
+    for (var i = 0; i < nodes.length; i++) {
+      var n = nodes[i];
+      if (ccIsCtrl(n)) continue;                                                     // control (input/select/a/label/button) -> keep, not in tip
+      if (n.nodeType === 1 && (n.tagName === "SMALL" || n.tagName === "SPAN") && ccPrevIsCheckbox(n)) continue;  // checkbox label element -> keep
+      if (n.nodeType === 3 && ccPrevIsCheckbox(n)) continue;                         // bare-text checkbox label -> keep
+      if (n.nodeType === 1 && n.classList.contains("cc-aop-hide")) { var ht = (n.textContent || "").replace(/\s+/g, " ").trim(); if (ht) tip += (tip ? " " : "") + ht; continue; } // already folded
+      var s = (n.nodeType === 1 && n.tagName === "BR") ? "" : (n.textContent || "").replace(/\s+/g, " ").trim();
+      if (s) tip += (tip ? " " : "") + s;
+      if (n.nodeType === 1) { n.classList.add("cc-aop-hide"); }                      // hide <b>/<br>/prose element in place
+      else if (s) { var w = el("span", "cc-aop-hide"); w.setAttribute("data-cc-aop-w", "1"); n.parentNode.insertBefore(w, n); w.appendChild(n); } // wrap+hide a prose text node
+    }
+    return tip.replace(/\s+/g, " ").trim();
+  }
   function enhanceArrayOpRow(tr) {
-    if (tr.getAttribute("data-cc-aop")) return; tr.setAttribute("data-cc-aop", "1");   // set-and-bail idempotency
-    if (tr.querySelector(":scope > td.line")) return;                                  // separator row -> CSS collapses it
+    if (tr.querySelector(":scope > td.line")) { tr.setAttribute("data-cc-aop", "1"); return; }   // separator row -> CSS collapses it
     var tds = tr.children; if (tds.length < 3) return;
     var btnCell = tds[1], descCell = tds[2];
-    if (!btnCell.querySelector("input, button, a")) return;                            // must hold a control
-    if (descCell.querySelector("input, select, a, label")) return;                     // FUNCTIONAL cell (checkbox/link) -> leave inline, never hide
-    if (btnCell.querySelector(":scope > .cc-info")) return;
-    var txt = (descCell.textContent || "").replace(/\s+/g, " ").trim(); if (!txt) return;
-    btnCell.appendChild(ccInfoIcon(txt));                                              // (i) bubble beside the button
-    descCell.classList.add("cc-aop-desc");                                             // CSS hides the redundant inline text
+    if (!btnCell.querySelector("input, button, a")) return;                          // must hold a control
+    var tip;
+    if (!descCell.querySelector("input, select, a, button, label")) {                // PURE-TEXT description -> fold the whole cell
+      tip = (descCell.textContent || "").replace(/\s+/g, " ").trim(); if (!tip) return;
+      descCell.classList.add("cc-aop-desc");                                         // CSS hides the redundant inline text
+    } else {                                                                          // MIXED cell -> fold prose only, keep the checkbox/link live
+      tip = ccFoldDesc(descCell); if (!tip) return;
+    }
+    var info = btnCell.querySelector(":scope > .cc-info");
+    if (info) { if (info.getAttribute("data-tip") !== tip) { info.setAttribute("data-tip", tip); info.setAttribute("aria-label", tip); } }
+    else btnCell.appendChild(ccInfoIcon(tip));                                        // (i) bubble beside the button
+    tr.setAttribute("data-cc-aop", "1");
   }
   function enhanceArrayOps(box) {
     try {
@@ -721,6 +759,9 @@
       for (var i = 0; i < infos.length; i++) infos[i].parentNode.removeChild(infos[i]);
       var descs = document.querySelectorAll("#displaybox table.array_status td.cc-aop-desc");
       for (var d = 0; d < descs.length; d++) descs[d].classList.remove("cc-aop-desc");
+      // un-fold mixed-cell prose: unwrap our text-node wrappers, strip the hide class off in-place elements
+      var hid = document.querySelectorAll("#displaybox table.array_status .cc-aop-hide");
+      for (var h = 0; h < hid.length; h++) { var n = hid[h]; if (n.tagName === "SPAN" && n.getAttribute("data-cc-aop-w") === "1") ccUnwrap(n); else n.classList.remove("cc-aop-hide"); }
       var marked = document.querySelectorAll("#displaybox table.array_status tr[data-cc-aop]");
       for (var m = 0; m < marked.length; m++) marked[m].removeAttribute("data-cc-aop");
     } catch (e) {}

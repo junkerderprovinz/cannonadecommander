@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.24.1">
+  <!ENTITY version   "2.24.2">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,22 @@
 </ICON>
 
 <CHANGES>
+### 2.24.2
+#1 Start-Tab: Die Identifikation der Pool- und Boot-Datentraeger ueberlagerte sich unlesbar. Ursache war
+   das feste Spaltenraster, das nur zur Array-Tabelle passte -- Pool-/Boot-Zeilen haben eine andere
+   Struktur, deren Identifikations-Spalte dadurch zusammengequetscht wurde und der lange Modell-Text
+   ueber die Nachbarzellen lief. Die Tabellen bemessen ihre Spalten jetzt am Inhalt und lange
+   Modellnamen brechen innerhalb ihrer Spalte um.
+#2 Start-Tab: Kein Spalteninhalt wird mehr abgeschnitten -- auch die Spaltenkoepfe (GELESEN,
+   GESCHRIEBEN, FEHLER) sind jetzt immer vollstaendig lesbar, weiterhin ohne horizontalen Scrollbalken.
+#3 Start-Tab: ALLE Infotexte im Array-Vorgang sitzen jetzt in (i)-Info-Bubbles -- auch bei Pruefen,
+   Verschieben, Neu starten/Herunterfahren und Ruhezustand. Die Funktions-Checkboxen (Korrekturen auf
+   Paritaet schreiben, Neustart im abgesicherten Modus) und die (Planung)-/Wiki-Links bleiben sichtbar
+   und funktionieren weiter.
+#4 Start-Tab: Alle restlichen Buttons und Schalter im CC-Style -- die ADD-SHARE-Buttons und die
+   HISTORICAL/FREIGABEN/DISKS-Schiebeschalter von Unassigned Devices, der Internal-Boot-Button und die
+   Checkboxen tragen jetzt die CC-Akzentfarbe.
+
 ### 2.24.1
 1. Hauptmenue-Badges: beim Ueberfahren mit der Maus erscheint keine Greifhand mehr, sondern der normale
    Zeiger. Zum Verschieben haelt man einen Badge jetzt kurz gedrueckt (ca. eine halbe Sekunde), dann faengt
@@ -732,7 +748,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>eb85d94b1c56732706c30b312042673d04027fee864a9500061564ae75f62cf9</SHA256>
+  <SHA256>b30e94385afe19c0bbbbfc1788ba0bc97d2356da8ee2ada892bd196c35b54ef9</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

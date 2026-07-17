@@ -370,6 +370,29 @@
       for (var m = 0; m < marked.length; m++) marked[m].removeAttribute("data-cc-card");
     } catch (e) {}
   }
+  // ── Check/Update/Remove relocation. Plugins.page appends the three <span class='status vhshift'>
+  // controls INTO the scrollable flex .tabs-container ($('.tabs-container').append), and the plugin
+  // manager's Update.css adds span.vhshift{margin-top:13px!important} — a vertical shift tuned to the
+  // TALL native tabs. Against CC's 30px pills the button rode 13px BELOW the row (overflowing the
+  // strip -> stray scrollbar), and once the strip overflowed horizontally the margin-left:auto span
+  // lived in the scrolled-out right region. Deterministic cure: move the spans OUT of the scroll flow
+  // into #cc-plugbtns, a flex SIBLING of .tabs-container inside nav.tabs (.tabs is display:flex;
+  // align-items:center) — the tabs scroll in their own shrinkable strip (overflow-x:auto => min-width:0)
+  // while the buttons stay pinned on the row at ANY width. Mirrors shares.js ccDiskioMove. Idempotent
+  // (parent check); native .show()/.hide() + inline onclick are id-bound and survive the move; reverts
+  // on reload when the area is disabled (paint() gates before calling this).
+  function relocateChecks() {
+    try {
+      var navt = (document.getElementById("displaybox") || document).querySelector("nav.tabs"); if (!navt) return;
+      var cont = navt.querySelector(".tabs-container"); if (!cont) return;
+      var host = document.getElementById("cc-plugbtns");
+      if (!host) { host = document.createElement("div"); host.id = "cc-plugbtns"; navt.appendChild(host); }
+      ["checkall", "updateall", "removeall"].forEach(function (id) {
+        var s = document.getElementById(id);
+        if (s && s.parentNode !== host) host.appendChild(s);
+      });
+    } catch (e) {}
+  }
   function paint() {
     try {
       if (localStorage.getItem("cc.theming") === "0" || localStorage.getItem("cc.enable.plugins") === "0") return; // master theming off OR area disabled: don't paint (reverts on reload)
@@ -431,6 +454,7 @@
         var ac5 = tr5.querySelector("a, input[type=button]");
         if (ac5 && !ac5.getAttribute(MARK)) { ac5.setAttribute(MARK, "1"); pill(ac5, "#d9433f", "#fff"); ac5.style.setProperty("cursor", "pointer", "important"); }
       });
+      relocateChecks();
       // the Check/Update/Remove buttons in the tab bar become accent pills
       Array.prototype.slice.call(document.querySelectorAll("#checkall input, #updateall input, #removeall input")).forEach(function (b2, i2) {
         if (!b2.getAttribute(MARK)) {

@@ -733,8 +733,20 @@
     if (tr.getAttribute("data-cc-main")) return; tr.setAttribute("data-cc-main", "1");
     var first = tr.children[0]; if (!first) return;
     // structural rows (colspan placeholder / pool header / total / offline) -> just widen for the new col
+    // structural rows — the injected Browse col is COLUMN 2 (right after Device), so how a structural
+    // row absorbs it depends on its shape: a FIRST-cell colspan (placeholder "<td colspan='10'>",
+    // stopped separator) is widened; EVERYTHING ELSE gets an empty cell INSERTED after cell 1.
+    // Native device_list show_totals() emits TEN plain <td>s in graph mode (NO colspan anywhere) and
+    // a TRAILING <td colspan='3'> in the pool variant — the old "widen the first td[colspan]" either
+    // found NOTHING (array totals stayed 10 cells in the 11-col grid) or widened the TRAILING span
+    // (pool totals), so temp/reads/writes/errors/size/used/free sat one column LEFT of their headers
+    // (the totals-row shift). Inserting at position 2 mirrors the data rows exactly; the pool_header
+    // insert also moves td.desc back under IDENTIFIKATION (widening its middle colspan-4 had parked
+    // the title under the BROWSE header). Slots rows get the insert too — label stays in the Device
+    // column, control block shifts right correctly.
     if (first.hasAttribute("colspan") || tr.classList.contains("pool_header") || tr.classList.contains("tr_last") || tr.querySelector(":scope > td.empty")) {
-      var span = tr.querySelector("td[colspan]"); if (span) span.colSpan = (span.colSpan || 1) + 1;
+      if (first.hasAttribute("colspan")) first.colSpan = (first.colSpan || 1) + 1;
+      else tr.insertBefore(el("td", "cc-browse-col"), first.nextSibling);
       // POOL/BOOT summary rows (tr.pool_header, native pool_function_row): badge them too (user: "es ist
       // noch nicht alles in badges"). Name link is picked from td:first-child ONLY — td.desc can carry a
       // pool_status_html "(ONLINE)" link (/Main/Device?name=X#poolsummary) that must NOT become the lg
@@ -761,18 +773,156 @@
     var tds = Array.prototype.slice.call(tr.children);
     for (var i = 2; i < tds.length; i++) mainBadgeCell(tds[i]);   // badge EVERY value cell (usage-disk/select/name-link self-skip)
   }
+  // ── LIVE column drag-resize for the /Main disk_status tables, Windows-Explorer style (user
+  // REJECTED the settings sliders; the Spaltenbreiten card is removed from settings.js again).
+  // Every FULL thead row (11 label cells after the Browse insert; the subpool divider theads — one
+  // colspan-10 cell — get no grips but still follow via their colgroup) gets a .cc-colgrip handle on
+  // each cell's right edge. pointerdown snapshots the grabbed table's CURRENT auto-layout header px,
+  // writes them into an injected <colgroup data-cc-colw> (11 <col>s) on EVERY disk_status table, adds
+  // table.cc-colfix (table-layout:fixed) and an inline table width = the sum — explicit px on ALL
+  // grid columns makes fixed layout safe WITH the colspan rows, and one width set keeps the array/
+  // pool/boot tables in sync. pointermove resizes the dragged column (min 40px); pointerup persists
+  // the 11-width array as JSON in localStorage cc.main.colpx; ccColApply() re-applies on load (thead,
+  // table and colgroup are STATIC markup — the nchan device_list refill replaces ONLY the tbodys,
+  // verified native source). Double-click on any grip resets (storage cleared, colgroups + cc-colfix
+  // + inline width removed -> auto layout). All repeat writes are guarded attribute writes (no
+  // observer loop); the one-time grip/colgroup insertions are idempotent childList changes the
+  // debounced observer re-enters once, then no-ops. cc.main.colpx matches the storage-listener
+  // cc-key regex, so another tab's drag/reset syncs here.
+  var CCW_KEY = "cc.main.colpx", CCW_MIN = 40, CCW_N = 11, ccDrag = null;
+  function ccColRead() {
+    try {
+      var a = JSON.parse(g(CCW_KEY, "null")); if (!a || a.length !== CCW_N) return null;
+      for (var i = 0; i < CCW_N; i++) { var n = Math.round(+a[i]); if (!(n >= CCW_MIN)) return null; a[i] = n; }
+      return a;
+    } catch (e) { return null; }
+  }
+  function ccColTables() { return document.querySelectorAll("#displaybox table.unraid.disk_status"); }
+  function ccColgroup(table) {
+    var cg = table.querySelector(":scope > colgroup[data-cc-colw]");
+    if (!cg) {
+      cg = document.createElement("colgroup"); cg.setAttribute("data-cc-colw", "1");
+      for (var i = 0; i < CCW_N; i++) cg.appendChild(document.createElement("col"));
+      table.insertBefore(cg, table.firstChild);   // colgroup precedes thead -> fixed layout sizes every column from it; colspan rows can no longer skew the grid
+    }
+    return cg;
+  }
+  function ccColSet(w) {
+    var sum = 0, i; for (i = 0; i < CCW_N; i++) sum += w[i];
+    var tbs = ccColTables();
+    for (var t = 0; t < tbs.length; t++) {
+      var cols = ccColgroup(tbs[t]).children;
+      for (i = 0; i < CCW_N; i++) { var px = w[i] + "px"; if (cols[i].style.width !== px) cols[i].style.width = px; }
+      tbs[t].classList.add("cc-colfix");
+      var tw = sum + "px"; if (tbs[t].style.width !== tw) tbs[t].style.width = tw;   // fixed layout needs a definite width; wider than the container -> .TableContainer's native overflow-x scroll, like Explorer
+    }
+  }
+  function ccColClear() {
+    var tbs = ccColTables();
+    for (var t = 0; t < tbs.length; t++) {
+      var cg = tbs[t].querySelector(":scope > colgroup[data-cc-colw]"); if (cg) cg.parentNode.removeChild(cg);
+      tbs[t].classList.remove("cc-colfix"); tbs[t].style.removeProperty("width");
+    }
+  }
+  function ccColApply() { var w = ccColRead(); if (w) ccColSet(w); else ccColClear(); }   // else-branch: a cross-tab reset (storage event -> apply -> enhanceMain) also clears THIS tab
+  function ccColDown(e) {
+    if (e.button != null && e.button !== 0) return;
+    var table = this.closest("table"), h = table && table.querySelector("thead tr");
+    if (!h || h.children.length < CCW_N) return;
+    var w = ccColRead();
+    if (!w) { w = []; for (var k = 0; k < CCW_N; k++) w.push(Math.max(CCW_MIN, Math.round(h.children[k].getBoundingClientRect().width))); }   // snapshot the grabbed table's CURRENT geometry -> zero visual jump on grab (the sibling tables snap to the shared set)
+    ccColSet(w);
+    var ci = +this.getAttribute("data-cc-col");
+    ccDrag = { i: ci, x: e.clientX, w: w, start: w[ci] };
+    try { this.setPointerCapture(e.pointerId); } catch (e2) {}
+    document.documentElement.classList.add("cc-col-dragging");   // CSS: page-wide user-select:none + col-resize cursor while dragging
+    e.preventDefault();   // no text selection / native drag start
+  }
+  function ccColMove(e) {
+    if (!ccDrag) return;
+    ccDrag.w[ccDrag.i] = Math.max(CCW_MIN, Math.round(ccDrag.start + (e.clientX - ccDrag.x)));
+    ccColSet(ccDrag.w);
+    e.preventDefault();
+  }
+  function ccColUp() {
+    if (!ccDrag) return;
+    try { localStorage.setItem(CCW_KEY, JSON.stringify(ccDrag.w)); } catch (e) {}
+    ccDrag = null;
+    document.documentElement.classList.remove("cc-col-dragging");
+  }
+  function ccColReset(e) {   // double-click a grip -> forget the layout, back to pure auto sizing
+    try { localStorage.removeItem(CCW_KEY); } catch (e2) {}
+    ccColClear();
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+  }
+  function ccColGrips(table) {
+    var h = table && table.querySelector("thead tr"); if (!h) return;
+    var tds = h.children; if (tds.length < CCW_N) return;   // subpool divider thead -> no grips
+    for (var i = 0; i < CCW_N; i++) {
+      if (tds[i].querySelector(":scope > .cc-colgrip")) continue;   // idempotent (thead is static, but a re-enable re-runs this)
+      var gp = el("span", "cc-colgrip"); gp.setAttribute("data-cc-col", i);
+      gp.addEventListener("pointerdown", ccColDown);
+      gp.addEventListener("pointermove", ccColMove);   // setPointerCapture routes the whole drag through the grip, even outside the table
+      gp.addEventListener("pointerup", ccColUp);
+      gp.addEventListener("pointercancel", ccColUp);
+      gp.addEventListener("dblclick", ccColReset);
+      tds[i].appendChild(gp);
+    }
+  }
+  function ccColTeardown() {   // area-disable: grips out, fixed layout off, inline widths gone; STORAGE kept so a re-enable restores the layout
+    try {
+      var gps = document.querySelectorAll("#displaybox table.unraid.disk_status .cc-colgrip");
+      for (var i = 0; i < gps.length; i++) gps[i].parentNode.removeChild(gps[i]);
+      ccColClear();
+      ccDrag = null;
+      document.documentElement.classList.remove("cc-col-dragging");
+    } catch (e) {}
+  }
+  // ── UD controls relocation (user: Toggles + Zahnrad/Refresh auf Hoehe des UNASSIGNED-DEVICES-
+  // Abschnittsbadges). Sections mode only: the UD title bar's control cluster (the span/div.right
+  // elements holding gear + refresh + the three switchButtons) moves into the UD section's
+  // .cc-card-head; the emptied bar is hidden via .cc-ud-moved. Mirrors ccDiskioMove: MOVE not clone
+  // (UD's jQuery bindings ride along), idempotent (data-cc-ud-moved), re-homed by ccUdCtrlsHome
+  // BEFORE any teardown that deletes card heads.
+  function ccUdCtrlsMove() {
+    try {
+      if (g("cc.sections.main", "0") === "0") return;
+      var uda = document.querySelector("#displaybox input.disks-switch, #displaybox input.shares-switch, #displaybox input.historical-switch, #displaybox a[onclick^='rescan_disks'], #displaybox a[href*='UnassignedDevicesSettings']");
+      var bar = uda && uda.closest ? uda.closest("div.title") : null; if (!bar || bar.getAttribute("data-cc-ud-moved")) return;
+      var sec = bar.closest("section[data-cc-card]"); var head = sec && sec.querySelector(":scope > .cc-card-head"); if (!head) return;
+      var wrap = el("span", "cc-ud-ctrls"); wrap.setAttribute("data-cc-ud-ctrls", "1");
+      var kids = Array.prototype.slice.call(bar.children);
+      for (var i = 0; i < kids.length; i++) {
+        var k = kids[i];
+        if (k.classList && (k.classList.contains("left") || k.classList.contains("leftTitleUD"))) continue;   // the heading host stays (hidden by CSS)
+        if (k.tagName === "A" || (k.querySelector && k.querySelector("a, input[type='checkbox'], .switch-button-background"))) wrap.appendChild(k);
+      }
+      if (!wrap.firstChild) return;
+      head.appendChild(wrap); bar.setAttribute("data-cc-ud-moved", "1"); bar.classList.add("cc-ud-moved");
+    } catch (e) {}
+  }
+  function ccUdCtrlsHome() {
+    try {
+      var wrap = document.querySelector("#displaybox .cc-card-head .cc-ud-ctrls[data-cc-ud-ctrls]"); if (!wrap) return;
+      var bar = document.querySelector("#displaybox div.title[data-cc-ud-moved]");
+      if (bar) { while (wrap.firstChild) bar.appendChild(wrap.firstChild); bar.removeAttribute("data-cc-ud-moved"); bar.classList.remove("cc-ud-moved"); }
+      wrap.parentNode.removeChild(wrap);
+    } catch (e) {}
+  }
   function enhanceMain() {
     try {
       if (g("cc.enable.main", "0") === "0") return;   // Start (/Main) is its OWN area now (was cc.enable.shares)
       if (!onMain()) return;
       var box = document.getElementById("displaybox");
-      if (box) { if (g("cc.sections.main", "0") !== "0") { cardPanels(box); ccDiskioMove(box); } else { ccDiskioHome(); flattenTeardown(); } }   // Tab-Ansicht default OFF (native sub-tabs); ccDiskioHome BEFORE flattenTeardown — it deletes every .cc-card-head incl. the one hosting the diskio switch
+      if (box) { if (g("cc.sections.main", "0") !== "0") { cardPanels(box); ccDiskioMove(box); } else { ccDiskioHome(); ccUdCtrlsHome(); flattenTeardown(); } }   // Tab-Ansicht default OFF (native sub-tabs); ccDiskioHome/ccUdCtrlsHome BEFORE flattenTeardown — it deletes every .cc-card-head incl. the ones hosting the relocated controls
       var tbs = document.querySelectorAll("#displaybox table.unraid.disk_status");
       for (var i = 0; i < tbs.length; i++) {
         enhanceMainHead(tbs[i]);
+        ccColGrips(tbs[i]);   // drag-resize grips on the 11 header cells — AFTER the Browse header insert
         var rows = tbs[i].querySelectorAll("tbody > tr");
         for (var r = 0; r < rows.length; r++) enhanceMainRow(rows[r]);
       }
+      ccColApply();   // re-apply persisted column px (or clear after a cross-tab reset)
       if (box) enhanceArrayOps(box);   // Array-Vorgang form: CC buttons + (i) info-bubbles, separator lines removed via CSS
       ccLocalizeMain();   // s3-sleep button / UD strings / Internal-Boot sentence in the UI language
       enhanceUD();   // AFTER ccLocalizeMain: the heading split consumes the already-translated text; ccTr guards on data-cc-i18n and no-ops once the span holds badges
@@ -814,9 +964,14 @@
   // already-hidden node is only re-counted for the tip, never re-wrapped, so nchan refills of #mover-text
   // simply re-fold next tick without an observer loop.
   function ccFoldDesc(cell) {
-    var tip = "", nodes = Array.prototype.slice.call(cell.childNodes);
+    var tip = "", segs = [""], nodes = Array.prototype.slice.call(cell.childNodes);
+    function flush() { if (segs[segs.length - 1]) segs.push(""); }
+    function add(s) { if (s) { tip += (tip ? " " : "") + s; segs[segs.length - 1] += (segs[segs.length - 1] ? " " : "") + s; } }
     for (var i = 0; i < nodes.length; i++) {
       var n = nodes[i];
+      // BR = segment boundary (native pair-row descs are one sentence per <br>) — checked FIRST so
+      // an already-hidden BR still flushes on refold ticks (the old code lost boundaries on re-runs)
+      if (n.nodeType === 1 && n.tagName === "BR") { flush(); n.classList.add("cc-aop-hide"); continue; }
       // a non-Scheduler link (s3-sleep wiki, external/registration hrefs) is PROSE, not a control:
       // fall through to the generic element branch below (folds text into the tip + .cc-aop-hide,
       // reversible via aopTeardown's class strip). Scheduler links + href-less a.info wrappers +
@@ -827,13 +982,16 @@
       if (ccIsCtrl(n) && !foldA) continue;                                           // control -> keep, not in tip
       if (n.nodeType === 1 && (n.tagName === "SMALL" || n.tagName === "SPAN") && ccPrevIsCheckbox(n)) continue;  // checkbox label element -> keep
       if (n.nodeType === 3 && ccPrevIsCheckbox(n)) continue;                         // bare-text checkbox label -> keep
-      if (n.nodeType === 1 && n.classList.contains("cc-aop-hide")) { var ht = (n.textContent || "").replace(/\s+/g, " ").trim(); if (ht) tip += (tip ? " " : "") + ht; continue; } // already folded
-      var s = (n.nodeType === 1 && n.tagName === "BR") ? "" : (n.textContent || "").replace(/\s+/g, " ").trim();
-      if (s) tip += (tip ? " " : "") + s;
-      if (n.nodeType === 1) { n.classList.add("cc-aop-hide"); }                      // hide <b>/<br>/prose element in place
+      if (n.nodeType === 1 && n.classList.contains("cc-aop-hide")) { add((n.textContent || "").replace(/\s+/g, " ").trim()); continue; } // already folded
+      var s = (n.textContent || "").replace(/\s+/g, " ").trim();
+      add(s);
+      if (n.nodeType === 1) { n.classList.add("cc-aop-hide"); }                      // hide <b>/prose element in place
       else if (s) { var w = el("span", "cc-aop-hide"); w.setAttribute("data-cc-aop-w", "1"); n.parentNode.insertBefore(w, n); w.appendChild(n); } // wrap+hide a prose text node
     }
-    return tip.replace(/\s+/g, " ").trim();
+    if (!segs[segs.length - 1]) segs.pop();
+    var out = [];
+    for (var g0 = 0; g0 < segs.length; g0++) { var t2 = segs[g0].replace(/\s+/g, " ").trim(); if (t2) out.push(t2); }
+    return { tip: tip.replace(/\s+/g, " ").trim(), segs: out };
   }
   function enhanceArrayOpRow(tr) {
     if (tr.querySelector(":scope > td.line")) { tr.setAttribute("data-cc-aop", "1"); return; }   // separator row -> CSS collapses it
@@ -844,7 +1002,7 @@
     // column from the spin/keyfile tables and rescaled the native 33%/22% cols to ~60/40 (the far-right
     // Spin pair). ccFoldDesc keeps the cell in the grid, so all tables share the same 3-col geometry.
     var fresh = !descCell.querySelector(".cc-aop-hide");   // first pass OR a rewritten cell (#mover-text .html() refill)
-    var tip = mtText(ccFoldDesc(descCell));   // bubble text ALWAYS in the UI language; German tips no-op (translate BEFORE the data-tip compare so refolds stay churn-free)
+    var fold = ccFoldDesc(descCell), tip = mtText(fold.tip);   // bubble text ALWAYS in the UI language; German tips no-op (translate BEFORE the data-tip compare so refolds stay churn-free)
     // (A3) (Planung)/(Schedule)/Wiki links -> button cell, directly beside the (i) bubble. Purge stale
     // moved badges only on a freshly (re)written cell that carries prose or links (guards a link-only
     // cell from purge-without-replace). Loop-safe: once moved, descCell has no a[href] -> next tick no-ops.
@@ -853,10 +1011,37 @@
       var stale = btnCell.querySelectorAll(":scope > a.cc-aop-link");
       for (var s0 = 0; s0 < stale.length; s0++) stale[s0].parentNode.removeChild(stale[s0]);
     }
-    var info = btnCell.querySelector(":scope > .cc-info");
-    if (tip) {
-      if (info) { if (info.getAttribute("data-tip") !== tip) { info.setAttribute("data-tip", tip); info.setAttribute("aria-label", tip); } }
-      else btnCell.appendChild(ccInfoIcon(tip));                                      // (i) bubble beside the button
+    // pair rows: N>1 buttons in span.buttons-spaced -> one .cc-aop-brow per button, each with ITS
+    // OWN sentence bubble. Sentence i maps to NATIVE button i (ids/names from ArrayOperation.page:
+    // spinup/spindown, pause/cancel, reboot/shutdown) in DOM order — language-independent and immune to
+    // Smokesignal's reboot.after() injection landing BETWEEN reboot and shutdown; foreign buttons get a
+    // brow (column stays) but no bubble. Leftover segments (the Cancel WARNING) join the last native tip.
+    var span0 = btnCell.querySelector(":scope > span.buttons-spaced");
+    var pair = span0 ? span0.querySelectorAll('input[type="button"], input[type="submit"], button:not([role="tab"]), a.button') : [];
+    if (span0 && pair.length > 1) {
+      var KID = ["spinup-button", "spindown-button", "pauseButton", "cancelButton"], KNM = ["reboot", "shutdown"], natives = [];
+      for (var p0 = 0; p0 < pair.length; p0++) { var pb = pair[p0]; if (KID.indexOf(pb.id) > -1 || KNM.indexOf((pb.getAttribute("name") || "").toLowerCase()) > -1) natives.push(pb); }
+      if (!natives.length) natives = Array.prototype.slice.call(pair);   // future pair rows: DOM order = segment order
+      for (var p1 = 0; p1 < pair.length; p1++) {
+        var bt2 = pair[p1], brow = bt2.parentNode && bt2.parentNode.classList && bt2.parentNode.classList.contains("cc-aop-brow") ? bt2.parentNode : null;
+        if (!brow) { brow = el("span", "cc-aop-brow"); brow.setAttribute("data-cc-aop-brw", "1"); bt2.parentNode.insertBefore(brow, bt2); brow.appendChild(bt2); }   // idempotent: wrapped buttons are never re-wrapped
+        var ni = natives.indexOf(bt2), st = "";
+        if (ni > -1) {
+          st = mtText(fold.segs[ni] || "");
+          if (ni === natives.length - 1) for (var p2 = natives.length; p2 < fold.segs.length; p2++) st += (st ? " " : "") + mtText(fold.segs[p2]);
+        }
+        var bub = brow.querySelector(":scope > .cc-info");
+        if (st) { if (bub) { if (bub.getAttribute("data-tip") !== st) { bub.setAttribute("data-tip", st); bub.setAttribute("aria-label", st); } } else brow.appendChild(ccInfoIcon(st)); }
+        else if (bub) bub.parentNode.removeChild(bub);
+      }
+      var solo = btnCell.querySelector(":scope > .cc-info");   // the old single centred bubble -> retired on pair rows
+      if (solo) solo.parentNode.removeChild(solo);
+    } else {
+      var info = btnCell.querySelector(":scope > .cc-info");
+      if (tip) {
+        if (info) { if (info.getAttribute("data-tip") !== tip) { info.setAttribute("data-tip", tip); info.setAttribute("aria-label", tip); } }
+        else btnCell.appendChild(ccInfoIcon(tip));                                      // single-button rows keep bubble-after-button
+      }
     }
     for (var l0 = 0; l0 < links.length; l0++) {
       var lk = links[l0];
@@ -873,17 +1058,21 @@
     // legacy bare <input name=optionCorrect><small>label</small>. Reversible via data-cc-aop-tg.
     var cb0 = descCell.querySelector('input[type="checkbox"][name="optionCorrect"], input[type="checkbox"][name="safemode"]');
     if (cb0 && !btnCell.querySelector(".cc-aop-toggle")) {
+      // safemode rides on the REBOOT button's brow when one exists (pair rows); optionCorrect rows are
+      // single-button and keep the plain button cell.
+      var rbIn = btnCell.querySelector('input[name="reboot"]');
+      var rbBrow = rbIn && rbIn.parentNode && rbIn.parentNode.classList.contains("cc-aop-brow") ? rbIn.parentNode : null;
       var unit = cb0.closest("label");
       if (unit && descCell.contains(unit)) {
         unit.classList.add("cc-aop-toggle"); unit.setAttribute("data-cc-aop-tg", "1");
-        btnCell.appendChild(unit);
+        (rbBrow || btnCell).appendChild(unit);
       } else {
         var lab0 = cb0.nextSibling;
         while (lab0 && lab0.nodeType === 3 && !lab0.textContent.trim()) lab0 = lab0.nextSibling;   // skip whitespace
         var w1 = el("label", "cc-aop-toggle"); w1.setAttribute("data-cc-aop-tg", "1"); w1.setAttribute("data-cc-aop-tgw", "1");
         w1.appendChild(cb0);
         if (lab0 && (lab0.nodeType === 3 || lab0.tagName === "SMALL" || lab0.tagName === "SPAN")) w1.appendChild(lab0);
-        btnCell.appendChild(w1);
+        (rbBrow || btnCell).appendChild(w1);
       }
     }
     tr.setAttribute("data-cc-aop", "1");
@@ -909,14 +1098,54 @@
     while (td.firstChild) v.appendChild(td.firstChild);
     b.appendChild(v); td.appendChild(b); td.classList.add("cc-aop-st");
   }
+  // Parity-check progress rows (label + td#lineN value, live-updated by id) -> an OWN CARD right of
+  // the button column (user: die Daten als eigene Card; die Button-Spalte bleibt unveraendert). The
+  // ROWS are MOVED (ids intact -> nchan/JS updates keep flowing) with a hidden placeholder per row
+  // marking the way home; when the check ends (no td[id^=line] left in the tables) the card retires.
+  function ccAopParityCard(box) {
+    try {
+      var lines = box.querySelectorAll("table.array_status td[id^='line']");
+      var card = box.querySelector(".cc-aop-pcard");
+      if (!lines.length) { if (card) ccAopParityHome(); return; }
+      if (!card) {
+        card = el("div", "cc-aop-pcard"); card.setAttribute("data-cc-aop-pcard", "1");
+        var sec = lines[0].closest("section") || box; sec.appendChild(card);
+      }
+      for (var i = 0; i < lines.length; i++) {
+        var tr = lines[i].closest("tr");
+        if (!tr || tr.getAttribute("data-cc-aop-p")) continue;
+        var ph = el("tr", "cc-aop-ph"); ph.style.display = "none";
+        tr.parentNode.insertBefore(ph, tr);
+        tr.setAttribute("data-cc-aop-p", "1");
+        card.appendChild(tr);
+      }
+      var tb = box.querySelector("table.array_status"), sec2 = card.parentNode;
+      if (tb && sec2 && sec2.getBoundingClientRect) {   // top-align the card with the hosting table (guarded write, no observer churn)
+        var top = Math.max(0, Math.round(tb.getBoundingClientRect().top - sec2.getBoundingClientRect().top));
+        var tp = top + "px"; if (card.style.top !== tp) card.style.top = tp;
+      }
+    } catch (e) {}
+  }
+  function ccAopParityHome() {
+    try {
+      var card = document.querySelector("#displaybox .cc-aop-pcard"); if (!card) return;
+      var rows = card.querySelectorAll("tr[data-cc-aop-p]");
+      var phs = document.querySelectorAll("#displaybox table.array_status tr.cc-aop-ph");
+      for (var i = 0; i < rows.length && i < phs.length; i++) { phs[i].parentNode.insertBefore(rows[i], phs[i]); rows[i].removeAttribute("data-cc-aop-p"); }
+      for (var p = 0; p < phs.length; p++) if (phs[p].parentNode) phs[p].parentNode.removeChild(phs[p]);
+      card.parentNode.removeChild(card);
+    } catch (e) {}
+  }
   function enhanceArrayOps(box) {
     try {
       var tables = box.querySelectorAll("table.array_status");
       for (var i = 0; i < tables.length; i++) { var rows = tables[i].rows; for (var r = 0; r < rows.length; r++) { aopStatusBadge(rows[r]); enhanceArrayOpRow(rows[r]); } }
+      ccAopParityCard(box);   // AFTER the row pass: progress rows -> the side card (rows moved with ids intact)
     } catch (e) {}
   }
   function aopTeardown() {
     try {
+      ccAopParityHome();   // FIRST: parity rows back into their table (before any unwinding below)
       var infos = document.querySelectorAll("#displaybox table.array_status .cc-info");
       for (var i = 0; i < infos.length; i++) infos[i].parentNode.removeChild(infos[i]);
       // moved (Planung)/Wiki link badges -> back into their row's desc cell, original "(...)" text restored
@@ -935,6 +1164,10 @@
         if (tg.getAttribute("data-cc-aop-tgw") === "1") { while (tg.firstChild) hm.appendChild(tg.firstChild); tg.parentNode.removeChild(tg); }
         else { tg.classList.remove("cc-aop-toggle"); tg.removeAttribute("data-cc-aop-tg"); hm.appendChild(tg); }
       }
+      // unwrap the per-button flex rows (their bubbles are already gone via the infos sweep above;
+      // the safemode toggle was already re-homed by the toggle loop above — unwrap in THIS order only)
+      var brs = document.querySelectorAll('#displaybox table.array_status span.cc-aop-brow[data-cc-aop-brw]');
+      for (var b3 = 0; b3 < brs.length; b3++) ccUnwrap(brs[b3]);
       var descs = document.querySelectorAll("#displaybox table.array_status td.cc-aop-desc");
       for (var d = 0; d < descs.length; d++) descs[d].classList.remove("cc-aop-desc");
       // un-fold mixed-cell prose: unwrap our text-node wrappers, strip the hide class off in-place elements
@@ -1054,25 +1287,12 @@
   function enhanceUD() {
     try {
       if (!onMain()) return;
+      // TOP UD bar heading: NOT split any more (user: die drei oberen Sub-Badges entfernen — the
+      // sections repeat below) — CSS hides it outright. Only the SUB-section heads split into badges.
       var heads = Array.prototype.slice.call(document.querySelectorAll(
-        "#displaybox div.title.ud > span.left, " +                                       // dlandon builds (<= 2025.02, span.right era)
-        "#displaybox div.title.ud > div.left, #displaybox div.title.ud .leftTitleUD, " + // unraid/unassigned.devices build: <div class='left leftTitleUD'>
-        "#displaybox :is(.show-disks, .show-shares, .show-historical) > div.title.shift > span.left"));
-      // content-anchored fallback: find the UD top bar by its OWN controls (switch inputs / rescan /
-      // settings link — never by text or native classes), then take the child that holds the
-      // separator-joined heading. Native Unraid titles can never match: they contain none of these
-      // anchors. Idempotent: ccUdSplitHeading bails on data-cc-ud, so a double-collect is a no-op.
-      var uda = document.querySelector("#displaybox input.disks-switch, #displaybox input.shares-switch, #displaybox input.historical-switch, #displaybox a[onclick^='rescan_disks'], #displaybox a[href*='UnassignedDevicesSettings']");
-      var bar = uda && uda.closest ? uda.closest("div.title") : null;
-      if (bar) {
-        var topHost = bar.querySelector("span.left, div.left, .leftTitleUD");
-        if (!topHost) for (var f0 = bar.firstElementChild; f0; f0 = f0.nextElementSibling) {
-          if (f0.querySelector("input[type='checkbox'], a[onclick^='rescan_disks'], a[href*='UnassignedDevicesSettings']")) continue; // the controls cluster
-          if (/[\/|]/.test(f0.textContent || "")) { topHost = f0; break; }              // heading = slash/pipe-joined text
-        }
-        if (topHost) heads.push(topHost);
-      }
+        "#displaybox :is(.show-disks, .show-shares, .show-historical) > div.title.shift :is(span.left, div.left)"));
       for (var h = 0; h < heads.length; h++) ccUdSplitHeading(heads[h]);
+      ccUdCtrlsMove();   // sections mode: toggles + gear/refresh -> the UNASSIGNED-DEVICES card-head row
       var tbs = document.querySelectorAll("#displaybox #disk-table-body, #displaybox #remotes-table-body, #displaybox #historical-table-body");
       for (var t = 0; t < tbs.length; t++) {
         var rows = tbs[t].children;
@@ -1280,6 +1500,7 @@
         // them out and clear their markers so the page is clean without a reload.
         try {
           ccDiskioHome();   // FIRST: the diskio switch lives inside the first .cc-card-head — re-home it before the head removal below destroys it
+          ccUdCtrlsHome();  // same for the UD toggles/gear/refresh cluster parked in the UD section's head
           var stray = document.querySelectorAll("#displaybox .cc-card-head, #displaybox .cc-card-note");
           for (var s = 0; s < stray.length; s++) stray[s].parentNode.removeChild(stray[s]);
           // un-hide the native SMB "User Access" sub-heading we carded (its .cc-carded hide rule is
@@ -1315,6 +1536,7 @@
           // strip the lg disk-name badge classes off the device link.
           var mname = document.querySelectorAll("#displaybox table.unraid.disk_status a.cc-b-name");
           for (var mn = 0; mn < mname.length; mn++) { mname[mn].classList.remove("cc-b"); mname[mn].classList.remove("cc-b-name"); }
+          ccColTeardown();   // drag-resize: grips + colgroups + cc-colfix + inline widths out (cc.main.colpx storage kept for a re-enable)
           aopTeardown();   // Array-Vorgang: pull (i) info-bubbles, un-hide description cells, drop markers
           udTeardown();   // UD: restore the joined heading text + unwrap the UD table badges — MUST run BEFORE ccI18nTeardown so its text-node-matching restore finds the (restored) translated text nodes
           ccI18nTeardown();   // restore the original English strings (sleep value + UD/native text nodes)
@@ -1332,13 +1554,6 @@
       root.style.setProperty("--cc-shr-accent", a);
       root.style.setProperty("--cc-shr-accent-text", idealText(a));
       root.style.setProperty("--cc-b-radius", shape());
-      // /Main column knobs (Settings > Start). Clamped; consumed only by .cc-on-main-gated rules,
-      // so a stale var after an area-disable has zero effect. Storage listener re-runs apply()
-      // cross-tab (cc.main.w.* matches the cc-key regex); same-page via window.ccSharesApply.
-      var wIdent = parseInt(g("cc.main.w.ident", "26"), 10); if (!(wIdent >= 15 && wIdent <= 45)) wIdent = 26;
-      var wUsage = parseInt(g("cc.main.w.usage", "120"), 10); if (!(wUsage >= 80 && wUsage <= 260)) wUsage = 120;
-      root.style.setProperty("--cc-main-w-ident", wIdent + "%");
-      root.style.setProperty("--cc-main-w-usage", wUsage + "px");
       root.classList.toggle("cc-shares-rb", rbOn());
       ensureTabbed();
       hideRedundantTabs();

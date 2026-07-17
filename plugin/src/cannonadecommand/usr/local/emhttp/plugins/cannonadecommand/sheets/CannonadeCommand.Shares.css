@@ -265,11 +265,11 @@ html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status .cc-b:has(a[hr
    colspan-shifted row and squeezed the pool/boot Identification cell (the v2.24.1 overlap bug: the
    unbreakable underscore model+serial token then spilled over the neighbour cells). Only bias
    Identification wider so the model string gets the leftover space; every other column self-sizes. */
-/* Identification: LEFT-aligned + user-tunable width. The injected Browse col shifts td.desc onto the
-   native `table.disk_status tr > td:nth-child(3){text-align:right}` (default-base.css) — that
-   right-align was the huge left gap. --cc-main-w-ident is written by shares.js/apply() from
-   cc.main.w.ident (Settings > Start), fallback 26%. */
-html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status td.desc { width: var(--cc-main-w-ident, 26%); text-align: left; }
+/* Identification: LEFT-aligned + a fixed auto-layout bias. The injected Browse col shifts td.desc onto
+   the native `table.disk_status tr > td:nth-child(3){text-align:right}` (default-base.css) — that
+   right-align was the huge left gap. 26% is only the AUTO-layout bias; under drag-resize (.cc-colfix)
+   the colgroup px win and the .cc-colfix override below sets width:auto. */
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status td.desc { width: 26%; text-align: left; }
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status thead tr[data-cc-main] > td:nth-child(3) { text-align: left; }   /* the shifted IDENTIFIKATION header cell carried the same native right-align; keyed on the CC head marker so unshifted heads stay native */
 
 /* Identification (td.desc) EINZEILIG (user): the model badge stays on ONE line. The old
@@ -320,7 +320,7 @@ html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status thead th { bac
    one rule covers all; .sys/.mm are the dashboard/menu meter variants and stay native. */
 html.cc-shares-on.cc-on-main #displaybox .usage-disk:not(.sys):not(.mm) {
   position: relative; height: 26px !important; margin: 0; overflow: hidden;   /* 26px = md badge tier (4+4px pad + 13px x 1.35) — bars sit flush with the row's value badges */
-  min-width: var(--cc-main-w-usage, 120px);   /* the bar div is the cell's ONLY content and had no intrinsic min width -> the columns collapsed BENUTZT/FREI to "TB"; a real min-width becomes the column's min-content under table-layout:auto. User-tunable via cc.main.w.usage. */
+  min-width: 120px;   /* the bar div is the cell's ONLY content and had no intrinsic min width -> the columns collapsed BENUTZT/FREI to "TB"; a real min-width becomes the column's min-content under table-layout:auto. Yields to explicit drag-resize widths via the .cc-colfix override below. */
   background-color: rgba(128, 128, 128, .18) !important;
   border-radius: var(--cc-b-radius, 999px);   /* follows the global Badge-Form: square in ECKIG mode, like every .cc-b */
 }
@@ -338,6 +338,43 @@ html.cc-shares-on.cc-on-main #displaybox .usage-disk:not(.sys):not(.mm) > span:l
   display: inline-flex; align-items: center; padding-right: 10px;
   font-size: 12px; font-weight: 600; line-height: 1; text-shadow: 0 1px 2px rgba(0, 0, 0, .35);
 }
+/* ═══ LIVE column drag-resize (Explorer-style) — replaces the settings sliders. Grips are injected
+   by shares.js/ccColGrips into every full thead row; widths live in an injected <colgroup> per table
+   (shares.js/ccColSet), persisted in localStorage cc.main.colpx. ═══ */
+/* grip: an 8px hit strip straddling each header cell's right edge; a 2px accent line appears on
+   hover/drag. touch-action:none so touch pointers drag instead of scrolling. */
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status thead td { position: relative; }
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status thead td > .cc-colgrip {
+  position: absolute; top: 0; bottom: 0; right: -4px; width: 8px;
+  cursor: col-resize; touch-action: none; user-select: none; z-index: 3;
+}
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status thead td > .cc-colgrip::after {
+  content: ""; position: absolute; top: 15%; bottom: 15%; left: 3px; width: 2px;
+  border-radius: 1px; background: transparent; transition: background .12s;
+}
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status thead td > .cc-colgrip:hover::after,
+html.cc-col-dragging #displaybox table.unraid.disk_status thead td > .cc-colgrip::after {
+  background: var(--cc-shr-accent, #2f6feb);
+}
+/* while dragging: no text selection anywhere, keep the col-resize cursor even off the grip */
+html.cc-col-dragging, html.cc-col-dragging * { user-select: none !important; cursor: col-resize !important; }
+/* resized mode: the <colgroup> px define EVERY grid column (explicit widths on all cols make fixed
+   layout safe WITH the colspan rows); shares.js sets the table's inline width to the column sum, so
+   growing past the container uses .TableContainer's native overflow-x scroll — like Explorer. */
+html.cc-shares-on.cc-on-main #displaybox .TableContainer table.unraid.disk_status.cc-colfix { table-layout: fixed !important; }
+/* the auto-layout guards YIELD to explicit column widths: the usage-bar min-width floor and the
+   Identification width bias would fight the dragged px; the one-line model string ellipsis-clips
+   inside its column instead of bleeding into the neighbour. Higher specificity (.cc-colfix) beats
+   the earlier !important overflow:visible chain at equal importance. */
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status.cc-colfix .usage-disk:not(.sys):not(.mm) { min-width: 0; }
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status.cc-colfix td.desc { width: auto; }
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status.cc-colfix td.desc,
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status.cc-colfix td.desc .cc-b,
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status.cc-colfix td.desc .cc-b-v {
+  overflow: hidden !important; text-overflow: ellipsis !important;
+}
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status.cc-colfix td.desc .cc-b { max-width: 100%; }
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status.cc-colfix td.desc .cc-b .cc-b-v { min-width: 0; }
 /* (d) /Main action buttons (Start/Stop/Format/Check/Sync/Clear/History/Move/Pause/Cancel/Reboot/Shutdown)
    -> CC accent pills. The /Shares form[name=share_form] + cc-on-share-detail rules do NOT reach /Main.
    a.button included (an Unraid-standard control element used in ArrayOperation) so no op button stays native. */
@@ -420,17 +457,28 @@ html.cc-shares-on.cc-on-main #displaybox .cc-b.cc-ud-h img,
 html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mounts, table.usb_absent) .cc-b img { filter: brightness(0) invert(1); }
 html.cc-shares-on.cc-on-main #displaybox .cc-b.cc-ud-h.cc-ink-dark img,
 html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mounts, table.usb_absent) .cc-b.cc-ink-dark img { filter: brightness(0); }
-/* gear + refresh: PLAIN theme-ink icons (user keeps them un-pilled — the old a.tooltip pill rule
-   never matched the live build and is dropped). Two shipped markups:
-     dlandon <= 2025.02:        span.right.ud > a.tooltip > i.fa-gear / i.fa-refresh
-     unraid/UD (live, 2025+):   div.right.ud.ud_titleFix > a.info > i.fa-gear / i.fa-refresh */
-html.cc-shares-on.cc-on-main #displaybox div.title.ud :is(span.right.ud, div.right.ud) a { cursor: pointer; text-decoration: none !important; }
-html.cc-shares-on.cc-on-main #displaybox div.title.ud :is(span.right.ud, div.right.ud) a :is(i.fa-gear, i.fa-refresh) {
+/* gear + refresh: PLAIN theme-ink icons — GENERIC selector (any <i> in those anchors: the live UD
+   build's fa classes differ per version, class-specific rules kept missing). Covers the controls in
+   their native bar AND after relocation into the UD card-head (.cc-ud-ctrls). */
+html.cc-shares-on.cc-on-main #displaybox :is(div.title.ud :is(span.right.ud, div.right.ud), .cc-ud-ctrls) a { cursor: pointer; text-decoration: none !important; }
+html.cc-shares-on.cc-on-main #displaybox :is(div.title.ud :is(span.right.ud, div.right.ud), .cc-ud-ctrls) a i {
   font-size: 18px; line-height: 1; color: inherit; opacity: .85; transition: color .12s, opacity .12s;
 }
-html.cc-shares-on.cc-on-main #displaybox div.title.ud :is(span.right.ud, div.right.ud) a:hover :is(i.fa-gear, i.fa-refresh) {
+html.cc-shares-on.cc-on-main #displaybox :is(div.title.ud :is(span.right.ud, div.right.ud), .cc-ud-ctrls) a:hover i {
   color: var(--cc-shr-accent, #2f6feb); opacity: 1;
 }
+/* UD top heading GONE (user: die drei oberen Sub-Badges entfernen — die Abschnitte kommen unten
+   erneut); the emptied bar hides once its controls moved to the card-head (.cc-ud-moved). */
+html.cc-shares-on.cc-on-main #displaybox div.title.ud :is(span.left, div.left, .leftTitleUD) { display: none !important; }
+html.cc-shares-on.cc-on-main #displaybox div.title.cc-ud-moved { display: none !important; }
+/* the relocated controls cluster: right end of the UNASSIGNED-DEVICES badge row */
+html.cc-shares-on.cc-on-main.cc-sections-main #displaybox .cc-card-head { position: relative; }
+html.cc-shares-on.cc-on-main.cc-sections-main #displaybox .cc-card-head > .cc-ud-ctrls {
+  position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+  display: inline-flex; align-items: center; gap: 14px;
+}
+html.cc-shares-on.cc-on-main #displaybox .cc-ud-ctrls :is(span.right.ud, div.right.ud) { display: inline-flex !important; align-items: center; }
+html.cc-shares-on.cc-on-main #displaybox .cc-ud-ctrls span.switch-button-label { float: none; line-height: 1; font-size: var(--cc-md-fs, 13px); font-weight: 600; letter-spacing: .4px; }
 /* ═══ Unassigned Devices B2: the three UD tables in the /Main list look (mirror of the disk_status
    block above — UD tables are usb_mounts/samba_mounts/usb_absent, NOT table.unraid.disk_status). */
 html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mounts, table.usb_absent) thead td {
@@ -511,32 +559,45 @@ html.cc-shares-on.cc-on-main #displaybox table.array_status input[type="checkbox
 /* ═══ /Main "Array-Vorgang" (table.array_status): no separator lines, buttons flush + equal spacing, inline
    descriptions folded into (i) info-bubbles (shares.js/enhanceArrayOps). User: "alle buttons bündig
    untereinander mit gleichem Abstand, keine Linien, alle Infotexte in I-Bubbles". ═══ */
-html.cc-shares-on.cc-on-main #displaybox table.array_status { border-collapse: collapse; table-layout: fixed; width: 100%; margin-left: 0 !important; margin-right: 0 !important; }   /* fixed + our own px cols on td1/td2 (rules below) = identical geometry across ALL separate array_status tables (main/keyfile/spin/mover/shutdown/sleep); auto let each table re-derive widths from its own content/column count -> the tables mis-aligned against each other (the far-right Spin pair). margin zeroing kills third-party wrapper offsets (s3-sleep table ships its own inline style). */
-html.cc-shares-on.cc-on-main #displaybox table.array_status td { border: none !important; vertical-align: middle; padding: 8px 10px !important; }   /* UNIFORM GRID (supersedes the v2.24.1 top-align): with the prose folded into (i) bubbles every row's content is one 30px control line, so equal padding + middle-align = identical row heights and evenly spaced buttons. Revisit if a future Unraid adds a multi-line always-visible desc control. */
-html.cc-shares-on.cc-on-main #displaybox table.array_status td.line { border: none !important; padding: 0 !important; height: 0 !important; line-height: 0 !important; font-size: 0 !important; }
-/* the separator ROW's leading empty <td> (ArrayOperation.page: <tr><td></td><td class="line" colspan="2"></td></tr>)
-   still carried the uniform td padding -> phantom rows = uneven gaps. Collapse the WHOLE row
-   (:has-capable browsers; the td.line rule above stays as the graceful fallback). */
-html.cc-shares-on.cc-on-main #displaybox table.array_status tr:has(> td.line) { display: none; }
-html.cc-shares-on.cc-on-main #displaybox table.array_status tr > td:first-child { padding-left: 0 !important; width: var(--cc-aop-c1, 380px); }   /* px out-specifies default-base.css's 33%/22% per-cell widths — the root fix for the cross-table drift */
-/* BUTTON cell = a never-wrapping control row: button(s) + the (i) bubble ALWAYS side by side on one
-   line (the bubble is btnCell-appended by enhanceArrayOpRow; in the Reboot/Shutdown row BOTH buttons
-   live in one span.buttons-spaced in this cell — native ArrayOperation.page). Under table-layout:auto
-   (rule above) nowrap makes buttons+bubble the column's min-content, so the cell can never get narrow
-   enough to wrap. height acts as min-height in a table cell -> every button row is at least one
-   md-control tall = uniform grid. */
-html.cc-shares-on.cc-on-main #displaybox table.array_status tr > td:nth-child(2) { white-space: nowrap; height: var(--cc-lgb-h, 36px); width: var(--cc-aop-c2, 560px); }
-/* button pairs (Spin Up/Down, Reboot/Shutdown, Pause/Cancel) stack VERTICALLY at one x (user: ALLE
-   untereinander); flex-wrap:nowrap neutralises native .buttons-spaced{flex-wrap:wrap} */
-html.cc-shares-on.cc-on-main #displaybox table.array_status tr > td:nth-child(2) .buttons-spaced { display: inline-flex; flex-direction: column; flex-wrap: nowrap; align-items: flex-start; gap: 16px; vertical-align: middle; }
-/* FLUSH BUTTON COLUMN across native AND appended third-party tables (s3-sleep, Smokesignal):
-   zero the button cell's left padding and collapse stray whitespace TEXT NODES (font-size:0) so each
-   button's left edge is EXACTLY table-left + var(--cc-aop-c1). Buttons/bubble/badge/toggle all set
-   explicit font sizes, so nothing readable shrinks. :has(> …) scoping keeps the parity line0-line5
-   value cells and the Encryption-status text cell at their normal font. */
-html.cc-shares-on.cc-on-main #displaybox table.array_status tr > td:nth-child(2):has(> input, > button, > a.button, > span input, > span button, > span a.button) { padding-left: 0 !important; font-size: 0 !important; }
-/* the s3-sleep/Smokesignal tables ride in unknown wrappers -> neutralise wrapper indents */
-html.cc-shares-on.cc-on-main #displaybox :is(p, div, form):has(> table.array_status) { margin-left: 0 !important; padding-left: 0 !important; }
+/* GRID rows: the array_status tables are STATIC markup (only #mover-text/#stop-text inner text
+   changes at runtime), so every <tr> becomes one shared 3-track grid — identical column geometry across
+   ALL tables (main/keyfile/spin/mover/shutdown/s3-sleep/Smokesignal), immune to table-layout, native
+   33%/22% widths, colspans, wrapper indents, whitespace nodes and inline button margins. */
+html.cc-shares-on.cc-on-main #displaybox table.array_status { display: block; width: 100%; margin: 0 !important; }
+html.cc-shares-on.cc-on-main #displaybox table.array_status :is(tbody, thead) { display: contents; }
+html.cc-shares-on.cc-on-main #displaybox table.array_status tr { display: grid; grid-template-columns: var(--cc-aop-c1, 380px) var(--cc-aop-c2, 560px) minmax(0, 1fr); align-items: center; }
+html.cc-shares-on.cc-on-main #displaybox table.array_status tr.hidden { display: none; }   /* restate native .hidden — our tr rule out-specifies it (#clearstats, #copy, #file) */
+html.cc-shares-on.cc-on-main #displaybox table.array_status tr[style*="table-row"] { display: grid !important; }   /* jQuery .show() on the encryption rows writes inline display:table-row — remap to grid (!important beats inline); .hide()'s inline display:none is a different declaration and still wins */
+html.cc-shares-on.cc-on-main #displaybox table.array_status td { display: block; min-width: 0; border: none !important; padding: 8px 10px !important; }
+html.cc-shares-on.cc-on-main #displaybox table.array_status td.line { display: none; }
+html.cc-shares-on.cc-on-main #displaybox table.array_status tr:has(> td.line) { display: none; }   /* separator rows stay collapsed */
+html.cc-shares-on.cc-on-main #displaybox table.array_status tr > td:first-child { padding-left: 0 !important; }
+/* control column: flex — whitespace-only text nodes are NOT flex items, so the old font-size:0 hack dies;
+   padding-left 0 UNCONDITIONALLY (no :has() gate to miss) => every control/value starts EXACTLY at c1 */
+html.cc-shares-on.cc-on-main #displaybox table.array_status tr > td:nth-child(2) { display: flex; align-items: center; padding-left: 0 !important; min-height: var(--cc-lgb-h, 36px); white-space: nowrap; }
+html.cc-shares-on.cc-on-main #displaybox table.array_status tr > td:nth-child(2) .buttons-spaced { display: inline-flex; flex-direction: column; flex-wrap: nowrap; align-items: flex-start; gap: 16px; }
+/* margin kill: Smokesignal injects style="margin-left:8px" INLINE (reboot.after injection) and
+   default-base.css gives loose buttons vertical margins — !important beats both */
+html.cc-shares-on.cc-on-main #displaybox table.array_status :is(input[type="submit"], input[type="button"], a.button, button:not([role="tab"])) { margin: 0 !important; }
+/* third-party tables (s3-sleep rides AFTER the literal </p> in ArrayOperation.page => unknown parent) */
+html.cc-shares-on.cc-on-main #displaybox :is(p, div, form, span, section):has(> table.array_status) { margin-left: 0 !important; padding-left: 0 !important; text-indent: 0 !important; }
+/* parity-check progress -> an OWN CARD right of the button column (user request). The rows were MOVED
+   here by ccAopParityCard (ids intact, live updates keep flowing); placeholders mark the way home.
+   Sections mode: absolute inside the position:relative section, left of-set past both grid tracks.
+   Native-tabs fallback: a static block under the table, indented to the button column. */
+html.cc-shares-on.cc-on-main.cc-sections-main #displaybox .cc-aop-pcard {
+  position: absolute; left: calc(var(--cc-aop-c1, 380px) + var(--cc-aop-c2, 560px) + 24px); right: 12px;
+  background: rgba(255, 255, 255, .045); border-radius: 12px; padding: 14px 18px;
+  display: flex; flex-direction: column; gap: 8px; z-index: 1;
+}
+html.cc-shares-on.cc-on-main:not(.cc-sections-main) #displaybox .cc-aop-pcard {
+  position: static; margin: 12px 0 12px var(--cc-aop-c1, 380px); max-width: 560px;
+  background: rgba(255, 255, 255, .045); border-radius: 12px; padding: 14px 18px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+html.cc-shares-on.cc-on-main #displaybox .cc-aop-pcard tr { display: flex; justify-content: space-between; gap: 18px; align-items: center; }
+html.cc-shares-on.cc-on-main #displaybox .cc-aop-pcard td { display: block; padding: 0 !important; border: none !important; min-width: 0; font-size: var(--cc-md-fs, 13px); }
+html.cc-shares-on.cc-on-main #displaybox .cc-aop-pcard td[id^="line"] { font-weight: 700; white-space: nowrap; }
 /* td.cc-aop-desc retired (v2.25.0): hiding the CELL removed the 3rd column from the spin/keyfile tables
    and rescaled the native 33%/22% cols to ~60/40 (the far-right Spin pair). enhanceArrayOpRow now folds
    prose IN PLACE via ccFoldDesc in every row, so the cell always stays in the grid. */
@@ -554,6 +615,9 @@ html.cc-shares-on.cc-on-main #displaybox table.array_status a.cc-aop-link {
   text-decoration: none !important; white-space: nowrap; transition: filter .12s;
 }
 html.cc-shares-on.cc-on-main #displaybox table.array_status a.cc-aop-link:hover { filter: brightness(1.14); }
+/* pair rows: each button rides in its own flex row with its OWN §9 bubble — one exact bubble
+   x-column everywhere: c1 + --cc-lgb-w + .cc-info's 10px margin, same as single-button rows */
+html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-aop-brow { display: inline-flex; align-items: center; }
 /* optionCorrect/safemode -> CC switch (track+knob), relocated into the button cell by
    enhanceArrayOpRow. Track follows --cc-b-radius (ECKIG = square track); knob is a near-square
    rx=3 SVG so the square Badge-Form reads through. Out-specifies + follows the generic 18px
@@ -622,13 +686,13 @@ html.cc-shares-on.cc-on-main #displaybox section:has(table.array_status) { overf
    track (knob still moves). display:block !important on i.toggle deliberately undoes the native
    $('i.toggle').hide() (tab0 cookie). */
 html.cc-shares-on.cc-on-main #displaybox span.status a.tooltip_diskio {
-  display: inline-flex; width: 44px; height: 24px; border-radius: 999px; background: #3a3a3a;
+  display: inline-flex; width: 44px; height: 24px; border-radius: min(var(--cc-b-radius, 999px), 12px); background: #3a3a3a;   /* follows the global Badge-Form (§14b): square mode = square track */
   position: relative; vertical-align: middle; box-sizing: border-box; transition: background .15s;
 }
 html.cc-shares-on.cc-on-main #displaybox span.status a.tooltip_diskio:has(i.fa-list) { background: var(--cc-shr-accent, #2f6feb); }
 html.cc-shares-on.cc-on-main #displaybox span.status a.tooltip_diskio i.toggle {
   display: block !important; position: absolute; left: 3px; top: 3px; width: 18px; height: 18px;
-  border-radius: 50%; background: #fff; transition: left .15s; font-size: 0 !important; line-height: 0;
+  border-radius: min(var(--cc-b-radius, 999px), 9px); background: #fff; transition: left .15s; font-size: 0 !important; line-height: 0;   /* knob follows the Badge-Form too (9px cap = half the knob) */
 }
 html.cc-shares-on.cc-on-main #displaybox span.status a.tooltip_diskio i.toggle::before { content: none !important; }
 html.cc-shares-on.cc-on-main #displaybox span.status a.tooltip_diskio i.toggle.fa-list { left: 23px; }

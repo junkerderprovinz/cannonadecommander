@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.26.0">
+  <!ENTITY version   "2.27.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,34 @@
 </ICON>
 
 <CHANGES>
+### 2.27.0
+#1 Plugin-Tab: Der "Nach Aktualisierungen suchen"-Button ist ENDLICH fest auf der Reiter-Zeile --
+   die wahre Ursache war Unraids eigenes Update.css, das den Button per margin-top 13px nach unten
+   schob; die Buttons ziehen jetzt aus dem scrollenden Reiter-Streifen in eine feste rechte Gruppe um.
+#2 Array-Vorgang: Die Zeilen sind jetzt ein echtes CSS-Raster ueber ALLE Tabellen -- auch Ruhezustand
+   und Smokesignal stehen exakt buendig; Fremd-Raender und Tabellen-Eigenheiten koennen nichts mehr
+   verschieben.
+#3 Hochfahren/Herunterfahren (und andere Button-Paare): JEDER Button hat jetzt seine EIGENE
+   Info-Bubble mit seinem eigenen Satz.
+#4 Alle Buttons, Bubbles und Planung-Badges sitzen in exakt denselben Spalten.
+#5 Start-Tab: Die unterste Summenzeile ist nicht mehr verschoben -- sie bekommt jetzt wie die
+   Datenzeilen eine eigene leere Durchsuchen-Zelle statt einer falschen Spalten-Verbreiterung.
+#6 Der Lese-/Schreib-Schalter folgt jetzt der Badge-Form (eckig = eckig).
+#7 NEU: Spaltenbreiten aenderst du jetzt LIVE im Start-Tab per Ziehen an den Spaltenraendern (wie im
+   Windows Explorer): Griff am rechten Rand jeder Kopfzelle, alle drei Tabellen bleiben synchron,
+   die Breiten werden gespeichert, Doppelklick auf einen Griff setzt zurueck. Die beiden
+   Einstellungs-Regler sind wieder entfernt.
+#8 Unassigned Devices: Die drei oberen Abschnitts-Badges sind weg (die Abschnitte kommen unten
+   erneut).
+#9 Unassigned Devices: Die drei Schalter und die zwei Symbole sitzen jetzt auf der Hoehe des
+   UNASSIGNED-DEVICES-Abschnitts-Badges.
+#10 Unassigned Devices: Zahnrad und Aktualisieren sind jetzt wirklich als Icons gestylt (der
+   Erkenner haengt nicht mehr an versionsabhaengigen Icon-Klassen).
+#11 Laufende Paritaetspruefung: Die Fortschritts-Daten (Groesse, Zeit, Position, Geschwindigkeit,
+   Fertigstellung, Sync-Fehler) stehen jetzt in einer eigenen Card rechts der Button-Spalte -- die
+   Buttons bleiben unveraendert untereinander.
+#12 Array-Vorgang: Die Bubble-Texte der Button-Paare folgen der UI-Sprache je Satz.
+
 ### 2.26.0
 #1 Array-Vorgang: Der ueberfluessige Wiki-Eintrag-Badge ist weg -- der Hinweis steht in der Info-Bubble;
    nur (Planung) bleibt als kleiner Badge.
@@ -834,7 +862,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>199f9b04dd12281a5db800fe6e2f0d23a565d3808cc74d2178c5123ca8953b58</SHA256>
+  <SHA256>8067fdbd4b1f0894cb9cb79f7a30e4164e839cac49e9d0f3d530a386d9ee3434</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

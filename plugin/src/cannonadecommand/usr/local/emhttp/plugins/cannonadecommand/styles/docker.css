@@ -603,23 +603,25 @@ html:not(.Theme--sidebar) #displaybox:has(#docker_list) { padding-left: var(--cc
    Zero that inset so the button lines up with the plugins-list right edge. These IDs
    exist ONLY on the Plugins page, so this is inherently page-scoped. */
 #checkall.status, #updateall.status, #removeall.status { margin-right: 0 !important; }
-/* Plugins tab: Unraid appends the Check/Update/Remove controls as <span class='status vhshift'> INTO the
-   shared flex .tabs-container (Plugins.page). Its 1.4rem font-leading makes the wrapper TALLER than a 30px
-   tab pill, and .tabs-container{align-items:center} then re-centres the shorter tab buttons in the taller
-   row -> the Plugins sub-tabs sit LOWER than every other tab's. Pin the wrapper + its button to the tab
-   height and zero the wrapper leading so the flex row height == tab height. Do NOT set display —
-   #updateall/#removeall start display:none and must stay hidden. */
-nav.tabs .tabs-container > span.status.vhshift { height: var(--cc-md-h, 30px) !important; line-height: var(--cc-md-h, 30px) !important; font-size: 0 !important; }
-nav.tabs .tabs-container > span.status.vhshift > input[type="button"] { height: var(--cc-md-h, 30px) !important; box-sizing: border-box !important; vertical-align: middle !important; }
-/* Keep the Check/Update/Remove controls on the SAME row as the sub-tabs (v2.24.1). Unraid's .tabs-container is
-   a NOWRAP flex row (default-base.css: display:flex; align-items:center; overflow-x:auto; width:100%). But the
-   CC-restyled uppercase sub-tab pills (padding:0 20px + letter-spacing:1.5px + margin-right:8px) plus the long
-   German labels and the wide "Nach Aktualisierungen suchen" button can exceed the strip width. #checkall is a
-   <span class="status vhshift"> whose ONLY right-align is native span.status{margin-left:auto}; on an OVERFLOWING
-   flex line an auto-margin item breaks onto the next line and right-aligns THERE -> the button drops to a second
-   row below the tabs, pushed right + lower. Re-assert nowrap so the strip stays one line; an over-wide row then
-   scrolls via the native overflow-x:auto instead of wrapping. Touches flex-wrap ONLY — the height/centering cap
-   above is untouched, so the sub-tab vertical-alignment fix is preserved. */
+/* Plugins tab, THE REAL DIAGNOSIS (3rd attempt): the v2.22 height cap and the v2.24.1 flex-wrap:nowrap
+   both failed because the actual culprit is the plugin manager's OWN Update.css:
+   `span.vhshift { margin-top: 13px !important }` — a vertical shift tuned to the TALL native tabs.
+   Against CC's 30px pills it pushed the button 13px BELOW the row (overflowing the strip -> the stray
+   scrollbar), and inside the scrollable flex .tabs-container the margin-left:auto span lived in the
+   scrolled-out right region once the strip overflowed. Cure: plugins.js/relocateChecks() moves the
+   three spans into #cc-plugbtns, a flex SIBLING of .tabs-container inside nav.tabs (.tabs is
+   display:flex; align-items:center) — the tabs scroll in their own shrinkable strip while the buttons
+   stay pinned ON the row at ANY width. These rules style BOTH homes (pre-JS flash + relocated) and
+   zero the 13px shift. Do NOT set display — #updateall/#removeall start display:none. */
+nav.tabs .tabs-container > span.status.vhshift,
+#cc-plugbtns > span.status.vhshift { margin-top: 0 !important; margin-bottom: 0 !important; height: var(--cc-md-h, 30px) !important; line-height: var(--cc-md-h, 30px) !important; font-size: 0 !important; }
+nav.tabs .tabs-container > span.status.vhshift > input[type="button"],
+#cc-plugbtns > span.status.vhshift > input[type="button"] { height: var(--cc-md-h, 30px) !important; box-sizing: border-box !important; vertical-align: middle !important; }
+/* the relocated home: right-aligned flex group ON the tab row */
+#cc-plugbtns { display: inline-flex; align-items: center; gap: 12px; flex: none; margin-left: auto; }
+#cc-plugbtns > span.status.vhshift { margin: 0 !important; }
+/* keep the strip itself one NOWRAP line; the buttons sit OUTSIDE it in #cc-plugbtns, so they can
+   never wrap or drop. */
 nav.tabs .tabs-container { flex-wrap: nowrap !important; }
 /* ── Plugins Tab-Ansicht: flatten the native sub-tabs (the MainContentTabbed DOM — nav.tabs button[role=tab]
    + sibling section[role=tabpanel]) into stacked CC sections. plugins.js sets html.cc-on-plugins and toggles

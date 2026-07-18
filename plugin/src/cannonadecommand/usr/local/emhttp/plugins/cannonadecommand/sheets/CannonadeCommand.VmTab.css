@@ -118,7 +118,7 @@ html.cc-vms-on #kvm_list td.vm-name .inner > a:first-child:hover { text-decorati
    .switch-button-background (track; .checked -> accent) + .switch-button-button (knob) +
    .switch-button-label(.on). Matches docker.css:504 (which colours only the .checked track). ═══ */
 html.cc-vms-on #kvm_list .switch-button-background {
-  width: 54px !important; height: var(--cc-md-h, 30px) !important; border-radius: 999px !important;   /* ONE 30px control line (user popup choice) */
+  width: 44px !important; height: 24px !important; border-radius: 999px !important;   /* slim toggle (30px reverted: "zu gross und klobig") */
   border: none !important; outline: none !important; box-shadow: none !important;
   background: #3a3a3a !important; transform: none !important; position: relative !important;
   display: inline-block; vertical-align: middle; margin: 0 12px 0 3px; cursor: pointer;
@@ -126,11 +126,11 @@ html.cc-vms-on #kvm_list .switch-button-background {
 }
 html.cc-vms-on #kvm_list .switch-button-background.checked { background: var(--cc-accent, #2f6feb) !important; }
 html.cc-vms-on #kvm_list .switch-button-background .switch-button-button {
-  width: 24px !important; height: 24px !important; top: 3px !important; left: 3px !important;
+  width: 18px !important; height: 18px !important; top: 3px !important; left: 3px !important;
   border-radius: 50% !important; background: #fff !important; box-shadow: none !important;
   border: none !important; transition: left .15s;
 }
-html.cc-vms-on #kvm_list .switch-button-background.checked .switch-button-button { left: 27px !important; }
+html.cc-vms-on #kvm_list .switch-button-background.checked .switch-button-button { left: 21px !important; }
 html.cc-vms-on #kvm_list .switch-button-label { display: none !important; }
 
 /* ═══ Actions column — Docker's EXACT action bar (docker.css:104-133), retargeted to #kvm_list. Grey icon

@@ -764,6 +764,7 @@
       if (first.hasAttribute("colspan")) first.colSpan = (first.colSpan || 1) + 1;
       else tr.insertBefore(el("td", "cc-browse-col"), first.nextSibling);
       ccFill11(tr);
+      ccVoidBars(tr);
       // POOL/BOOT summary rows (tr.pool_header, native pool_function_row): badge them too (user: "es ist
       // noch nicht alles in badges"). Name link is picked from td:first-child ONLY — td.desc can carry a
       // pool_status_html "(ONLINE)" link (/Main/Device?name=X#poolsummary) that must NOT become the lg
@@ -799,10 +800,23 @@
     var tds = Array.prototype.slice.call(tr.children);
     for (var i = 2; i < tds.length; i++) mainBadgeCell(tds[i]);   // badge EVERY value cell (usage-disk/select/name-link self-skip)
     ccFill11(tr);
+    ccVoidBars(tr);
   }
   // NORMALISE every row to exactly 11 grid columns: an under-spanning row leaves the trailing columns
   // as bare table background under colfix — the "dark fleck" at the right end. Deficit goes to the
   // LAST colspan cell, or (rows with no colspan at all, e.g. short spacer rows) onto the last cell.
+  // bars whose label is only whitespace/NBSP render as a bare grey track = the stubborn dark
+  // block at the right end (the CSS :empty guard cannot see an &nbsp; label) — stamp them hidden.
+  function ccVoidBars(tr) {
+    try {
+      var bars = tr.querySelectorAll(".usage-disk");
+      for (var vb = 0; vb < bars.length; vb++) {
+        var lab = bars[vb].lastElementChild;
+        var vtxt = ((lab && lab.textContent) || "").replace(new RegExp(String.fromCharCode(160), "g"), " ").trim();
+        bars[vb].classList.toggle("cc-bar-void", !vtxt);
+      }
+    } catch (e) {}
+  }
   function ccFill11(tr) {
     try {
       var colsum = 0, lastSpan = null, cells = tr.children;
@@ -1023,7 +1037,7 @@
       b.setAttribute("title", mtText("Reset column widths"));
       var ic = document.createElement("i"); ic.className = "fa fa-undo"; b.appendChild(ic);
       b.addEventListener("click", function (e) { e.preventDefault(); ccColReset(); ccColApply(); });
-      st.appendChild(b);
+      st.insertBefore(b, st.firstChild);   // LEADS the cluster: [↺][(i)][toggle] — appended after the toggle it overflowed the right alignment edge (user: "fehlplatziert")
     } catch (e) {}
   }
   // ── UD controls relocation (user: Toggles + Zahnrad/Refresh auf Hoehe des UNASSIGNED-DEVICES-

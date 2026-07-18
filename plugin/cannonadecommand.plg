@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.31.0">
+  <!ENTITY version   "2.31.1">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,24 @@
 </ICON>
 
 <CHANGES>
+### 2.31.1
+#1 Toggle-Groesse ZURUECKGENOMMEN: alle Schalter wieder im schlanken 44x24-Mass (die 30px-Version
+   war zu klobig). Im Start-Tab sind stattdessen AUSNAHMSWEISE die Icon-Kacheln (Zahnrad,
+   Aktualisieren, Spalten-Reset) auf Toggle-Hoehe (24px) geschrumpft, Glyphen 13px mittig.
+#2 Der dunkle Fleck: Fuellbalken, deren Beschriftung nur aus einem geschuetzten Leerzeichen
+   besteht, zeichneten weiter ihre leere Spur (der CSS-Leer-Test sieht ein &amp;nbsp; nicht) --
+   werden jetzt per Script erkannt und versteckt; Struktur-Leerzeilen rendern gar keinen
+   Hintergrund mehr.
+#3 Doppelter Toggle-Text ("HISTORISCHHISTORISCH") behoben: die Label-Zentrierung hatte das
+   versteckte AN/AUS-Zwillings-Label wieder sichtbar gemacht -- die Anzeige-Erzwingung ist raus,
+   zentriert wird ueber den Container. Es gilt: EIN Name als Text daneben, keine Bubble noetig.
+#4 Der Spalten-Reset-Pfeil steht jetzt am ANFANG des Schalter-Clusters (Pfeil, Info, Schalter) --
+   hinter dem Schalter ragte er ueber die rechte Ausrichtungskante hinaus.
+#5 Plugin-Tab: Die Seite kann MEHRERE Tab-Leisten enthalten (unsichtbare Vorlagen) -- alle
+   bisherigen Fixes hingen am ERSTEN Treffer, auch wenn der unsichtbar war. Der Button haengt
+   sich jetzt an die erste SICHTBARE Leiste, die wirklich die Unterreiter-Pillen enthaelt, und
+   zieht sich selbst dorthin um, falls er auf der falschen geparkt wurde.
+
 ### 2.31.0
 #1 CPU-, RAM- und Bandbreiten-Fenster: Der Platz fuer das Ergebnis-Symbol ist von Anfang an
    reserviert und die Fenster sind entsprechend breiter -- die Felder schrumpfen nicht mehr,
@@ -999,7 +1017,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>6a0b63fe532c4b7e0c42e5ce66eb372b7942ed6a400c7d2c9600dd62a5963635</SHA256>
+  <SHA256>00be549277a70bdbc7da8ff8274aa28aedc0984b2d6cd4d726623ba0a4c82728</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

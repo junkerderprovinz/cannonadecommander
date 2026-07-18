@@ -397,6 +397,13 @@ html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status td.desc .cc-b[
 /* EMPTY usage-bar tracks (structural/spacer rows render a bar div with no fill and no label) painted
    the grey track as a stray dark block at the right end — hide trackless bars outright. */
 html.cc-shares-on.cc-on-main #displaybox .usage-disk:not(.sys):not(.mm):has(> span:last-child:empty) { visibility: hidden !important; }
+/* :empty is blind to an &nbsp;-only label — shares.js/ccVoidBars stamps those (the LAST fleck source) */
+html.cc-shares-on.cc-on-main #displaybox .usage-disk.cc-bar-void { visibility: hidden !important; }
+/* and structural spacer rows render NO background at all, whatever the theme paints on them */
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status tbody tr:not(:has(.cc-b, a.cc-b-browse, select, input, .usage-disk:not(.cc-bar-void))),
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status tbody tr:not(:has(.cc-b, a.cc-b-browse, select, input, .usage-disk:not(.cc-bar-void))) > td {
+  background: transparent !important; box-shadow: none !important; border: none !important;
+}
 /* centre the DS / GROESSE / BENUTZT / FREI columns (8-11; Browse insert makes Device=1, Browse=2,
    user: "benutzt und frei sollen zentriert in der spalte sein ... auch DS und Groesse"). Inline-flex
    value badges centre via text-align; the usage bars centre via their auto margins above. Structural
@@ -534,7 +541,7 @@ html.cc-shares-on.cc-on-main #displaybox a.cc-ud-icon,
 html.cc-shares-on.cc-on-main #displaybox a.cc-ibtn {
   display: inline-flex !important; align-items: center; justify-content: center;
   box-sizing: border-box !important; flex: 0 0 auto;
-  width: var(--cc-md-h, 30px) !important; height: var(--cc-md-h, 30px) !important; padding: 0 !important;
+  width: 24px !important; height: 24px !important; padding: 0 !important;   /* /Main exception (user): icon tiles match the SLIM toggle height, not the 30px menu tier */
   border-radius: min(var(--cc-b-radius, 8px), 8px) !important;
   background: var(--cc-shr-accent, #2f6feb) !important;
   text-decoration: none !important; opacity: 1; transition: filter .12s;
@@ -543,7 +550,7 @@ html.cc-shares-on.cc-on-main #displaybox a.cc-ud-icon,
 html.cc-shares-on.cc-on-main #displaybox a.cc-ud-icon *,
 html.cc-shares-on.cc-on-main #displaybox a.cc-ibtn,
 html.cc-shares-on.cc-on-main #displaybox a.cc-ibtn * {
-  font-size: 15px !important; line-height: 1 !important; color: var(--cc-shr-accent-text, #fff) !important;
+  font-size: 13px !important; line-height: 1 !important; color: var(--cc-shr-accent-text, #fff) !important;   /* glyph proportional to the 24px tile, dead-centred by the flex box */
 }
 html.cc-shares-on.cc-on-main #displaybox a.cc-ud-icon:hover,
 html.cc-shares-on.cc-on-main #displaybox a.cc-ibtn:hover { filter: brightness(1.14); }
@@ -560,10 +567,13 @@ html.cc-shares-on.cc-on-main.cc-sections-main #displaybox .cc-card-head > .cc-ud
 }
 /* EVERY moved child joins the flex row (generic — the live UD build's wrapper classes vary; the
    v2.27.0 :is(span.right.ud, div.right.ud) selector missed them -> the vertical pile-up) */
-html.cc-shares-on.cc-on-main #displaybox .cc-ud-ctrls > * { display: inline-flex !important; align-items: center; gap: 8px; float: none !important; margin: 0 !important; position: static !important; height: var(--cc-md-h, 30px); }
+html.cc-shares-on.cc-on-main #displaybox .cc-ud-ctrls > * { display: inline-flex !important; align-items: center; gap: 8px; float: none !important; margin: 0 !important; position: static !important; }
+/* NO display forcing on the labels: switchButton keeps a hidden ON/OFF twin label toggled via
+   inline .show()/.hide() — forcing display:inline-flex!important resurrected the hidden twin
+   ("HISTORISCHHISTORISCH"). Centre via the flex parent instead. */
 html.cc-shares-on.cc-on-main #displaybox .cc-ud-ctrls span.switch-button-label {
   float: none; font-size: var(--cc-md-fs, 13px); font-weight: 600; letter-spacing: .4px;
-  display: inline-flex !important; align-items: center; height: var(--cc-md-h, 30px); line-height: var(--cc-md-h, 30px); margin: 0 !important; padding: 0 !important;   /* label vertically centred on the 30px control line (user: Texte richtig ausrichten) */
+  line-height: 1; align-self: center; margin: 0 !important; padding: 0 !important;
 }
 /* ═══ Unassigned Devices B2: the three UD tables in the /Main list look (mirror of the disk_status
    block above — UD tables are usb_mounts/samba_mounts/usb_absent, NOT table.unraid.disk_status). */
@@ -604,7 +614,7 @@ html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mount
    .switch-button-button knob; the source checkbox is hidden). Recolour/round ONLY, never the JS-driven
    inline geometry — same proven pattern as the Docker/VM autostart toggles (docker.css/VmTab.css). */
 html.cc-shares-on.cc-on-main #displaybox .switch-button-background {
-  width: 54px !important; height: var(--cc-md-h, 30px) !important; border-radius: min(var(--cc-b-radius, 999px), 15px) !important;   /* ONE 30px control line (user popup choice); 15px cap = half the track, pill unchanged, ECKIG goes square */
+  width: 44px !important; height: 24px !important; border-radius: min(var(--cc-b-radius, 999px), 12px) !important;   /* REVERTED to the slim toggle (user: 30px war "zu gross und klobig"); 12px cap = half the track, pill unchanged, ECKIG goes square */
   border: none !important; outline: none !important; box-shadow: none !important;
   background: #3a3a3a !important; transform: none !important; position: relative !important;
   display: inline-block; vertical-align: middle; margin: 0 12px 0 3px !important; cursor: pointer;   /* !important: UD's unassigned.css ships .switch-button-background{margin-top:2px!important} */
@@ -612,10 +622,10 @@ html.cc-shares-on.cc-on-main #displaybox .switch-button-background {
 }
 html.cc-shares-on.cc-on-main #displaybox .switch-button-background.checked { background: var(--cc-shr-accent, #2f6feb) !important; }
 html.cc-shares-on.cc-on-main #displaybox .switch-button-background .switch-button-button {
-  width: 24px !important; height: 24px !important; top: 3px !important; left: 3px !important;
-  border-radius: min(var(--cc-b-radius, 999px), 12px) !important; background: #fff !important; box-shadow: none !important; border: none !important; transition: left .15s;   /* 12px cap = half the knob, stays inside the track */
+  width: 18px !important; height: 18px !important; top: 3px !important; left: 3px !important;
+  border-radius: min(var(--cc-b-radius, 999px), 9px) !important; background: #fff !important; box-shadow: none !important; border: none !important; transition: left .15s;   /* 9px cap = half the knob, stays inside the track */
 }
-html.cc-shares-on.cc-on-main #displaybox .switch-button-background.checked .switch-button-button { left: 27px !important; }
+html.cc-shares-on.cc-on-main #displaybox .switch-button-background.checked .switch-button-button { left: 21px !important; }
 /* label centring: the UD containers are inline-block with FLOATED switchButton children (webgui
    jquery.switchbutton.css floats label+track), so the label rode high. Flex-centre the whole cluster;
    floats become flex items, the plugin's inline .show()/.hide() on the twin labels survives. */

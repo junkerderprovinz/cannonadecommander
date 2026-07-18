@@ -381,6 +381,18 @@
   // while the buttons stay pinned on the row at ANY width. Mirrors shares.js ccDiskioMove. Idempotent
   // (parent check); native .show()/.hide() + inline onclick are id-bound and survive the move; reverts
   // on reload when the area is disabled (paint() gates before calling this).
+  // pick the RIGHT nav strip: the page can hold MORE THAN ONE nav.tabs (hidden templates /
+  // nested layouts) — querySelector's first hit could be an invisible one, and every layout
+  // rule we hang on the WRONG nav leaves the visible strip untouched (the "immer noch zu
+  // tief" that survived every fix). Choose the first VISIBLE nav.tabs that really contains
+  // the sub-tab pills.
+  function plugNav(db) {
+    var navs = db.querySelectorAll("nav.tabs");
+    for (var i = 0; i < navs.length; i++) {
+      if (navs[i].offsetParent !== null && navs[i].offsetHeight && navs[i].querySelector("button[role='tab']")) return navs[i];
+    }
+    return navs[0] || null;
+  }
   // measure-and-pin: reset the group to its in-flow home, compare its centre to the first pill's
   // centre, and pin it absolutely from the REAL rectangles if they diverge. Inline "important"
   // styles — unbeatable by any stylesheet; re-run by timers because late CSS/font loads can move
@@ -388,7 +400,7 @@
   var plugTimersArmed = false;
   function plugRealign() {
     try {
-      var navt = (document.getElementById("displaybox") || document).querySelector("nav.tabs"); if (!navt) return;
+      var navt = plugNav(document.getElementById("displaybox") || document); if (!navt) return;
       var cont = navt.querySelector(".tabs-container"), host = document.getElementById("cc-plugbtns");
       if (!cont || !host || !host.offsetHeight) return;
       var tab0 = cont.querySelector("button[role='tab']"); if (!tab0) return;
@@ -407,10 +419,11 @@
   }
   function relocateChecks() {
     try {
-      var navt = (document.getElementById("displaybox") || document).querySelector("nav.tabs"); if (!navt) return;
+      var navt = plugNav(document.getElementById("displaybox") || document); if (!navt) return;
       var cont = navt.querySelector(".tabs-container"); if (!cont) return;
       var host = document.getElementById("cc-plugbtns");
       if (!host) { host = document.createElement("div"); host.id = "cc-plugbtns"; navt.appendChild(host); }
+      else if (host.parentNode !== navt) navt.appendChild(host);   // heal a host parked on the WRONG (hidden) nav from an earlier pass
       navt.classList.add("cc-has-plugbtns");   // plain-class key for the layout rules — :has() + non-!important position lost the cascade to the theme and the group wrapped BELOW the pill row
       ["checkall", "updateall", "removeall"].forEach(function (id) {
         var s = document.getElementById(id);

@@ -507,7 +507,7 @@ select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repea
    widget still works and clicks are still Unraid's — only the look changes. */
 .cc-enh #docker_list .switch-button-background,
 .ToggleViewMode .switch-button-background {
-  width: 54px !important; height: var(--cc-md-h, 30px) !important; border-radius: 999px !important;   /* ONE 30px control line (user popup choice) */
+  width: 44px !important; height: 24px !important; border-radius: 999px !important;   /* slim toggle (30px reverted: "zu gross und klobig") */
   border: none !important; outline: none !important; box-shadow: none !important;
   background: #3a3a3a !important; transform: none !important; position: relative !important;
   display: inline-block; vertical-align: middle; margin: 0 12px 0 3px; cursor: pointer;
@@ -517,12 +517,12 @@ select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repea
 .ToggleViewMode .switch-button-background.checked { background: var(--cc-accent, #2f6feb) !important; }
 .cc-enh #docker_list .switch-button-background .switch-button-button,
 .ToggleViewMode .switch-button-background .switch-button-button {
-  width: 24px !important; height: 24px !important; top: 3px !important; left: 3px !important;
+  width: 18px !important; height: 18px !important; top: 3px !important; left: 3px !important;
   border-radius: 50% !important; background: #fff !important; box-shadow: none !important;
   border: none !important; transition: left .15s;
 }
 .cc-enh #docker_list .switch-button-background.checked .switch-button-button,
-.ToggleViewMode .switch-button-background.checked .switch-button-button { left: 27px !important; }
+.ToggleViewMode .switch-button-background.checked .switch-button-button { left: 21px !important; }
 /* hide the AN/AUS text next to the PER-ROW autostart switch only. The Basic/Advanced
    view toggle (div.ToggleViewMode, OUTSIDE the table) keeps its label. */
 .cc-enh #docker_list .switch-button-label { display: none !important; }
@@ -831,13 +831,12 @@ html.cc-plugins-iconbg .cc-plugico {
 }
 #cc-settings .cc-set-ibtn:hover { filter: brightness(1.14); }
 html.cc-shape-circle #cc-settings .cc-set-ibtn { border-radius: 50%; }
-/* ONE 30px control line (user popup choice): every CC toggle matches the menu-bar measure */
-.cc-set-toggle { width: 54px; height: var(--cc-md-h, 30px); border-radius: 999px; border: none !important; padding: 0 !important; background: #3a3a3a; position: relative; cursor: pointer; transition: background .15s; flex: none; box-sizing: border-box; }
+.cc-set-toggle { width: 44px; height: 24px; border-radius: 999px; border: none !important; padding: 0 !important; background: #3a3a3a; position: relative; cursor: pointer; transition: background .15s; flex: none; box-sizing: border-box; }   /* slim toggle (30px reverted: "zu gross und klobig") */
 .cc-set-toggle-on { background: var(--cc-btn-accent, var(--cc-accent, #2f6feb)); }
 /* in rainbow mode the ON toggles wear the rainbow, matching the badge scheme */
 #cc-settings.cc-rainbow .cc-set-toggle-on { background: var(--cc-btn-accent, var(--cc-accent, #2f6feb)); }
-.cc-set-knob { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: left .15s; }
-.cc-set-toggle-on .cc-set-knob { left: 27px; }
+.cc-set-knob { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: left .15s; }
+.cc-set-toggle-on .cc-set-knob { left: 21px; }
 .cc-set-tbl { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
 .cc-set-tbl th { color: var(--dim2); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; font-weight: 500; padding: 4px 10px; text-align: center; }
 .cc-set-tbl td { padding: 5px 10px; border-top: 1px solid var(--line); }
@@ -951,14 +950,11 @@ html.cc-docker-on.cc-on-addct #canvas a[href="javascript:addConfigPopup()"] { co
    recolour-only pattern from the container-list rules above: track + knob + accent-on. */
 html.cc-docker-on.cc-on-addct .switch-button-background {
   background: #3a3a3a !important; border: none !important; box-shadow: none !important; border-radius: 999px !important;
-  width: 54px !important; height: var(--cc-md-h, 30px) !important; box-sizing: border-box;   /* ONE 30px control line */
 }
 html.cc-docker-on.cc-on-addct .switch-button-background.checked { background: var(--cc-accent, #2f6feb) !important; }
 html.cc-docker-on.cc-on-addct .switch-button-background .switch-button-button {
   background: #dcdcdc !important; border: none !important; box-shadow: none !important; border-radius: 999px !important;
-  width: 24px !important; height: 24px !important; top: 3px !important;
 }
-html.cc-docker-on.cc-on-addct .switch-button-background.checked .switch-button-button { left: 27px !important; }
 /* CPU-Zuweisung grid (label.checkbox > input#boxN + span.checkmark): accent the checked pin */
 html.cc-docker-on.cc-on-addct #canvas label.checkbox .checkmark { background: rgba(255, 255, 255, .12) !important; border: none !important; border-radius: 4px; }
 html.cc-docker-on.cc-on-addct #canvas label.checkbox input:checked ~ .checkmark { background: var(--cc-accent, #2f6feb) !important; }

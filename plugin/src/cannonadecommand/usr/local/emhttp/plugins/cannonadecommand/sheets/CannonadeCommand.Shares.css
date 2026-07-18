@@ -630,6 +630,14 @@ html.cc-shares-on.cc-on-main #displaybox div.title.ud :is(span.right, div.right,
   display: inline-flex !important; align-items: center; gap: 10px; justify-content: flex-end;
 }
 html.cc-shares-on.cc-on-main #displaybox .cc-ud-ctrls { justify-content: flex-end; gap: 8px; }
+/* the live UD build boxes every control in a div.right.ud.ud_titleFix WIDER than its content
+   (44px around a 24px icon, 64px around a 44px track) — the flex gap rode on top of that hidden
+   air, so 8px read as 28px. Shrink the boxes to content; the gap is the only spacing.
+   (rule live-injected on the box first: gaps 8/8/8/8, one line, right edge unchanged) */
+html.cc-shares-on.cc-on-main #displaybox .cc-ud-ctrls div.right.ud {
+  padding: 0 !important; margin: 0 !important; width: auto !important; min-width: 0 !important;
+  display: inline-flex !important; align-items: center;
+}
 /* tidy, EVEN spacing inside the cluster (user: "alle zueinander ausrichten, schoen geordnet"):
    the switch tracks and every child drop their native lopsided margins — the gap is the ONLY
    spacing, so icons and toggles sit on one rhythm. */

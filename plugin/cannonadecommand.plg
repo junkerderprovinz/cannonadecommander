@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.32.8">
+  <!ENTITY version   "2.32.9">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,12 @@
 </ICON>
 
 <CHANGES>
+### 2.32.9
+- #1 Unassigned Devices: Die Abstaende im Icon/Schalter-Cluster sind jetzt WIRKLICH klein (8px) --
+  die UD-Bauweise steckt jede Kontrolle in eine unsichtbar BREITERE Box (44px um ein 24px-Icon),
+  auf der die Luecke aufsattelte und 8px wie 28px wirkten. Die Boxen schrumpfen jetzt auf ihren
+  Inhalt; die Regel wurde vor dem Release live in der WebUI injiziert und mit 8/8/8/8 vermessen.
+
 ### 2.32.8
 - #1 Hauptseite: Die Status-Pillen (Gestartet / Paritaetspruefung) stehen jetzt im GLEICHEN
   Abstand untereinander wie die Buttons rechts (16px-Luecke, 52px-Raster) -- der Pillen-Stapel
@@ -1188,7 +1194,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>099c813a07aa97bc9aa86890c4a4f9ab6319ba977e2ccf1bf94c664c7aaa5f3b</SHA256>
+  <SHA256>d432feff743fdd74af2718721867ca7ef5197bfc07d07e64c3e940d2aca17525</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

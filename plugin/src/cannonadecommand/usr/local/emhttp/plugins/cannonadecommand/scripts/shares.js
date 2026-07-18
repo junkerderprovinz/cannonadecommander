@@ -1098,14 +1098,19 @@
   // icons — hide them wherever they ended up (user: "text schwebt frei herum").
   function ccUdLoose() {
     try {
-      // LEAF elements of any kind (the first pass only scanned inputs/anchors and missed the
-      // element type this UD build actually uses); NBSP-normalised compare.
-      var els = document.querySelectorAll("#displaybox input[type='button'], #displaybox input[type='submit'], #displaybox a, #displaybox span, #displaybox div, #displaybox b, #displaybox u");
-      for (var i = 0; i < els.length; i++) {
-        var e2 = els[i];
-        if (e2.tagName !== "INPUT" && e2.childElementCount > 0) continue;   // leaves only — never hide a container
-        var t2 = ((e2.value || e2.textContent || "") + "").replace(new RegExp(String.fromCharCode(160), "g"), " ").replace(/\s+/g, " ").trim().toUpperCase();
-        if (t2 === "UNASSIGNED DEVICES SETTINGS" || t2 === "REFRESH DISKS AND CONFIGURATION") e2.classList.add("cc-ud-hidden");
+      // The texts are UD's hover-reveal companions of the gear/refresh anchors and can carry an
+      // icon CHILD (the leaf-only guard skipped exactly those). Scan the UD control scopes for
+      // ANY element whose whole normalised text equals a target — excluding real-control hosts.
+      var scopes = document.querySelectorAll("#displaybox .cc-ud-ctrls, #displaybox div.title.ud, #displaybox [id*='unassigned' i]");
+      for (var s0 = 0; s0 < scopes.length; s0++) {
+        var cand = scopes[s0].querySelectorAll("*");
+        for (var i = 0; i < cand.length; i++) {
+          var e2 = cand[i];
+          if (e2.classList.contains("cc-ud-hidden")) continue;
+          if (e2.querySelector(".switch-button-background, a.cc-ud-icon, input")) continue;   // never a container of real controls
+          var t2 = ((e2.value || e2.textContent || "") + "").replace(new RegExp(String.fromCharCode(160), "g"), " ").replace(/\s+/g, " ").trim().toUpperCase();
+          if (t2 === "UNASSIGNED DEVICES SETTINGS" || t2 === "REFRESH DISKS AND CONFIGURATION") e2.classList.add("cc-ud-hidden");
+        }
       }
     } catch (e) {}
   }
@@ -1116,9 +1121,22 @@
     try {
       var hosts = document.querySelectorAll("#displaybox .cc-ud-ctrls, #displaybox div.title.ud :is(span.right, div.right, span.right.ud, div.right.ud)");
       for (var h = 0; h < hosts.length; h++) {
+        // PER-TRACK titles (user: "auf den drei toggles kommt immer der gleiche hover text"):
+        // when all three switchButtons share ONE wrapper, the wrapper-level title from the first
+        // label won every hover. Each track gets ITS OWN label's title; a multi-track wrapper
+        // loses its stale bulk title.
+        var trks = hosts[h].querySelectorAll(".switch-button-background");
+        for (var t3 = 0; t3 < trks.length; t3++) {
+          var trk = trks[t3], lb = trk.previousElementSibling, lbt = "";
+          if (!(lb && lb.classList && lb.classList.contains("switch-button-label"))) lb = trk.nextElementSibling;
+          if (lb && lb.classList && lb.classList.contains("switch-button-label")) lbt = (lb.textContent || "").trim();
+          if (!lbt && trk.parentNode) { var pl = trk.parentNode.querySelector(".switch-button-label"); if (pl) lbt = (pl.textContent || "").trim(); }
+          if (lbt && trk.getAttribute("title") !== lbt) trk.setAttribute("title", lbt);
+        }
         var kids = hosts[h].children;
         for (var k = 0; k < kids.length; k++) {
           var kd = kids[k];
+          if (kd.querySelectorAll && kd.querySelectorAll(".switch-button-background").length > 1) { kd.removeAttribute("title"); continue; }   // bulk wrapper: its single title was the bug
           if (kd.getAttribute("title")) continue;
           var lbl = kd.querySelector ? kd.querySelector(".switch-button-label") : null;
           if (lbl) { kd.setAttribute("title", (lbl.textContent || "").trim()); continue; }
@@ -1414,10 +1432,40 @@
       }
     } catch (e) {}
   }
+  // the status pills leave their grid rows for an OWN tight stack (user: "gleicher abstand
+  // untereinander wie die anderen buttons" — inside the rows their distance is dictated by the
+  // row heights, which can never equal the 16px button gap). Each pill remembers its home cell
+  // so aopTeardown can hand it back before unwrapping.
+  var ccPillSeq = 0;
+  function ccAopPillStack(box) {
+    try {
+      var t0 = box.querySelector("table.array_status"); if (!t0) return;
+      var sec = t0.closest("section") || box;
+      var stack = sec.querySelector(".cc-aop-pills");
+      var pills = box.querySelectorAll("table.array_status td.cc-aop-st > .cc-b.cc-aop-status");
+      if (pills.length && !stack) { stack = el("div", "cc-aop-pills"); sec.insertBefore(stack, t0); }
+      if (!stack) return;
+      for (var i = 0; i < pills.length; i++) {
+        var home = pills[i].parentNode;
+        if (!home.getAttribute("data-cc-aop-pillhome")) home.setAttribute("data-cc-aop-pillhome", String(++ccPillSeq));
+        pills[i].setAttribute("data-cc-aop-pillref", home.getAttribute("data-cc-aop-pillhome"));
+        stack.appendChild(pills[i]);
+      }
+      // top edge = first button top (same measurement contract as the parity card)
+      if (window.getComputedStyle(stack).position === "absolute") {
+        var fb2 = box.querySelector("table.array_status input[type='button'], table.array_status input[type='submit'], table.array_status button, table.array_status a.button");
+        if (fb2) {
+          var off2 = Math.round(fb2.getBoundingClientRect().top - sec.getBoundingClientRect().top);
+          if (off2 > 0 && Math.abs((parseInt(stack.style.top, 10) || 0) - off2) > 1) stack.style.top = off2 + "px";
+        }
+      }
+    } catch (e) {}
+  }
   function enhanceArrayOps(box) {
     try {
       var tables = box.querySelectorAll("table.array_status");
       for (var i = 0; i < tables.length; i++) { var rows = tables[i].rows; for (var r = 0; r < rows.length; r++) { aopStatusBadge(rows[r]); enhanceArrayOpRow(rows[r]); } }
+      ccAopPillStack(box);    // AFTER badging: pills -> their own tight stack (refs for teardown)
       ccAopParityCard(box);   // AFTER the row pass: progress rows -> the side card (rows moved with ids intact)
     } catch (e) {}
   }
@@ -1451,12 +1499,23 @@
       // un-fold mixed-cell prose: unwrap our text-node wrappers, strip the hide class off in-place elements
       var hid = document.querySelectorAll("#displaybox table.array_status .cc-aop-hide");
       for (var h = 0; h < hid.length; h++) { var n = hid[h]; if (n.tagName === "SPAN" && n.getAttribute("data-cc-aop-w") === "1") ccUnwrap(n); else n.classList.remove("cc-aop-hide"); }
+      // stacked pills -> back into their home cells FIRST (the stack holds the live native nodes)
+      var pstack = document.querySelector("#displaybox .cc-aop-pills");
+      if (pstack) {
+        var spb = pstack.querySelectorAll(".cc-b.cc-aop-status[data-cc-aop-pillref]");
+        for (var sp3 = 0; sp3 < spb.length; sp3++) {
+          var ref3 = spb[sp3].getAttribute("data-cc-aop-pillref");
+          var home3 = document.querySelector('#displaybox table.array_status td[data-cc-aop-pillhome="' + ref3 + '"]');
+          if (home3) home3.appendChild(spb[sp3]);
+        }
+        pstack.parentNode.removeChild(pstack);
+      }
       // un-badge the state/parity status pills (children move back into the cell, orb tooltip intact)
       var stb = document.querySelectorAll("#displaybox table.array_status td.cc-aop-st");
       for (var s = 0; s < stb.length; s++) {
         var bb = stb[s].querySelector(":scope > .cc-b.cc-aop-status");
         if (bb) { var vv = bb.querySelector(":scope > .cc-b-v"); if (vv) ccUnwrap(vv); ccUnwrap(bb); }
-        stb[s].classList.remove("cc-aop-st");
+        stb[s].classList.remove("cc-aop-st"); stb[s].removeAttribute("data-cc-aop-pillhome");
       }
       var marked = document.querySelectorAll("#displaybox table.array_status tr[data-cc-aop]");
       for (var m = 0; m < marked.length; m++) marked[m].removeAttribute("data-cc-aop");

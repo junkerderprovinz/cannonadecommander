@@ -21,7 +21,7 @@
       // NO button[role=tab] and NO .tabs-container on this page, so every earlier pass (and this
       // loop's first version) bailed out silently at this exact line. Labels first, modern
       // variants as fallbacks.
-      var tab = null, cands = db.querySelectorAll("div.tabs label, .tabs label, button[role='tab'], .tabs-container > *");
+      var tab = null, cands = db.querySelectorAll("div.tab input[type=radio] + label, .tabbed input[type=radio] + label, div.tab label, .tabbed label, div.tabs label, .tabs label, button[role='tab'], .tabs-container > *");   // div.tab (SINGULAR) + .tabbed = the REAL wrapper classes our own docker.css styles (576-585) — v2.31.6 searched div.tabS and missed again
       for (var i = 0; i < cands.length; i++) { var cr0 = cands[i].getBoundingClientRect(); if (cands[i].offsetHeight && cr0.width) { tab = cands[i]; break; } }
       if (!tab) return;
       var host = document.getElementById("cc-plugbtns");

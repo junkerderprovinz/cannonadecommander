@@ -1327,15 +1327,21 @@ html.cc-shares-rbneutral.cc-on-main #displaybox table.unraid.disk_status tr:hove
 html.cc-shares-on.cc-shares-rbneutral.cc-on-main #displaybox table.unraid.disk_status tr:hover a.cc-b-browse {
   background: var(--cc-rb-c, var(--cc-shr-accent, #2f6feb)) !important; color: var(--cc-rb-ct, var(--cc-shr-accent-text, #fff)) !important;
 }
-/* status pills share the buttons' vertical rhythm (user: "gleicher abstand wie die anderen
-   buttons"): ONLY cells that actually hold a pill get the 36px pitch — the first version put
-   min-height on EVERY first-column cell and inflated the empty rows between the two pills,
-   which made their distance BIGGER than the button gap. */
+/* status pills live in their OWN tight stack (user: "gleicher abstand untereinander wie die
+   anderen buttons") — inside the grid rows their distance was dictated by the row heights and
+   could never equal the 16px button gap; ccAopPillStack moves the pills out (teardown returns
+   them). Row pitch: 36px pill line + 16px gap = the buttons' rhythm exactly. */
 html.cc-shares-on.cc-on-main #displaybox table.array_status tr > td:nth-child(1) { padding-top: 0; padding-bottom: 0; min-height: 0; }
-html.cc-shares-on.cc-on-main #displaybox table.array_status tr > td:nth-child(1):has(.cc-b) {
-  display: flex; align-items: center; min-height: var(--cc-lgb-h, 36px);
-  padding-top: 8px; padding-bottom: 8px;
+html.cc-shares-on.cc-on-main #displaybox .cc-aop-pills {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 16px;
 }
+html.cc-shares-on.cc-on-main #displaybox .cc-aop-pills > .cc-b.cc-aop-status {
+  min-height: var(--cc-lgb-h, 36px); display: inline-flex; align-items: center;
+}
+html.cc-shares-on.cc-on-main.cc-sections-main #displaybox section .cc-aop-pills {
+  position: absolute; left: 0; top: 52px; z-index: 1;   /* base offset; JS pins to the first button's measured top */
+}
+html.cc-shares-on.cc-on-main:not(.cc-sections-main) #displaybox .cc-aop-pills { margin: 8px 0 12px; }
 /* v2.31.0/.2: the sub-mode also covers the ARRAY-VORGANG badges — EXCEPT the semantic status
    pills (user: "gestartet und paritaetspruefung ... sollen nicht reaktiv sein und immer ihre
    zustandsfarbe haben"): those keep their state colours and never recolour. */

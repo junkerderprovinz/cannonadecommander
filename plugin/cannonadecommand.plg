@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.32.4">
+  <!ENTITY version   "2.32.5">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,10 @@
 </ICON>
 
 <CHANGES>
+### 2.32.5
+- #1 Popup-Fenster: Der Titel-Badge ist jetzt LINKSBUENDIG und GROESSER (36px, kraeftigere
+  Schrift) -- in den Dialogfenstern wie in den Bestaetigungs-Popups.
+
 ### 2.32.4
 - #1 Plugin-Tab: Der Aktualisierungen-Button richtet sich jetzt am OPTISCH rechtesten Element
   der Menueleiste aus (Maximum ueber alle sichtbaren Icons + Fuellstandsanzeige) -- die per
@@ -1162,7 +1166,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>9f09ce54078df1f49d517bfeb978cb0f6eddb0f02da38304ac778c86e4e2071e</SHA256>
+  <SHA256>25d7270f6d4d8a42bdca12882f00cd760d13b66ed2f5c02e33cba4cfdddfb3a8</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

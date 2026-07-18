@@ -173,20 +173,22 @@ html.cc-popups-on .ui-dialog {
 html.cc-popups-on .ui-dialog .ui-dialog-titlebar {
   background: transparent !important; border: none !important; border-radius: 0 !important;
   padding: 16px 18px 8px !important;
+  display: flex !important; align-items: center !important; justify-content: flex-start !important;   /* badge LEFT (user: "nicht linksbuendig") */
 }
 html.cc-popups-on .ui-dialog .ui-dialog-title {
-  display: inline-flex !important; align-items: center;
-  height: var(--cc-md-h, 30px); padding: 0 16px; border-radius: var(--cc-b-radius, 999px);
+  display: inline-flex !important; align-items: center; float: none !important; margin: 0 !important;
+  height: 36px; padding: 0 20px; border-radius: var(--cc-b-radius, 999px);   /* lg tier (user: "zu klein") */
   background: var(--cc-hdr-accent, #2f6feb); color: var(--cc-hdr-accent-text, #fff) !important;
-  font-size: var(--cc-md-fs, 13px) !important; font-weight: 600 !important;
+  font-size: 14px !important; font-weight: 600 !important;
   text-transform: uppercase !important; letter-spacing: .8px !important;
 }
+html.cc-popups-on .sweet-alert { text-align: left !important; }
 html.cc-popups-on .sweet-alert h2 {
-  display: inline-flex !important; align-items: center; justify-content: center;
-  height: var(--cc-md-h, 30px); padding: 0 16px !important; border-radius: var(--cc-b-radius, 999px);
+  display: inline-flex !important; align-items: center; float: none !important;
+  height: 36px; padding: 0 20px !important; border-radius: var(--cc-b-radius, 999px);
   background: var(--cc-hdr-accent, #2f6feb); color: var(--cc-hdr-accent-text, #fff) !important;
-  font-size: var(--cc-md-fs, 13px) !important; font-weight: 600 !important;
-  text-transform: uppercase !important; letter-spacing: .8px !important; margin: 0 auto 10px !important;
+  font-size: 14px !important; font-weight: 600 !important;
+  text-transform: uppercase !important; letter-spacing: .8px !important; margin: 0 0 12px 0 !important;   /* LEFT, not centred */
 }
 html.cc-popups-on .ui-dialog .ui-dialog-titlebar-close {
   border: none !important; background: transparent !important; box-shadow: none !important; opacity: .7;

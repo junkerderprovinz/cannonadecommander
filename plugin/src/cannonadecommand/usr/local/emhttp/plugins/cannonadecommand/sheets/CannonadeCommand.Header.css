@@ -173,10 +173,13 @@ html.cc-popups-on .ui-dialog {
 html.cc-popups-on .ui-dialog .ui-dialog-titlebar {
   background: transparent !important; border: none !important; border-radius: 0 !important;
   padding: 16px 18px 8px !important;
-  display: flex !important; align-items: center !important; justify-content: flex-start !important;   /* badge LEFT (user: "nicht linksbuendig") */
+  display: flex !important; align-items: center !important; justify-content: flex-start !important;
 }
+/* v2.33.1 (user): the badge spans the FULL width, its text centred — flex:1 (not width:100%) so
+   the ui-dialog close X keeps its slot in the flex titlebar. */
 html.cc-popups-on .ui-dialog .ui-dialog-title {
-  display: inline-flex !important; align-items: center; float: none !important; margin: 0 !important;
+  display: flex !important; align-items: center; justify-content: center !important;
+  flex: 1 1 auto; float: none !important; margin: 0 !important; box-sizing: border-box !important;
   height: 36px; padding: 0 20px; border-radius: var(--cc-b-radius, 999px);   /* lg tier (user: "zu klein") */
   background: var(--cc-hdr-accent, #2f6feb); color: var(--cc-hdr-accent-text, #fff) !important;
   font-size: 14px !important; font-weight: 600 !important;
@@ -184,12 +187,12 @@ html.cc-popups-on .ui-dialog .ui-dialog-title {
 }
 html.cc-popups-on .sweet-alert { text-align: left !important; }
 html.cc-popups-on .sweet-alert h2 {
-  display: inline-flex !important; align-items: center; float: none !important;
-  width: fit-content !important; max-width: 100% !important;   /* HUGS its text (live-measured: it stretched to 1160px full width) */
+  display: flex !important; align-items: center; justify-content: center !important; float: none !important;
+  width: 100% !important; box-sizing: border-box !important;   /* v2.33.1 (user): full-width badge, centred text */
   height: 36px; padding: 0 20px !important; border-radius: var(--cc-b-radius, 999px);
   background: var(--cc-hdr-accent, #2f6feb); color: var(--cc-hdr-accent-text, #fff) !important;
   font-size: 14px !important; font-weight: 600 !important;
-  text-transform: uppercase !important; letter-spacing: .8px !important; margin: 0 0 12px 0 !important;   /* LEFT, not centred */
+  text-transform: uppercase !important; letter-spacing: .8px !important; margin: 0 0 12px 0 !important;
 }
 html.cc-popups-on .ui-dialog .ui-dialog-titlebar-close {
   border: none !important; background: transparent !important; box-shadow: none !important; opacity: .7;
@@ -199,10 +202,10 @@ html.cc-popups-on .ui-dialog .ui-widget-content,
 html.cc-popups-on .ui-dialog .ui-dialog-content {
   background: #161616 !important; border: none !important; color: #d6d6d6 !important;
 }
-/* dialog buttons: LARGE (lg tier) and LEFT-aligned (user) */
+/* dialog buttons: LARGE (lg tier), horizontally CENTRED (user, v2.33.1) */
 html.cc-popups-on .ui-dialog .ui-dialog-buttonpane {
   background: #161616 !important; border: none !important; margin: 0 !important; padding: 10px 18px 16px !important;
-  text-align: left !important; display: flex !important; justify-content: flex-start !important; gap: 10px;
+  text-align: center !important; display: flex !important; justify-content: center !important; gap: 10px;
 }
 html.cc-popups-on .ui-dialog .ui-dialog-buttonpane .ui-dialog-buttonset { float: none !important; margin: 0 !important; display: inline-flex; gap: 10px; }
 html.cc-popups-on .ui-dialog .ui-dialog-buttonpane button,
@@ -228,11 +231,10 @@ html.cc-popups-on .sweet-alert {
 /* (sweet-alert h2 badge styling above) */
 html.cc-popups-on .sweet-alert p, html.cc-popups-on .sweet-alert .sa-text { color: #bdbdbd !important; }
 html.cc-popups-on .sweet-alert hr { display: none !important; }
-/* button row as a LEFT flex — a block-level button ignores text-align (live-measured: FERTIG sat
-   centred despite the container's text-align:left) */
+/* button row as a flex row (a block-level button ignores text-align) — CENTRED (user, v2.33.1) */
 html.cc-popups-on .sweet-alert .sa-button-container,
 html.cc-popups-on .sweet-alert p:has(> button.confirm) {
-  text-align: left !important; display: flex !important; justify-content: flex-start !important; gap: 10px;
+  text-align: center !important; display: flex !important; justify-content: center !important; gap: 10px;
 }
 html.cc-popups-on .sweet-alert button.confirm,
 html.cc-popups-on .sweet-alert button.cancel,
@@ -241,7 +243,7 @@ html.cc-popups-on .sweet-alert .sa-button-container button {
   display: inline-flex !important; align-items: center; float: none !important;
   height: 36px !important; padding: 0 24px !important; font-size: 14px !important;
   font-weight: 600 !important; text-transform: uppercase !important;
-  letter-spacing: .6px !important; transition: filter .12s; margin: 0 10px 0 0 !important;
+  letter-spacing: .6px !important; transition: filter .12s; margin: 0 !important;   /* the flex gap spaces them — a one-sided margin would skew the centring */
 }
 html.cc-popups-on .sweet-alert button.confirm { background: var(--cc-hdr-accent, #2f6feb) !important; color: var(--cc-hdr-accent-text, #fff) !important; }
 html.cc-popups-on .sweet-alert button.cancel { background: #2e2e2e !important; color: #e6e6e6 !important; }

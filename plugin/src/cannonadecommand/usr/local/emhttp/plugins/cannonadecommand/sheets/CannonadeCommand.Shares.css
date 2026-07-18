@@ -312,6 +312,12 @@ html.cc-shares-on.cc-on-main #displaybox div.title { margin-top: 32px; }
 /* header tint, matching the /Shares share_status header (consistency). */
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status thead td,
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status thead th { background: rgba(128, 128, 128, .14); font-weight: 600; white-space: nowrap; padding: 8px 14px; }   /* full header labels (GESCHRIEBEN/FEHLER) = each column's min-content under auto layout -> never ellipsis-clipped again; 14px horizontal matches the body cells */
+/* … but EMPTY header cells get NO tint, and a header row with no text at all disappears — the
+   subpool DIVIDER theads are empty rows, and the tint above painted them as the infamous dark
+   stripe (the one "Fleck" surface all the tbody rounds could never reach). */
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status thead td:empty,
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status thead th:empty { background: transparent !important; padding: 0 !important; }
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status thead tr:not(:has(td:not(:empty), th:not(:empty))) { display: none !important; }
 /* some header bars still drew native rule lines (theme border-bottom on thead cells / div.title
    underline) — none of ours do; strip them page-wide (user: "einige listenleisten haben linien,
    die sollen weg") */
@@ -408,6 +414,7 @@ html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status tbody,
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status tbody tr,
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status tbody td {
   background: transparent !important; background-image: none !important; box-shadow: none !important;
+  border: none !important;   /* the totals row (tr_last) drew a native rule line instead of a background (user: "eine Linie. das soll so nicht sein") */
 }
 html.cc-shares-on.cc-on-main #displaybox .TableContainer { background: transparent !important; background-image: none !important; }
 /* THE REAL FLECK (round 6) + the resize "Huepfen" share one cause: the container's HORIZONTAL
@@ -598,6 +605,13 @@ html.cc-shares-on.cc-on-main #displaybox .cc-ud-ctrls > * { display: inline-flex
 /* labels GONE from the cluster (user: "text nur durch hover sichtbar") — the name lives in the
    wrapper's title tooltip that ccUdCtrlsMove stamps; this also buries the twin-label issue. */
 html.cc-shares-on.cc-on-main #displaybox .cc-ud-ctrls span.switch-button-label { display: none !important; }
+/* UD's loose native text buttons: hidden (shares.js/ccUdLoose marks them — our icons carry the function) */
+html.cc-shares-on.cc-on-main #displaybox .cc-ud-hidden { display: none !important; }
+/* the UD section must never show a frame ("zeigt manchmal ein rahmen"), and its control cluster is
+   flush-RIGHT — same right edge as the read/write toggle above (user). */
+html.cc-shares-on.cc-on-main #displaybox :is(.show-disks, .show-shares, .show-historical, div.title.ud, [id*="unassigned" i]) { border: none !important; box-shadow: none !important; outline: none !important; }
+html.cc-shares-on.cc-on-main #displaybox div.title.ud :is(span.right.ud, div.right.ud) { margin-left: auto !important; float: none !important; }
+html.cc-shares-on.cc-on-main #displaybox .cc-ud-ctrls { justify-content: flex-end; }
 /* ═══ Unassigned Devices B2: the three UD tables in the /Main list look (mirror of the disk_status
    block above — UD tables are usb_mounts/samba_mounts/usb_absent, NOT table.unraid.disk_status). */
 html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mounts, table.usb_absent) thead td {
@@ -1328,10 +1342,8 @@ html.cc-shares-rbneutral.cc-on-main #displaybox table.array_status button:not([r
 html.cc-shares-rbneutral.cc-on-main #displaybox table.array_status a.button:hover {
   background: var(--cc-rb-c, var(--cc-shr-accent, #2f6feb)) !important; color: var(--cc-rb-ct, var(--cc-shr-accent-text, #fff)) !important;
 }
-html.cc-shares-rbneutral.cc-on-main #displaybox form[name="shutdownOps"] input[name="reboot"]:hover:not(:disabled),
-html.cc-shares-rbneutral.cc-on-main #displaybox form[name="shutdownOps"] input[name="shutdown"]:hover:not(:disabled) {
-  background: #d9433f !important; color: #fff !important;
-}
+/* (Reboot/Shutdown follow the SAME palette hover as every other button now — user request; their
+   semantic red still applies outside the rainbow modes via the base rule above.) */
 /* v2.29.0: the sub-mode reaches BELOW Unassigned Devices too (user: "ab unassigned devices abwaerts
    ist nicht alles ... inbegriffen") — the UD tables' value badges follow the same contract: neutral
    grey at rest, whole-row recolour on hover via the tr-stamped vars (now stamped by the UD loop). */

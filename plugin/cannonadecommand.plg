@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.31.3">
+  <!ENTITY version   "2.31.4">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,321 +27,340 @@
 </ICON>
 
 <CHANGES>
+### 2.31.4
+- #1 Veroeffentlichungshinweise sauber formatiert: Unraids Dialog rendert die Notizen als Markdown,
+  wodurch jede "#N"-Zeile zur Riesen-Ueberschrift explodierte -- ALLE Eintraege (auch die alten)
+  sind jetzt Listenpunkte.
+- #2 Plugin-Tab: Die Verankerung haengt nicht mehr an den Element-IDs aus dem Unraid-Quelltext
+  (#checkall usw.) -- stimmen die auf der Box nicht, lief ALLES bisher still ins Leere. Die drei
+  Buttons werden jetzt anhand ihrer Klasse (span.vhshift) adoptiert, egal wie sie heissen.
+- #3 Der dunkle Fleck: Die leeren TRENN-Kopfzeilen zwischen den Gruppen bekamen von unserer
+  eigenen Kopfzeilen-Toenung den dunklen Hintergrund -- leere Kopfzellen sind jetzt ungetoent und
+  komplett leere Kopfzeilen unsichtbar. Zusaetzlich zeichnen Zeilen/Zellen keine Linien mehr
+  (die Trennlinie ueber der Summenzeile ist weg).
+- #4 Unassigned Devices: Die frei schwebenden Text-Buttons ("UNASSIGNED DEVICES SETTINGS",
+  "REFRESH DISKS AND CONFIGURATION") sind ausgeblendet -- ihre Funktion steckt in unseren
+  Zahnrad-/Aktualisieren-Icons; der Abschnitt zeigt keinen Rahmen mehr.
+- #5 Der UD-Kontroll-Cluster sitzt rechtsbuendig auf derselben Kante wie der Lese-/Schreib-
+  Schalter; Zahnrad und Aktualisieren haben jetzt ebenfalls Mouseover-Texte.
+- #6 Neustart und Herunterfahren sind in BEIDE Rainbow-Modi aufgenommen (Palette dauerhaft bzw.
+  nur beim Ueberfahren); ausserhalb der Rainbow-Modi behalten sie ihr semantisches Rot.
+
 ### 2.31.3
-#1 Plugin-Tab: Die Button-Verankerung laeuft jetzt in einer EIGENSTAENDIGEN Schleife, voellig
+- #1 Plugin-Tab: Die Button-Verankerung laeuft jetzt in einer EIGENSTAENDIGEN Schleife, voellig
    unabhaengig vom uebrigen Skript (eigener Timer, eigene Fehlerbehandlung) -- ein Fehler
    irgendwo anders konnte bisher die gesamte Verankerung still ausfallen lassen; das ist die
    einzige Erklaerung, die zu allen bisherigen Fehlrunden passt. Die Gruppe wird alle 0,6s auf
    die gemessene Mitte der Unterreiter-Badges gepinnt, rechtsbuendig zur Inhaltskante.
-#2 Der dunkle Fleck UND das Huepfen beim Spaltenziehen hatten EINE gemeinsame Ursache: der
+- #2 Der dunkle Fleck UND das Huepfen beim Spaltenziehen hatten EINE gemeinsame Ursache: der
    horizontale SCROLLBALKEN des Tabellen-Containers (dunkle Leiste unter den Zeilen; beim Ziehen
    erschien/verschwand er pro Pixel und aenderte die Hoehe = Huepfen). Automatische Spaltenbreiten
    scrollen jetzt NIE, waehrend des Ziehens ist der Ueberlauf eingefroren, und im manuell
    gezogenen Modus bleibt nur ein schlanker Balken ohne dunkle Spur.
-#3 Historisch/Freigaben/Datentraeger: Der Text ist ausgeblendet und erscheint nur noch beim
+- #3 Historisch/Freigaben/Datentraeger: Der Text ist ausgeblendet und erscheint nur noch beim
    Ueberfahren (Mouseover-Text am Schalter).
-#4 "Gestartet" und "Paritaetspruefung laeuft." stehen jetzt im selben vertikalen Rhythmus wie
+- #4 "Gestartet" und "Paritaetspruefung laeuft." stehen jetzt im selben vertikalen Rhythmus wie
    die Buttons daneben (gleiche Zeilenhoehe und Abstaende).
 
 ### 2.31.2
-#1 Plugin-Tab: Der Aktualisierungen-Button wird jetzt bei JEDEM Durchlauf exakt auf die gemessene
+- #1 Plugin-Tab: Der Aktualisierungen-Button wird jetzt bei JEDEM Durchlauf exakt auf die gemessene
    Mitte der Unterreiter-Badges gepinnt (vorher nur korrigiert, wenn die Abweichung gross war --
    ein paar Pixel Drift blieben).
-#2 "Gestartet" und "Paritaetspruefung laeuft." behalten IMMER ihre Zustandsfarbe und reagieren
+- #2 "Gestartet" und "Paritaetspruefung laeuft." behalten IMMER ihre Zustandsfarbe und reagieren
    nicht auf die Maus -- sie waren faelschlich vom Nur-aktives-Badge-Modus miterfasst worden.
-#3 Beide Rainbow-Modi fuer die Array-Vorgang-Buttons: Im Nur-aktiv-Modus sind sie neutral grau
+- #3 Beide Rainbow-Modi fuer die Array-Vorgang-Buttons: Im Nur-aktiv-Modus sind sie neutral grau
    und zeigen ihre Palettenfarbe NUR beim Ueberfahren (Neustart/Herunterfahren huellen sich beim
    Hover in ihr semantisches Rot); im vollen Rainbow-Modus tragen sie ihre Palettenfarbe dauerhaft.
-#4 Der dunkle Fleck: In den Datentraeger-Listen malt jetzt GAR NICHTS mehr einen eigenen
+- #4 Der dunkle Fleck: In den Datentraeger-Listen malt jetzt GAR NICHTS mehr einen eigenen
    Hintergrund (Tabelle, Koerper, Zeilen, Zellen, Container) -- im CC-Look sitzt jede Flaeche auf
    einem Badge oder Balken, also stirbt der Streifen, egal welche Theme-Regel ihn malte.
-#5 Kontroll-Cluster: Der Spalten-Reset-Pfeil hat Abstand zur Schalter-Gruppe; der Lese-/Schreib-
+- #5 Kontroll-Cluster: Der Spalten-Reset-Pfeil hat Abstand zur Schalter-Gruppe; der Lese-/Schreib-
    Schalter traegt seinen Hinweis jetzt als Mouseover-Text OHNE (i)-Bubble, die UD-Schalter
    ebenso; die Zahnrad-/Aktualisieren-Glyphen sitzen exakt mittig in ihren Kacheln (die alte
    20px-Innenbox ist neutralisiert).
 
 ### 2.31.1
-#1 Toggle-Groesse ZURUECKGENOMMEN: alle Schalter wieder im schlanken 44x24-Mass (die 30px-Version
+- #1 Toggle-Groesse ZURUECKGENOMMEN: alle Schalter wieder im schlanken 44x24-Mass (die 30px-Version
    war zu klobig). Im Start-Tab sind stattdessen AUSNAHMSWEISE die Icon-Kacheln (Zahnrad,
    Aktualisieren, Spalten-Reset) auf Toggle-Hoehe (24px) geschrumpft, Glyphen 13px mittig.
-#2 Der dunkle Fleck: Fuellbalken, deren Beschriftung nur aus einem geschuetzten Leerzeichen
+- #2 Der dunkle Fleck: Fuellbalken, deren Beschriftung nur aus einem geschuetzten Leerzeichen
    besteht, zeichneten weiter ihre leere Spur (der CSS-Leer-Test sieht ein &amp;nbsp; nicht) --
    werden jetzt per Script erkannt und versteckt; Struktur-Leerzeilen rendern gar keinen
    Hintergrund mehr.
-#3 Doppelter Toggle-Text ("HISTORISCHHISTORISCH") behoben: die Label-Zentrierung hatte das
+- #3 Doppelter Toggle-Text ("HISTORISCHHISTORISCH") behoben: die Label-Zentrierung hatte das
    versteckte AN/AUS-Zwillings-Label wieder sichtbar gemacht -- die Anzeige-Erzwingung ist raus,
    zentriert wird ueber den Container. Es gilt: EIN Name als Text daneben, keine Bubble noetig.
-#4 Der Spalten-Reset-Pfeil steht jetzt am ANFANG des Schalter-Clusters (Pfeil, Info, Schalter) --
+- #4 Der Spalten-Reset-Pfeil steht jetzt am ANFANG des Schalter-Clusters (Pfeil, Info, Schalter) --
    hinter dem Schalter ragte er ueber die rechte Ausrichtungskante hinaus.
-#5 Plugin-Tab: Die Seite kann MEHRERE Tab-Leisten enthalten (unsichtbare Vorlagen) -- alle
+- #5 Plugin-Tab: Die Seite kann MEHRERE Tab-Leisten enthalten (unsichtbare Vorlagen) -- alle
    bisherigen Fixes hingen am ERSTEN Treffer, auch wenn der unsichtbar war. Der Button haengt
    sich jetzt an die erste SICHTBARE Leiste, die wirklich die Unterreiter-Pillen enthaelt, und
    zieht sich selbst dorthin um, falls er auf der falschen geparkt wurde.
 
 ### 2.31.0
-#1 CPU-, RAM- und Bandbreiten-Fenster: Der Platz fuer das Ergebnis-Symbol ist von Anfang an
+- #1 CPU-, RAM- und Bandbreiten-Fenster: Der Platz fuer das Ergebnis-Symbol ist von Anfang an
    reserviert und die Fenster sind entsprechend breiter -- die Felder schrumpfen nicht mehr,
    wenn der Haken erscheint.
-#2 Unassigned Devices: Icons und Texte der Kontrollleiste sauber ausgerichtet (Labels exakt
+- #2 Unassigned Devices: Icons und Texte der Kontrollleiste sauber ausgerichtet (Labels exakt
    vertikal zentriert, einheitliche Abstaende).
-#3 Array-Vorgang: Das Hover-Aufleuchten ist jetzt bei JEDER Farbe sichtbar -- zusaetzlich zum
+- #3 Array-Vorgang: Das Hover-Aufleuchten ist jetzt bei JEDER Farbe sichtbar -- zusaetzlich zum
    Aufhellen erscheint ein Ring in der Kontrastfarbe des Buttons (dunkler Ring auf hellen,
    heller Ring auf dunklen Fuellungen). Ausgegraute Buttons reagieren weiterhin nicht.
-#4 Lauftexte laufen jetzt bis zum Ende durch: Der Fortsetzer beendete den Lauf faelschlich,
+- #4 Lauftexte laufen jetzt bis zum Ende durch: Der Fortsetzer beendete den Lauf faelschlich,
    wenn der Browser-Treffertest beim Knoten-Tausch einen Augenblick lang kein Hover meldete --
    der Lauf bleibt jetzt am Leben und setzt beim naechsten Tick nahtlos fort.
-#5 EINE Kontroll-Linie (30px) ueberall: Alle Toggles (Start-Tab, Docker-Liste, Docker-Formular,
+- #5 EINE Kontroll-Linie (30px) ueberall: Alle Toggles (Start-Tab, Docker-Liste, Docker-Formular,
    VM-Tab, Einstellungs-Fenster) sind jetzt exakt so hoch wie die Icon-Kacheln und die
    Menueleisten-Badges; Namen stehen als Text daneben, Erklaerungen stecken in (i)-Bubbles.
-#6 Plugin-Tab: Die Button-Messung laeuft jetzt auch NACH spaeten Style-/Font-Ladevorgaengen
+- #6 Plugin-Tab: Die Button-Messung laeuft jetzt auch NACH spaeten Style-/Font-Ladevorgaengen
    erneut (Timer + load/resize) -- eine Verschiebung ohne DOM-Ereignis konnte die einmalige
    Messung veralten lassen.
-#7 "Nur aktives Badge faerben" erfasst jetzt auch die Array-Vorgang-Badges (Status-Pillen und
+- #7 "Nur aktives Badge faerben" erfasst jetzt auch die Array-Vorgang-Badges (Status-Pillen und
    Planungs-/Wiki-Badges werden neutral grau und faerben sich beim Ueberfahren der Zeile).
-#8 Einstellungen: Der "Farben zuruecksetzen"-Badge ist jetzt ein reiner Undo-Pfeil-Button
+- #8 Einstellungen: Der "Farben zuruecksetzen"-Badge ist jetzt ein reiner Undo-Pfeil-Button
    rechts neben den Farbfeldern (Icon-Kachel, Tooltip erklaert die Funktion).
 
 ### 2.30.0
-#1 Plugin-Tab: Der Aktualisierungen-Button wird jetzt per JS-INLINE-Styles (Prioritaet important)
+- #1 Plugin-Tab: Der Aktualisierungen-Button wird jetzt per JS-INLINE-Styles (Prioritaet important)
    auf der Unterreiter-Zeile verankert -- kein Stylesheet kann das mehr ueberstimmen. Zusaetzlich
    MISST das Script die echte Geometrie und pinnt die Gruppe notfalls absolut auf die Pillen-Mitte.
-#2 Lauftexte: Das Huepfen/Zurueckspringen ist gefixt -- beim Sekunden-Refresh feuerte der Browser
+- #2 Lauftexte: Das Huepfen/Zurueckspringen ist gefixt -- beim Sekunden-Refresh feuerte der Browser
    mouseover auf dem neuen Knoten und STARTETE den Lauf jede Sekunde neu; jetzt wird derselbe Text
    erkannt und nahtlos an der interpolierten Position fortgesetzt, bis zum Ende.
-#3 Array-Vorgang: Reaktive Buttons leuchten beim Ueberfahren auf -- ausgegraute nie.
-#4 Die Paritaetspruefungs-Card ist schmaler (560px-Kappe statt bis zum rechten Rand).
-#5 Die leeren orangen Kacheln zwischen den UD-Toggles sind weg -- die Toggle-Zeilen tragen leere
+- #3 Array-Vorgang: Reaktive Buttons leuchten beim Ueberfahren auf -- ausgegraute nie.
+- #4 Die Paritaetspruefungs-Card ist schmaler (560px-Kappe statt bis zum rechten Rand).
+- #5 Die leeren orangen Kacheln zwischen den UD-Toggles sind weg -- die Toggle-Zeilen tragen leere
    Anker, die faelschlich als Icon gekachelt wurden; leere Anker werden nicht mehr gestampt.
-#6 CPU-, RAM-, Bandbreiten- und Startplan-Fenster: ALLE Rahmen und Linien entfernt (Fensterrand,
+- #6 CPU-, RAM-, Bandbreiten- und Startplan-Fenster: ALLE Rahmen und Linien entfernt (Fensterrand,
    Kopf-Trennlinie, innere Boxen, Termin-Karten, Tages-/Kern-Chips, Menues, Bubbles) -- Trennung
    kommt jetzt ueberall aus Fuellungen und Schatten; Buttons sind gefuellt (Primaer = Akzent).
-#7 NEU: Nach dem Anwenden erscheint HINTER dem jeweiligen Feld ein runder gruener Haken (oder bei
+- #7 NEU: Nach dem Anwenden erscheint HINTER dem jeweiligen Feld ein runder gruener Haken (oder bei
    Fehlschlag ein rotes Kreuz); der Detailtext oeffnet beim Ueberfahren als Infobubble wie bei den
    (i)-Bubbles. Gilt fuer CPU, RAM und beide Bandbreiten-Richtungen; das Fenster bleibt offen.
-#8 Hauptmenueleiste: Die per Drag-and-drop geaenderte Icon-Reihenfolge wird jetzt WIRKLICH
+- #8 Hauptmenueleiste: Die per Drag-and-drop geaenderte Icon-Reihenfolge wird jetzt WIRKLICH
    wiederhergestellt -- die meisten Icons werden von Unraid-Scripts erst NACH dem Seitenstart
    eingefuegt und verpassten die gespeicherte Ordnung; die Einsortierung laeuft jetzt auch im
    Beobachter (strikt idempotent) und neue Icons werden sofort verdrahtet.
-#9 Hauptmenueleiste: Tabs, Icon-Kacheln und Fuellstandsanzeige sitzen exakt auf EINER Hoehenlinie
+- #9 Hauptmenueleiste: Tabs, Icon-Kacheln und Fuellstandsanzeige sitzen exakt auf EINER Hoehenlinie
    (beide Leisten-Haelften zentrierte Flex-Reihen, eine gemeinsame Hoehe).
-#10 NEU: EINE Drag-Zone ueber die ganze Leiste -- Tabs, Icons und Fuellstandsanzeige lassen sich
+- #10 NEU: EINE Drag-Zone ueber die ganze Leiste -- Tabs, Icons und Fuellstandsanzeige lassen sich
    frei durchmischen, auch ueber die Seiten-Grenze (Speicher: cc.navorder.all, alte Ordnung wird
    uebernommen); jedes Element behaelt seinen Look, egal wo es steht.
 
 ### 2.29.0
-#1 Plugin-Tab: Der Aktualisierungen-Button sitzt jetzt WIRKLICH auf der Unterreiter-Zeile -- die alte
+- #1 Plugin-Tab: Der Aktualisierungen-Button sitzt jetzt WIRKLICH auf der Unterreiter-Zeile -- die alte
    Absolut-Verankerung hing an einer :has()-Regel ohne !important; verlor sie die Kaskade, rutschte
    die Gruppe in den Umbruch UNTER die Zeile. Jetzt: JS-Markerklasse + In-Flow-Flexkind mit
    margin-left:auto und Selbstzentrierung -- kann die Zeile geometrisch nicht mehr verlassen.
-#2 NEU: Ein Zuruecksetzen-Button neben dem Lese-/Schreib-Schalter stellt die Original-Spaltenbreiten
+- #2 NEU: Ein Zuruecksetzen-Button neben dem Lese-/Schreib-Schalter stellt die Original-Spaltenbreiten
    wieder her (gleiche Icon-Kachel-Optik; Doppelklick auf einen Spaltengriff geht weiterhin).
-#3 NEU: Beim Ueberfahren der Listen-Titelzeile werden alle Spalten-Trennlinien sanft sichtbar;
+- #3 NEU: Beim Ueberfahren der Listen-Titelzeile werden alle Spalten-Trennlinien sanft sichtbar;
    der direkt beruehrte Griff leuchtet in der Akzentfarbe.
-#4 Unassigned Devices: Das Abschnitts-Icon hat jetzt die richtige Farbe und Groesse -- es war das
+- #4 Unassigned Devices: Das Abschnitts-Icon hat jetzt die richtige Farbe und Groesse -- es war das
    einzige Abschnitts-Icon als Vollfarb-BILD in Naturgroesse; jetzt auf Glyphengroesse normiert und
    monochrom zur Badge-Tinte gefiltert.
-#5 Zahnrad + Aktualisieren sind jetzt ECHTE Icon-Kacheln wie in der Hauptmenueleiste: gefuellte
+- #5 Zahnrad + Aktualisieren sind jetzt ECHTE Icon-Kacheln wie in der Hauptmenueleiste: gefuellte
    Akzent-Kachel, weisse Glyphe, Menueleisten-Hoehe, Badge-Form, Hover-Aufhellen.
-#6 Array-Vorgang: ALLE Buttons exakt gleich gross (200px) -- min-width:0 liess die Einzel-Buttons
+- #6 Array-Vorgang: ALLE Buttons exakt gleich gross (200px) -- min-width:0 liess die Einzel-Buttons
    (Stopp/Verlauf/Verschieben/Ruhezustand) im Zeilen-Flex unter ihre Beschriftung schrumpfen
    ("VERSCHIEE"); Breite jetzt auf beiden Flex-Achsen fixiert, button-Elemente eingeschlossen.
    Die Paritaets-Card beginnt buendig mit der Oberkante des ersten Buttons (gemessen statt geraten).
-#7 NEU: DS, GROESSE, BENUTZT und FREI stehen zentriert in ihrer Spalte (Fuellbalken mittig).
-#8 Rainbow- und Nur-aktives-Badge-Modus reichen jetzt bis GANZ unten: UD-Tabellen-Badges folgen
+- #7 NEU: DS, GROESSE, BENUTZT und FREI stehen zentriert in ihrer Spalte (Fuellbalken mittig).
+- #8 Rainbow- und Nur-aktives-Badge-Modus reichen jetzt bis GANZ unten: UD-Tabellen-Badges folgen
    beiden Modi (inkl. Zeilen-Hover), die Buttons unterhalb der Arrays rotieren in der Palette mit.
-#9 Boot-Datentraeger: Der Lauftext stockt nicht mehr und springt nicht mehr zurueck -- der
+- #9 Boot-Datentraeger: Der Lauftext stockt nicht mehr und springt nicht mehr zurueck -- der
    Sekunden-Refresh zerstoerte den animierten Knoten; der Lauf wird jetzt nahtlos an der exakt
    interpolierten Position fortgesetzt.
-#10 Die Linien in einigen Listen-Titelleisten sind weg (native Theme-Raender abgeschaltet).
-#11 Docker: Das Startplan-Badge zeigt bei aktivem Plan schlicht "aktiv" -- keine Zusatzsymbole,
+- #10 Die Linien in einigen Listen-Titelleisten sind weg (native Theme-Raender abgeschaltet).
+- #11 Docker: Das Startplan-Badge zeigt bei aktivem Plan schlicht "aktiv" -- keine Zusatzsymbole,
    Details (Abhaengigkeiten, Watchdog, Zeitplaene) stehen im Tooltip.
-#12 Startplan-Fenster: Die restlichen Infotexte stecken jetzt in Infobubbles (Fehlschlag-Hinweis in
+- #12 Startplan-Fenster: Die restlichen Infotexte stecken jetzt in Infobubbles (Fehlschlag-Hinweis in
    der Bei-Fehlschlag-Bubble, Leerlauf-Hinweis als Bubble an der Abschnitts-Ueberschrift).
-#13 CPU-, RAM- und Bandbreiten-Fenster: aller Infotext in EINER Bubble direkt neben der
+- #13 CPU-, RAM- und Bandbreiten-Fenster: aller Infotext in EINER Bubble direkt neben der
    Fensterueberschrift; keine losen Fusszeilen mehr.
 
 ### 2.28.1
-#1 Pool-Datentraeger: Das Durchsuchen-Badge der Pool-Kopfzeilen hat wieder die normale Groesse --
+- #1 Pool-Datentraeger: Das Durchsuchen-Badge der Pool-Kopfzeilen hat wieder die normale Groesse --
    die bereits gebadgte Browse-Zelle wurde faelschlich ein zweites Mal eingewickelt (Doppel-Badge).
-#2 Der dunkle Fleck ganz rechts ist weg: JEDE Zeile wird jetzt auf die vollen 11 Grid-Spalten
+- #2 Der dunkle Fleck ganz rechts ist weg: JEDE Zeile wird jetzt auf die vollen 11 Grid-Spalten
    normalisiert (Defizit wandert auf die letzte Spann-Zelle), nicht nur Zeilen mit colspan.
-#3 Unassigned Devices: Zahnrad und Aktualisieren sind jetzt FARBIGE Icons im CC-Style --
+- #3 Unassigned Devices: Zahnrad und Aktualisieren sind jetzt FARBIGE Icons im CC-Style --
    dauerhaft in der Akzentfarbe, 22px, beim Hover leicht aufgehellt.
-#4 Array-Vorgang: "Paritaetspruefung laeuft." steht jetzt einzeilig in der Status-Pille.
-#5 Alle Buttons in derselben Groesse korrekt untereinander -- auch der SmokeSignal-Button:
+- #4 Array-Vorgang: "Paritaetspruefung laeuft." steht jetzt einzeilig in der Status-Pille.
+- #5 Alle Buttons in derselben Groesse korrekt untereinander -- auch der SmokeSignal-Button:
    er wird nach dem CC-Umbau in die Reboot-Zeile injiziert und bekommt jetzt eine eigene Zeile.
-#6 Fortschrittsbalken: sitzt jetzt am UNTEREN Ende der Card, laeuft staendig (diagonale
+- #6 Fortschrittsbalken: sitzt jetzt am UNTEREN Ende der Card, laeuft staendig (diagonale
    Streifen-Animation INNERHALB der Fuellung -- geht nie ueber den echten Prozentwert hinaus)
    und ist im Rainbow-Modus inbegriffen: dort gleitet zusaetzlich ein Farbverlauf durch die Fuellung.
 
 ### 2.28.0
-#1 NEU: Die Paritaetspruefungs-Card hat jetzt einen Fortschrittsbalken -- dezente Spur mit
+- #1 NEU: Die Paritaetspruefungs-Card hat jetzt einen Fortschrittsbalken -- dezente Spur mit
    Akzent-Fuellung in der eingestellten Badge-Form, Prozent-Label innen rechts, sanfte Animation
    bei jedem Update. Der Prozentwert wird sprachunabhaengig aus der Positionszeile gelesen.
 
 ### 2.27.3
-#1 Pool-Datentraeger: Das nackte Durchsuchen-Symbol der Pool-Kopfzeilen (Cache/Fastcache) ist jetzt
+- #1 Pool-Datentraeger: Das nackte Durchsuchen-Symbol der Pool-Kopfzeilen (Cache/Fastcache) ist jetzt
    ein richtiges Durchsuchen-Badge in der Durchsuchen-Spalte, wie bei den Datenzeilen.
 
 ### 2.27.2
-#1 Array-Vorgang: Das staendige Hin-und-her-Flippen ist weg -- Unraid baut die Paritaets-Zeilen bei
+- #1 Array-Vorgang: Das staendige Hin-und-her-Flippen ist weg -- Unraid baut die Paritaets-Zeilen bei
    jedem Tick neu auf; die Card VERSCHIEBT die Zeilen deshalb nicht mehr, sondern SPIEGELT nur noch
    ihre Werte (die Original-Zeilen bleiben unsichtbar an Ort und Stelle und aktualisieren weiter).
-#2 Der Textlauf der Identifikation zeigt jetzt wirklich den fehlenden Text -- der Wert hatte sich
+- #2 Der Textlauf der Identifikation zeigt jetzt wirklich den fehlenden Text -- der Wert hatte sich
    selbst abgeschnitten; waehrend des Laufs wird nur noch die Pille als Fenster benutzt.
-#3 Plugin-Tab: Der Aktualisierungen-Button ist jetzt absolut auf der Reiter-Zeile verankert
+- #3 Plugin-Tab: Der Aktualisierungen-Button ist jetzt absolut auf der Reiter-Zeile verankert
    (exakt Pillen-Hoehe, rechts buendig) -- unabhaengig von jedem Leisten-Innenabstand.
-#4 Pool-Liste: Der dunkle Fleck ist weg -- leere Fuellbalken-Spuren in Struktur-Zeilen werden
+- #4 Pool-Liste: Der dunkle Fleck ist weg -- leere Fuellbalken-Spuren in Struktur-Zeilen werden
    ausgeblendet.
-#5 Unassigned Devices: Der Abstand zum ersten Unterabschnitt ist kompakt.
-#6 Unassigned Devices: Zahnrad und Aktualisieren sind jetzt als Icons gebaut -- die Anker selbst
+- #5 Unassigned Devices: Der Abstand zum ersten Unterabschnitt ist kompakt.
+- #6 Unassigned Devices: Zahnrad und Aktualisieren sind jetzt als Icons gebaut -- die Anker selbst
    werden gestylt (das Symbol steckt je nach UD-Version direkt im Link), hell mit Akzent beim Hover.
 
 ### 2.27.1
-#1 Plugin-Tab: Der Aktualisierungen-Button sitzt jetzt EXAKT auf der Unterreiter-Zeile -- der native
+- #1 Plugin-Tab: Der Aktualisierungen-Button sitzt jetzt EXAKT auf der Unterreiter-Zeile -- der native
    Reiter-Streifen (width:100%) hatte die Button-Gruppe aus der Zeile gedraengt.
-#2 Der Lese-/Schreib-Schalter sitzt wieder GANZ RECHTS auf Hoehe des Abschnitts-Badges (der Anker war
+- #2 Der Lese-/Schreib-Schalter sitzt wieder GANZ RECHTS auf Hoehe des Abschnitts-Badges (der Anker war
    versehentlich auf den Badge-Rand statt auf den Abschnitts-Rand gewandert).
-#3 Pool-Liste: Der dunkle Fleck rechts ist weg (Struktur-Zeilen werden jetzt exakt auf die
+- #3 Pool-Liste: Der dunkle Fleck rechts ist weg (Struktur-Zeilen werden jetzt exakt auf die
    Spaltenzahl normalisiert; verkuerzte Kopfzeilen bekommen keine eingefuegte Zelle mehr).
-#4 Boot-Datentraeger: Die superlange Identifikation erzeugt KEINEN horizontalen Scrollbalken mehr --
+- #4 Boot-Datentraeger: Die superlange Identifikation erzeugt KEINEN horizontalen Scrollbalken mehr --
    sie wird abgeschnitten und laeuft beim Mouseover wie die Volume-Zuweisungen im Docker-Tab
    (Marquee). Die Fuellstandsanzeigen sind jetzt ueber ALLE Listen buendig (eine gemeinsame
    Spaltengeometrie fuer Array/Pool/Boot; per Drag anpassbar wie gehabt).
-#5 Unassigned Devices: Die Schalter und Symbole sitzen sauber nebeneinander rechts auf der
+- #5 Unassigned Devices: Die Schalter und Symbole sitzen sauber nebeneinander rechts auf der
    Badge-Zeile (nichts verrutscht mehr); Zahnrad und Aktualisieren sind als Icons gestylt
    (groesser, generischer Erkenner).
-#6 Die Seite hueppft nicht mehr und im Array-Vorgang ueberlappen keine Buttons mehr: Unraids
+- #6 Die Seite hueppft nicht mehr und im Array-Vorgang ueberlappen keine Buttons mehr: Unraids
    eigene Ein-/Ausblende-Animationen werden neutralisiert (Zeilen behalten immer ihre natuerliche
    Hoehe) und die Paritaets-Card steht auf fester Position statt sich pro Tick neu zu vermessen.
 
 ### 2.27.0
-#1 Plugin-Tab: Der "Nach Aktualisierungen suchen"-Button ist ENDLICH fest auf der Reiter-Zeile --
+- #1 Plugin-Tab: Der "Nach Aktualisierungen suchen"-Button ist ENDLICH fest auf der Reiter-Zeile --
    die wahre Ursache war Unraids eigenes Update.css, das den Button per margin-top 13px nach unten
    schob; die Buttons ziehen jetzt aus dem scrollenden Reiter-Streifen in eine feste rechte Gruppe um.
-#2 Array-Vorgang: Die Zeilen sind jetzt ein echtes CSS-Raster ueber ALLE Tabellen -- auch Ruhezustand
+- #2 Array-Vorgang: Die Zeilen sind jetzt ein echtes CSS-Raster ueber ALLE Tabellen -- auch Ruhezustand
    und Smokesignal stehen exakt buendig; Fremd-Raender und Tabellen-Eigenheiten koennen nichts mehr
    verschieben.
-#3 Hochfahren/Herunterfahren (und andere Button-Paare): JEDER Button hat jetzt seine EIGENE
+- #3 Hochfahren/Herunterfahren (und andere Button-Paare): JEDER Button hat jetzt seine EIGENE
    Info-Bubble mit seinem eigenen Satz.
-#4 Alle Buttons, Bubbles und Planung-Badges sitzen in exakt denselben Spalten.
-#5 Start-Tab: Die unterste Summenzeile ist nicht mehr verschoben -- sie bekommt jetzt wie die
+- #4 Alle Buttons, Bubbles und Planung-Badges sitzen in exakt denselben Spalten.
+- #5 Start-Tab: Die unterste Summenzeile ist nicht mehr verschoben -- sie bekommt jetzt wie die
    Datenzeilen eine eigene leere Durchsuchen-Zelle statt einer falschen Spalten-Verbreiterung.
-#6 Der Lese-/Schreib-Schalter folgt jetzt der Badge-Form (eckig = eckig).
-#7 NEU: Spaltenbreiten aenderst du jetzt LIVE im Start-Tab per Ziehen an den Spaltenraendern (wie im
+- #6 Der Lese-/Schreib-Schalter folgt jetzt der Badge-Form (eckig = eckig).
+- #7 NEU: Spaltenbreiten aenderst du jetzt LIVE im Start-Tab per Ziehen an den Spaltenraendern (wie im
    Windows Explorer): Griff am rechten Rand jeder Kopfzelle, alle drei Tabellen bleiben synchron,
    die Breiten werden gespeichert, Doppelklick auf einen Griff setzt zurueck. Die beiden
    Einstellungs-Regler sind wieder entfernt.
-#8 Unassigned Devices: Die drei oberen Abschnitts-Badges sind weg (die Abschnitte kommen unten
+- #8 Unassigned Devices: Die drei oberen Abschnitts-Badges sind weg (die Abschnitte kommen unten
    erneut).
-#9 Unassigned Devices: Die drei Schalter und die zwei Symbole sitzen jetzt auf der Hoehe des
+- #9 Unassigned Devices: Die drei Schalter und die zwei Symbole sitzen jetzt auf der Hoehe des
    UNASSIGNED-DEVICES-Abschnitts-Badges.
-#10 Unassigned Devices: Zahnrad und Aktualisieren sind jetzt wirklich als Icons gestylt (der
+- #10 Unassigned Devices: Zahnrad und Aktualisieren sind jetzt wirklich als Icons gestylt (der
    Erkenner haengt nicht mehr an versionsabhaengigen Icon-Klassen).
-#11 Laufende Paritaetspruefung: Die Fortschritts-Daten (Groesse, Zeit, Position, Geschwindigkeit,
+- #11 Laufende Paritaetspruefung: Die Fortschritts-Daten (Groesse, Zeit, Position, Geschwindigkeit,
    Fertigstellung, Sync-Fehler) stehen jetzt in einer eigenen Card rechts der Button-Spalte -- die
    Buttons bleiben unveraendert untereinander.
-#12 Array-Vorgang: Die Bubble-Texte der Button-Paare folgen der UI-Sprache je Satz.
+- #12 Array-Vorgang: Die Bubble-Texte der Button-Paare folgen der UI-Sprache je Satz.
 
 ### 2.26.0
-#1 Array-Vorgang: Der ueberfluessige Wiki-Eintrag-Badge ist weg -- der Hinweis steht in der Info-Bubble;
+- #1 Array-Vorgang: Der ueberfluessige Wiki-Eintrag-Badge ist weg -- der Hinweis steht in der Info-Bubble;
    nur (Planung) bleibt als kleiner Badge.
-#2 Array-Vorgang: Alle Buttons haben jetzt EINE feste Breite -- Info-Bubbles, Planung-Badges und
+- #2 Array-Vorgang: Alle Buttons haben jetzt EINE feste Breite -- Info-Bubbles, Planung-Badges und
    Schalter sitzen dadurch in jeder Zeile exakt auf derselben Position; auch Ruhezustand und
    Smokesignal stehen buendig (Fremd-Tabellen-Versatz neutralisiert).
-#3 Array-Vorgang: Die Bubble-Texte folgen jetzt immer der UI-Sprache (englische Reststrings wie die
+- #3 Array-Vorgang: Die Bubble-Texte folgen jetzt immer der UI-Sprache (englische Reststrings wie die
    Ruhezustand-Beschreibung werden uebersetzt).
-#4 Array-Vorgang: Die beiden Checkboxen (Korrekturen auf Paritaet schreiben, Neustart im abgesicherten
+- #4 Array-Vorgang: Die beiden Checkboxen (Korrekturen auf Paritaet schreiben, Neustart im abgesicherten
    Modus) sind jetzt CC-Schalter und sitzen direkt neben Bubble und Badge.
-#5 Rainbow-Modus erreicht jetzt auch die Abschnitts-Badges (Array-/Pool-/Boot-Datentraeger usw.) und
+- #5 Rainbow-Modus erreicht jetzt auch die Abschnitts-Badges (Array-/Pool-/Boot-Datentraeger usw.) und
    den kompletten Unassigned-Devices-Bereich.
-#6 Unassigned Devices: Die Logos in den Badges sind jetzt einfarbig (weiss bzw. schwarz je nach
+- #6 Unassigned Devices: Die Logos in den Badges sind jetzt einfarbig (weiss bzw. schwarz je nach
    Badge-Farbe) statt bunt.
-#7 Unassigned Devices: Die obere Titelzeile (Unassigned Disks/Remote Shares/Historical) wird jetzt
+- #7 Unassigned Devices: Die obere Titelzeile (Unassigned Disks/Remote Shares/Historical) wird jetzt
    wirklich in drei Badges nebeneinander gesplittet UND uebersetzt -- der Erkenner ist jetzt
    strukturtolerant (der alte griff auf der neuen UD-Version nicht).
-#8 Unassigned Devices: Die drei Schalter folgen jetzt der eingestellten Badge-Form (eckig = eckig),
+- #8 Unassigned Devices: Die drei Schalter folgen jetzt der eingestellten Badge-Form (eckig = eckig),
    und die Beschriftungen sind vertikal zum Schalter zentriert.
-#9 Unassigned Devices: Zahnrad- und Aktualisieren-Symbol sind schlichte Icons (Akzent beim Hover),
+- #9 Unassigned Devices: Zahnrad- und Aktualisieren-Symbol sind schlichte Icons (Akzent beim Hover),
    kein Pill-Hintergrund.
-#10 Der Lese-/Schreib-Umschalter zeigt seine Erklaerung jetzt als (i)-Info-Bubble links daneben; die
+- #10 Der Lese-/Schreib-Umschalter zeigt seine Erklaerung jetzt als (i)-Info-Bubble links daneben; die
    native schwarze Sprechblase ist abgeschaltet.
-#11 Start-Tab: Die Identifikations-Spalte ist linksbuendig und schmaler (der grosse Leerraum ist weg);
+- #11 Start-Tab: Die Identifikations-Spalte ist linksbuendig und schmaler (der grosse Leerraum ist weg);
    die Benutzt/Frei-Spalten sind breiter und die Fuellbalken haben Badge-Hoehe und folgen der
    Badge-Form (eckig = eckig).
-#12 NEU: Die Spaltenbreiten sind jetzt einstellbar -- in den CC-Einstellungen unter Start gibt es zwei
+- #12 NEU: Die Spaltenbreiten sind jetzt einstellbar -- in den CC-Einstellungen unter Start gibt es zwei
    Regler (Identifikations-Breite in Prozent, Mindestbreite der Fuellbalken in Pixel), live wirksam.
 
 ### 2.25.0
-#1 Array-Vorgang: ALLE Buttons stehen jetzt in EINER linksbuendigen Spalte exakt untereinander --
+- #1 Array-Vorgang: ALLE Buttons stehen jetzt in EINER linksbuendigen Spalte exakt untereinander --
    auch Hochfahren/Herunterfahren, die vorher weit rechts landeten (versteckte Beschreibungszellen
    hatten die Spalten der einzelnen Tabellen unterschiedlich skaliert; jetzt feste Spaltenbreiten
    ueber alle Tabellen). Button-Paare stapeln sauber vertikal.
-#2 Array-Vorgang: Die Buttons sind groesser (36px, breitere Mindestbreite).
-#3 Array-Vorgang: (Planung)- und Wiki-Links sitzen als kleine Badges direkt neben der (i)-Bubble.
-#4 Array-Vorgang: Die Checkboxen (Korrekturen auf Paritaet schreiben, Neustart im abgesicherten
+- #2 Array-Vorgang: Die Buttons sind groesser (36px, breitere Mindestbreite).
+- #3 Array-Vorgang: (Planung)- und Wiki-Links sitzen als kleine Badges direkt neben der (i)-Bubble.
+- #4 Array-Vorgang: Die Checkboxen (Korrekturen auf Paritaet schreiben, Neustart im abgesicherten
    Modus) sind echte CC-Checkboxen (Akzent-Rahmen, Akzent-Fuellung mit weissem Haken).
-#5 Der Gestartet-Badge zeigt keinen Statuspunkt mehr -- die Farbe ist der Status.
-#6 Unassigned Devices: Die Kopfzeile ist jetzt DREI Badges nebeneinander (Nicht zugewiesene
+- #5 Der Gestartet-Badge zeigt keinen Statuspunkt mehr -- die Farbe ist der Status.
+- #6 Unassigned Devices: Die Kopfzeile ist jetzt DREI Badges nebeneinander (Nicht zugewiesene
    Geraete / Remote-Freigaben / Historische Geraete), der Balken dahinter ist weg; Zahnrad- und
    Aktualisieren-Symbol sind CC-Buttons und bleiben mit den Schaltern vertikal zentriert.
-#7 Unassigned Devices: Auch die Unterabschnitts-Titel und die Geraete-/Share-Zeilen selbst sind
+- #7 Unassigned Devices: Auch die Unterabschnitts-Titel und die Geraete-/Share-Zeilen selbst sind
    jetzt im CC-Badge-Look (Name als grosses Badge, Werte als Badges, Zahnrad als CC-Icon-Button).
-#8 Pool-Datentraeger: Jetzt wirklich alles in Badges -- Pool-Name, Data Partition, Dateisystem
+- #8 Pool-Datentraeger: Jetzt wirklich alles in Badges -- Pool-Name, Data Partition, Dateisystem
    und Groesse der Pool-Kopfzeilen.
-#9 Identifikation ist einzeilig (kein Zweizeilen-Umbruch des Modellnamens mehr).
-#10 Fuellstandsanzeigen: Ueberall EINE einheitliche Groesse und wieder ZUSTANDSFARBEN --
+- #9 Identifikation ist einzeilig (kein Zweizeilen-Umbruch des Modellnamens mehr).
+- #10 Fuellstandsanzeigen: Ueberall EINE einheitliche Groesse und wieder ZUSTANDSFARBEN --
    gruen/amber/rot je nach Fuellstand statt der Akzentfarbe; gilt auch fuer die
    Unassigned-Devices-Balken.
-#11 Rainbow-Modus gilt jetzt im gesamten Start-Tab: Disk-Zeilen und Array-Vorgang-Buttons rotieren
+- #11 Rainbow-Modus gilt jetzt im gesamten Start-Tab: Disk-Zeilen und Array-Vorgang-Buttons rotieren
    durch die Palette; Status-Badges und die roten Neustart/Herunterfahren-Buttons bleiben bewusst
    semantisch gefaerbt.
-#12 Hauptmenueleiste: Lange gedrueckt halten + Verschieben (mit Wackel-Animation) funktioniert
+- #12 Hauptmenueleiste: Lange gedrueckt halten + Verschieben (mit Wackel-Animation) funktioniert
    jetzt auch fuer die Utility-Icons UND die Fuellstandsanzeige rechts; eigene gespeicherte
    Reihenfolge, Nutzermenue und Suchfeld bleiben fest.
-#13 Der Lese-/Schreib-Umschalter oben rechts ist ein echter CC-Schalter und sitzt exakt auf der
+- #13 Der Lese-/Schreib-Umschalter oben rechts ist ein echter CC-Schalter und sitzt exakt auf der
    Hoehe des Abschnitts-Badges.
-#14 Disk-Badges stehen linksbuendig exakt untereinander (der unsichtbare Platzhalter der
+- #14 Disk-Badges stehen linksbuendig exakt untereinander (der unsichtbare Platzhalter der
    Paritaets-Zeile ist ausgeblendet).
-#15 Docker: Das komplette Container-hinzufuegen/-bearbeiten-Formular ist im CC-Style -- gefuellte
+- #15 Docker: Das komplette Container-hinzufuegen/-bearbeiten-Formular ist im CC-Style -- gefuellte
    Eingabefelder, CC-Dropdowns wie in den Freigabe-Einstellungen, Akzent-Buttons (Fertig neutral),
    CC-Schalter und Akzent-CPU-Pins.
 
 ### 2.24.3
-#1 Start-Tab: Die Listen sind jetzt WIRKLICH breit -- die eigentliche Ursache ist gefunden: die
+- #1 Start-Tab: Die Listen sind jetzt WIRKLICH breit -- die eigentliche Ursache ist gefunden: die
    960px-Formularkarten-Breite der Freigabe-Detailseite galt versehentlich auch fuer alle
    Start-Tab-Abschnitte (deshalb endeten die Tabellen ca. 90px vor dem rechten Rand). Alle
    Abschnitte laufen jetzt ueber die volle Inhaltsbreite, mit grosszuegigeren Zellabstaenden.
-#2 Start-Tab: Groesserer Abstand zwischen den Abschnitten (Array/Pool/Boot/Unassigned/Array-Vorgang).
-#3 Array-Vorgang: Alle Buttons stehen in einem gleichmaessigen Raster untereinander (einheitliche
+- #2 Start-Tab: Groesserer Abstand zwischen den Abschnitten (Array/Pool/Boot/Unassigned/Array-Vorgang).
+- #3 Array-Vorgang: Alle Buttons stehen in einem gleichmaessigen Raster untereinander (einheitliche
    Zeilenhoehen, Trennzeilen komplett entfernt) und die (i)-Info-Bubble sitzt IMMER direkt rechts
    neben ihrem Button, ohne je darunter zu rutschen.
-#4 Array-Vorgang: Der Array-Status ("Gestartet") und der Paritaets-Status ("Paritaet ist gueltig")
+- #4 Array-Vorgang: Der Array-Status ("Gestartet") und der Paritaets-Status ("Paritaet ist gueltig")
    sind jetzt zwei GROSSE Status-Badges in der Farbe nach Zustand: gruen bei gestartet/gueltig,
    amber bei ungeschuetzt/laufender Pruefung, grau bei gestoppt.
-#5 Start-Tab: Alle Texte in der eingestellten UI-Sprache -- der SLEEP-Button heisst auf Deutsch
+- #5 Start-Tab: Alle Texte in der eingestellten UI-Sprache -- der SLEEP-Button heisst auf Deutsch
    jetzt RUHEZUSTAND, die englischen Unassigned-Devices-Texte (Ueberschriften, HISTORICAL/DISKS-
    Schalter, ADD-SHARE-Buttons, Tabellenkoepfe) und der Internal-Boot-Hinweis werden uebersetzt.
-#6 Freigaben-Tab: Alle Badges ausser dem Freigabe-Namen haben jetzt exakt DIE GLEICHE Groesse
+- #6 Freigaben-Tab: Alle Badges ausser dem Freigabe-Namen haben jetzt exakt DIE GLEICHE Groesse
    (einheitliche mittlere Stufe); der Namens-Badge bleibt groesser. Gilt genauso im Start-Tab.
-#7 Freigaben-/Start-Tab: Badges mit Funktion oder Link (z. B. Berechnen, Durchsuchen, Name)
+- #7 Freigaben-/Start-Tab: Badges mit Funktion oder Link (z. B. Berechnen, Durchsuchen, Name)
    leuchten beim Mouseover auf; reine Wert-Badges nicht.
-#8 Freigaben-Tab: Der Berechnen-Link bekommt keine Unterstreichung mehr -- Linien auf Badges sind
+- #8 Freigaben-Tab: Der Berechnen-Link bekommt keine Unterstreichung mehr -- Linien auf Badges sind
    jetzt ueberall stringent abgeschaltet.
 
 ### 2.24.2
-#1 Start-Tab: Die Identifikation der Pool- und Boot-Datentraeger ueberlagerte sich unlesbar. Ursache war
+- #1 Start-Tab: Die Identifikation der Pool- und Boot-Datentraeger ueberlagerte sich unlesbar. Ursache war
    das feste Spaltenraster, das nur zur Array-Tabelle passte -- Pool-/Boot-Zeilen haben eine andere
    Struktur, deren Identifikations-Spalte dadurch zusammengequetscht wurde und der lange Modell-Text
    ueber die Nachbarzellen lief. Die Tabellen bemessen ihre Spalten jetzt am Inhalt und lange
    Modellnamen brechen innerhalb ihrer Spalte um.
-#2 Start-Tab: Kein Spalteninhalt wird mehr abgeschnitten -- auch die Spaltenkoepfe (GELESEN,
+- #2 Start-Tab: Kein Spalteninhalt wird mehr abgeschnitten -- auch die Spaltenkoepfe (GELESEN,
    GESCHRIEBEN, FEHLER) sind jetzt immer vollstaendig lesbar, weiterhin ohne horizontalen Scrollbalken.
-#3 Start-Tab: ALLE Infotexte im Array-Vorgang sitzen jetzt in (i)-Info-Bubbles -- auch bei Pruefen,
+- #3 Start-Tab: ALLE Infotexte im Array-Vorgang sitzen jetzt in (i)-Info-Bubbles -- auch bei Pruefen,
    Verschieben, Neu starten/Herunterfahren und Ruhezustand. Die Funktions-Checkboxen (Korrekturen auf
    Paritaet schreiben, Neustart im abgesicherten Modus) und die (Planung)-/Wiki-Links bleiben sichtbar
    und funktionieren weiter.
-#4 Start-Tab: Alle restlichen Buttons und Schalter im CC-Style -- die ADD-SHARE-Buttons und die
+- #4 Start-Tab: Alle restlichen Buttons und Schalter im CC-Style -- die ADD-SHARE-Buttons und die
    HISTORICAL/FREIGABEN/DISKS-Schiebeschalter von Unassigned Devices, der Internal-Boot-Button und die
    Checkboxen tragen jetzt die CC-Akzentfarbe.
 
@@ -1050,7 +1069,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>dc5699c7251207333495ae275d957767122a25c5d67f2af265521591dcd13806</SHA256>
+  <SHA256>dcd72d90204eb2b17a4ce71eec7f87fd49c475ab8b9e83aab6990c91d46e15be</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

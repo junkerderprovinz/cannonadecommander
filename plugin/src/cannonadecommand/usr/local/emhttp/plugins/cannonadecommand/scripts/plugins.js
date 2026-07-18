@@ -403,17 +403,20 @@
     try {
       if (localStorage.getItem("cc.theming") === "0" || localStorage.getItem("cc.enable.plugins") === "0") return;
       var db = document.getElementById("displaybox"); if (!db) return;
-      if (!document.getElementById("checkall")) return;              // not the Plugins page
+      if (!document.querySelector("#plugin_table, table.cc-plug")) return;   // not the Plugins page (do NOT gate on ids)
       var tabs = db.querySelectorAll("button[role='tab']"), tab = null;
       for (var i = 0; i < tabs.length; i++) { if (tabs[i].offsetParent !== null && tabs[i].offsetHeight) { tab = tabs[i]; break; } }
       if (!tab) return;
       var host = document.getElementById("cc-plugbtns");
       if (!host) { host = document.createElement("div"); host.id = "cc-plugbtns"; }
       if (host.parentNode !== db) db.appendChild(host);
-      ["checkall", "updateall", "removeall"].forEach(function (id) {
-        var s = document.getElementById(id);
-        if (s && s.parentNode !== host) host.appendChild(s);
-      });
+      // adopt the native controls BY CLASS, not by id — every earlier round assumed the
+      // #checkall/#updateall/#removeall ids from the master webgui source; if this Unraid
+      // build names them differently, everything silently no-opped. The plugin manager's own
+      // Update.css targets span.vhshift, so that class is the reliable hook.
+      var spans = document.querySelectorAll("#displaybox span.status.vhshift, #displaybox span.vhshift, #checkall, #updateall, #removeall");
+      for (var sp = 0; sp < spans.length; sp++) { var s = spans[sp]; if (s !== host && !host.contains(s) && s.parentNode !== host) host.appendChild(s); }
+      if (!host.firstChild) return;   // nothing to place (yet)
       db.style.setProperty("position", "relative", "important");
       host.style.setProperty("position", "absolute", "important");
       host.style.setProperty("display", "inline-flex", "important");

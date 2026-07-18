@@ -373,8 +373,9 @@
           var btns = arows[r2].querySelectorAll('input[type="submit"], input[type="button"], a.button, button:not([role="tab"])');
           if (!btns.length) continue;
           for (var b2 = 0; b2 < btns.length; b2++) {
-            var bt = btns[b2], nm = (bt.getAttribute("name") || "").toLowerCase();
-            if (nm === "reboot" || nm === "shutdown") continue;      // semantic danger red stays (§12)
+            var bt = btns[b2];
+            // Reboot/Shutdown are INCLUDED now (user: "sollen auch in beiden rainbow modi
+            // aufgenommen werden") — outside rainbow the sheet's semantic danger red still rules.
             var c2 = rbColor(bi), tc2 = idealText(c2);
             if (rb) { bt.style.setProperty("--cc-rb-c", c2); bt.style.setProperty("--cc-rb-ct", tc2); }   // neutral sub-mode: hover colour source
             else { bt.style.removeProperty("--cc-rb-c"); bt.style.removeProperty("--cc-rb-ct"); }
@@ -1080,7 +1081,28 @@
         var wch = wrap.children[tw], wl = wch.querySelector ? wch.querySelector(".switch-button-label") : null;
         if (wl && !wch.getAttribute("title")) wch.setAttribute("title", (wl.textContent || "").trim());
       }
+      // and the ICONS too (user: "die toggles und icons haben keine hover infobubble"): if the
+      // anchor carries no title, derive one from its glyph — gear = settings, circling arrows = refresh
+      for (var ti = 0; ti < as.length; ti++) {
+        var ta = as[ti];
+        if (!ta.classList.contains("cc-ud-icon") || ta.getAttribute("title")) continue;
+        var cls = ((ta.querySelector("i, span") || {}).className || "") + " " + (ta.className || "");
+        if (/gear|cog|setting/i.test(cls)) ta.setAttribute("title", LANG === "de" ? "Unassigned-Devices-Einstellungen" : "Unassigned Devices settings");
+        else if (/refresh|sync|rotate/i.test(cls)) ta.setAttribute("title", LANG === "de" ? "Datenträger neu einlesen" : "Refresh disks");
+      }
       head.appendChild(wrap); bar.setAttribute("data-cc-ud-moved", "1"); bar.classList.add("cc-ud-moved");
+    } catch (e) {}
+  }
+  // UD's loose native TEXT buttons ("UNASSIGNED DEVICES SETTINGS" / "REFRESH DISKS AND
+  // CONFIGURATION") float detached in the CC layout and merely duplicate our gear/refresh
+  // icons — hide them wherever they ended up (user: "text schwebt frei herum").
+  function ccUdLoose() {
+    try {
+      var els = document.querySelectorAll("#displaybox input[type='button'], #displaybox input[type='submit'], #displaybox a, #displaybox span.hand, #displaybox div.hand");
+      for (var i = 0; i < els.length; i++) {
+        var e2 = els[i], t2 = ((e2.value || e2.textContent || "") + "").trim().toUpperCase();
+        if (t2 === "UNASSIGNED DEVICES SETTINGS" || t2 === "REFRESH DISKS AND CONFIGURATION") e2.classList.add("cc-ud-hidden");
+      }
     } catch (e) {}
   }
   function ccUdCtrlsHome() {
@@ -1111,6 +1133,7 @@
       if (box) enhanceArrayOps(box);   // Array-Vorgang form: CC buttons + (i) info-bubbles, separator lines removed via CSS
       ccLocalizeMain();   // s3-sleep button / UD strings / Internal-Boot sentence in the UI language
       enhanceUD();   // AFTER ccLocalizeMain: the heading split consumes the already-translated text; ccTr guards on data-cc-i18n and no-ops once the span holds badges
+      ccUdLoose();   // hide UD's loose native text buttons (our gear/refresh icons carry those functions)
     } catch (e) {}
   }
   // ── /Main "Array-Vorgang" (ArrayOperation.page: table.ArrayOperation-Table.array_status). Each control

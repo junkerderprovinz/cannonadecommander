@@ -855,15 +855,17 @@ html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-aop-toggle input
    status"). Colours = the CC docker state palette (running #1f9d55, warn #e0912a, stopped #3c3c3c). The
    native orb icon + its a.info tooltip live INSIDE the pill; the icon follows the pill's text colour so it
    never vanishes against the fill. shares.js/aopStatusBadge picks the class language-independently. */
-html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-b.cc-aop-status {
+html.cc-shares-on.cc-on-main #displaybox :is(table.array_status, .cc-aop-pills) .cc-b.cc-aop-status {
   display: inline-flex; align-items: center; gap: 8px;
   padding: var(--cc-lg-pad, 6px 16px); font-size: var(--cc-lg-fs, 15px); font-weight: 700;
   border-radius: var(--cc-b-radius, 999px); white-space: nowrap; line-height: 1.35;   /* nowrap (user: "Paritätsprüfung läuft." einzeilig) — the grid c1 track is generous enough */
 }
-html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-aop-status.cc-aop-ok   { background: #1f9d55; color: #fff; }
-html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-aop-status.cc-aop-warn { background: #e0912a; color: #1a1a1a; }
-html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-aop-status.cc-aop-off  { background: #3c3c3c; color: #cfcfcf; }
-html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-aop-status a.info { display: none !important; }   /* user: Badge OHNE Statuspunkt — the pill's colour already IS the state, the orb dot is redundant (its a.info tooltip goes with it) */
+/* :is(..., .cc-aop-pills): once the stack ACTUALLY materialised (v2.32.8 insert fix) the pills sat
+   OUTSIDE table.array_status and the table-scoped look fell away — naked text with the orb dot. */
+html.cc-shares-on.cc-on-main #displaybox :is(table.array_status, .cc-aop-pills) .cc-aop-status.cc-aop-ok   { background: #1f9d55; color: #fff; }
+html.cc-shares-on.cc-on-main #displaybox :is(table.array_status, .cc-aop-pills) .cc-aop-status.cc-aop-warn { background: #e0912a; color: #1a1a1a; }
+html.cc-shares-on.cc-on-main #displaybox :is(table.array_status, .cc-aop-pills) .cc-aop-status.cc-aop-off  { background: #3c3c3c; color: #cfcfcf; }
+html.cc-shares-on.cc-on-main #displaybox :is(table.array_status, .cc-aop-pills) .cc-aop-status a.info { display: none !important; }   /* user: Badge OHNE Statuspunkt — the pill's colour already IS the state, the orb dot is redundant (its a.info tooltip goes with it) */
 /* §9 (i) info-bubble — MIRRORED from styles/docker.css (not loaded on /Main). Neutral (currentColor, NEVER
    accent); hover/focus reveals a pure-CSS tooltip from data-tip. */
 html.cc-shares-on.cc-on-main #displaybox .cc-info {
@@ -1351,6 +1353,9 @@ html.cc-shares-on.cc-on-main #displaybox .cc-aop-pills {
 }
 html.cc-shares-on.cc-on-main #displaybox .cc-aop-pills > .cc-b.cc-aop-status {
   min-height: var(--cc-lgb-h, 36px); display: inline-flex; align-items: center;
+  /* CAP at the button height: the lg padding made the pill 48px, so row 2 drifted 12px under
+     PAUSE. 36px + 16px gap = the buttons' 52px pitch, live-verified delta 0/0 on both rows. */
+  height: var(--cc-lgb-h, 36px); padding-top: 0 !important; padding-bottom: 0 !important;
 }
 html.cc-shares-on.cc-on-main.cc-sections-main #displaybox section .cc-aop-pills {
   position: absolute; left: 0; top: 52px; z-index: 1;   /* base offset; JS pins to the first button's measured top */

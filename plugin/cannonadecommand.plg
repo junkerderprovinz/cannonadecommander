@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.32.9">
+  <!ENTITY version   "2.32.10">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,12 @@
 </ICON>
 
 <CHANGES>
+### 2.32.10
+- #1 Hauptseite: Die Status-Pillen behalten im neuen Stapel ihre BADGE-Optik (gruen/orange,
+  ohne Statuspunkt) -- die Farbregeln waren auf die Tabelle beschraenkt, und seit der Stapel
+  wirklich entsteht, standen die Pillen nackt daneben. Ausserdem auf Buttonhoehe (36px)
+  gekappt, damit beide Zeilen exakt mit STOPP und PAUSE fluchten (live vermessen: 0/0 Pixel).
+
 ### 2.32.9
 - #1 Unassigned Devices: Die Abstaende im Icon/Schalter-Cluster sind jetzt WIRKLICH klein (8px) --
   die UD-Bauweise steckt jede Kontrolle in eine unsichtbar BREITERE Box (44px um ein 24px-Icon),
@@ -1194,7 +1200,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>d432feff743fdd74af2718721867ca7ef5197bfc07d07e64c3e940d2aca17525</SHA256>
+  <SHA256>91a8c161a2055bff5223ecf258fa590af04bc5251c9b117d5b309a7aea1049a1</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

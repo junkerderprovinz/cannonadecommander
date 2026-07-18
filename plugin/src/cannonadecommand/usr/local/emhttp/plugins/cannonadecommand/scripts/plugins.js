@@ -55,7 +55,13 @@
       // down inside the aligned box. Zero the inner vertical margins, then iteratively nudge the
       // host until the button's own centre sits on the pill centre — cascade-proof by measurement.
       var inn = host.querySelectorAll("span, input, button");
-      for (var n2 = 0; n2 < inn.length; n2++) { inn[n2].style.setProperty("margin-top", "0", "important"); inn[n2].style.setProperty("margin-bottom", "0", "important"); }
+      for (var n2 = 0; n2 < inn.length; n2++) {
+        inn[n2].style.setProperty("margin-top", "0", "important"); inn[n2].style.setProperty("margin-bottom", "0", "important");
+        // v2.32.6 (live-verified in the real WebUI): the input carries a native margin-right:12px
+        // — the HOST edge was flush while the visible button ended 12px short. ALL inner margins
+        // go; the host's flex gap is the only spacing.
+        inn[n2].style.setProperty("margin-left", "0", "important"); inn[n2].style.setProperty("margin-right", "0", "important");
+      }
       var tr0 = tab.getBoundingClientRect(), dr = db.getBoundingClientRect();
       // flush RIGHT with the MENU BAR's icon edge (house rule "alles richtet sich an der
       // Menueleiste aus" — user measurement 2026-07-19: icons end at 1414, table at 1417, the

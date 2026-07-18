@@ -375,8 +375,10 @@
           for (var b2 = 0; b2 < btns.length; b2++) {
             var bt = btns[b2], nm = (bt.getAttribute("name") || "").toLowerCase();
             if (nm === "reboot" || nm === "shutdown") continue;      // semantic danger red stays (§12)
-            if (!rb || neutral || bt.disabled) { bt.style.removeProperty("background"); bt.style.removeProperty("color"); continue; }
             var c2 = rbColor(bi), tc2 = idealText(c2);
+            if (rb) { bt.style.setProperty("--cc-rb-c", c2); bt.style.setProperty("--cc-rb-ct", tc2); }   // neutral sub-mode: hover colour source
+            else { bt.style.removeProperty("--cc-rb-c"); bt.style.removeProperty("--cc-rb-ct"); }
+            if (!rb || neutral || bt.disabled) { bt.style.removeProperty("background"); bt.style.removeProperty("color"); continue; }
             bt.style.setProperty("background", c2, "important"); bt.style.setProperty("color", tc2, "important");
           }
           bi++;
@@ -389,8 +391,10 @@
       for (var x2 = 0; x2 < xbtns.length; x2++) {
         var xb = xbtns[x2];
         if (xb.closest("table.array_status") || xb.closest("nav.tabs") || xb.closest(".cc-aop-pcard")) continue;
-        if (!rb || neutral || xb.disabled) { xb.style.removeProperty("background"); xb.style.removeProperty("color"); continue; }
         var xc = rbColor(bi), xtc = idealText(xc);
+        if (rb) { xb.style.setProperty("--cc-rb-c", xc); xb.style.setProperty("--cc-rb-ct", xtc); }
+        else { xb.style.removeProperty("--cc-rb-c"); xb.style.removeProperty("--cc-rb-ct"); }
+        if (!rb || neutral || xb.disabled) { xb.style.removeProperty("background"); xb.style.removeProperty("color"); bi++; continue; }
         xb.style.setProperty("background", xc, "important"); xb.style.setProperty("color", xtc, "important");
         bi++;
       }
@@ -1070,6 +1074,12 @@
         if (!aEl.closest("[class*='switch']") && hasGlyph) aEl.classList.add("cc-ud-icon");
         else aEl.classList.remove("cc-ud-icon");   // heal stamps from earlier versions (title bar is static markup)
       }
+      // every toggle gets a plain hover text = its label (user: "die anderen toggle gleich" —
+      // Mouseover-Text statt Bubble)
+      for (var tw = 0; tw < wrap.children.length; tw++) {
+        var wch = wrap.children[tw], wl = wch.querySelector ? wch.querySelector(".switch-button-label") : null;
+        if (wl && !wch.getAttribute("title")) wch.setAttribute("title", (wl.textContent || "").trim());
+      }
       head.appendChild(wrap); bar.setAttribute("data-cc-ud-moved", "1"); bar.classList.add("cc-ud-moved");
     } catch (e) {}
   }
@@ -1414,10 +1424,12 @@
       if (window.jQuery && window.jQuery.fn.tooltipster) {
         try { var c = window.jQuery(a).tooltipster("content"); if (c && typeof c === "string") tip = c; window.jQuery(a).tooltipster("disable"); } catch (e2) {}
       }
-      if (a.hasAttribute("title")) { a.setAttribute("data-cc-tip-orig", a.getAttribute("title")); a.removeAttribute("title"); }
+      if (a.hasAttribute("title")) a.setAttribute("data-cc-tip-orig", a.getAttribute("title"));
       if (!tip) tip = "Toggle reads/writes display";
-      tip = mtText(tip);
-      if (!st.querySelector(":scope > .cc-info")) { var ic = ccInfoIcon(tip); ic.classList.add("cc-info-edge"); st.insertBefore(ic, st.firstChild); }
+      // NO bubble anymore (user: "ohne infobubble aber mit mouse over text"): the translated tip
+      // becomes a plain title tooltip on the toggle itself; tooltipster stays disabled.
+      a.setAttribute("title", mtText(tip));
+      var oldIc = st.querySelector(":scope > .cc-info"); if (oldIc) oldIc.remove();
       a.setAttribute("data-cc-dio-tip", "1");
     } catch (e) {}
   }

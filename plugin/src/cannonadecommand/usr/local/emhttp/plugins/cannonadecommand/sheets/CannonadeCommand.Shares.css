@@ -399,11 +399,17 @@ html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status td.desc .cc-b[
 html.cc-shares-on.cc-on-main #displaybox .usage-disk:not(.sys):not(.mm):has(> span:last-child:empty) { visibility: hidden !important; }
 /* :empty is blind to an &nbsp;-only label — shares.js/ccVoidBars stamps those (the LAST fleck source) */
 html.cc-shares-on.cc-on-main #displaybox .usage-disk.cc-bar-void { visibility: hidden !important; }
-/* and structural spacer rows render NO background at all, whatever the theme paints on them */
-html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status tbody tr:not(:has(.cc-b, a.cc-b-browse, select, input, .usage-disk:not(.cc-bar-void))),
-html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status tbody tr:not(:has(.cc-b, a.cc-b-browse, select, input, .usage-disk:not(.cc-bar-void))) > td {
-  background: transparent !important; box-shadow: none !important; border: none !important;
+/* and (round 5, user: "dunkler fleck ist immer noch da") NOTHING in a disk_status body paints its
+   own background anymore — in the CC look every visual lives on a badge, pill or bar, so the body,
+   rows and cells (and the container) are flat page background. Whatever theme rule painted that
+   stray block, it dies here. The thead tint above is untouched (tbody-scoped). */
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status,
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status tbody,
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status tbody tr,
+html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status tbody td {
+  background: transparent !important; background-image: none !important; box-shadow: none !important;
 }
+html.cc-shares-on.cc-on-main #displaybox .TableContainer { background: transparent !important; background-image: none !important; }
 /* centre the DS / GROESSE / BENUTZT / FREI columns (8-11; Browse insert makes Device=1, Browse=2,
    user: "benutzt und frei sollen zentriert in der spalte sein ... auch DS und Groesse"). Inline-flex
    value badges centre via text-align; the usage bars centre via their auto margins above. Structural
@@ -554,6 +560,16 @@ html.cc-shares-on.cc-on-main #displaybox a.cc-ibtn * {
 }
 html.cc-shares-on.cc-on-main #displaybox a.cc-ud-icon:hover,
 html.cc-shares-on.cc-on-main #displaybox a.cc-ibtn:hover { filter: brightness(1.14); }
+/* dead-centre the glyph: UD's own rules (and our older generic one) gave the inner <i> a fixed
+   20px box + inline-block baseline — inside the 24px tile that sat visibly off (user: "logo ist
+   nicht zentriert"). Neutralise every inner box; the flex tile does the centring. */
+html.cc-shares-on.cc-on-main #displaybox a.cc-ud-icon :is(i, img, span),
+html.cc-shares-on.cc-on-main #displaybox a.cc-ibtn :is(i, img, span) {
+  width: auto !important; height: auto !important; line-height: 1 !important;
+  margin: 0 !important; padding: 0 !important; display: block !important; opacity: 1 !important;
+}
+/* the column-width reset arrow keeps a clear gap to the (i)+toggle pair (user: "zu weit rechts") */
+html.cc-shares-on.cc-on-main #displaybox a.cc-colreset { margin-right: 14px !important; }
 /* Badge-Form "circle": full round like the header tiles */
 html.cc-shape-circle.cc-shares-on.cc-on-main #displaybox a.cc-ud-icon,
 html.cc-shape-circle.cc-shares-on.cc-on-main #displaybox a.cc-ibtn { border-radius: 50% !important; }
@@ -1272,14 +1288,35 @@ html.cc-shares-rbneutral.cc-on-main #displaybox table.unraid.disk_status tr:hove
 html.cc-shares-on.cc-shares-rbneutral.cc-on-main #displaybox table.unraid.disk_status tr:hover a.cc-b-browse {
   background: var(--cc-rb-c, var(--cc-shr-accent, #2f6feb)) !important; color: var(--cc-rb-ct, var(--cc-shr-accent-text, #fff)) !important;
 }
-/* v2.31.0: the sub-mode also covers the ARRAY-VORGANG badges (user: "nur aktives badge faerben ist
-   bei den array vorgang badges nicht aktiviert") — status pills + the PLANUNG/Wiki link badges go
-   neutral grey and recolour on row hover (accent fallback: aop rows carry no palette var). */
-html.cc-shares-rbneutral.cc-on-main #displaybox table.array_status .cc-b,
+/* v2.31.0/.2: the sub-mode also covers the ARRAY-VORGANG badges — EXCEPT the semantic status
+   pills (user: "gestartet und paritaetspruefung ... sollen nicht reaktiv sein und immer ihre
+   zustandsfarbe haben"): those keep their state colours and never recolour. */
+html.cc-shares-rbneutral.cc-on-main #displaybox table.array_status .cc-b:not(.cc-aop-status),
 html.cc-shares-rbneutral.cc-on-main #displaybox table.array_status .cc-aop-link { background: rgba(128, 128, 128, .18) !important; color: #cfcfcf !important; }
-html.cc-shares-rbneutral.cc-on-main #displaybox table.array_status tr:hover .cc-b,
+html.cc-shares-rbneutral.cc-on-main #displaybox table.array_status tr:hover .cc-b:not(.cc-aop-status),
 html.cc-shares-rbneutral.cc-on-main #displaybox table.array_status tr:hover .cc-aop-link {
   background: var(--cc-rb-c, var(--cc-shr-accent, #2f6feb)) !important; color: var(--cc-rb-ct, var(--cc-shr-accent-text, #fff)) !important;
+}
+/* v2.31.2: aop BUTTONS in the neutral sub-mode are grey at rest and take colour ONLY on hover
+   (user: "die anderen Buttons sollen auch nur dann farben haben beim mouseover") — hover colour =
+   the palette var paintMain stamps per control row; the danger pair goes semantic red on hover. */
+html.cc-shares-rbneutral.cc-on-main #displaybox table.array_status input[type="submit"]:not(:disabled),
+html.cc-shares-rbneutral.cc-on-main #displaybox table.array_status input[type="button"]:not(:disabled),
+html.cc-shares-rbneutral.cc-on-main #displaybox table.array_status input[type="reset"]:not(:disabled),
+html.cc-shares-rbneutral.cc-on-main #displaybox table.array_status button:not([role="tab"]):not(:disabled),
+html.cc-shares-rbneutral.cc-on-main #displaybox table.array_status a.button {
+  background: rgba(128, 128, 128, .18) !important; color: #cfcfcf !important;
+}
+html.cc-shares-rbneutral.cc-on-main #displaybox table.array_status input[type="submit"]:hover:not(:disabled),
+html.cc-shares-rbneutral.cc-on-main #displaybox table.array_status input[type="button"]:hover:not(:disabled),
+html.cc-shares-rbneutral.cc-on-main #displaybox table.array_status input[type="reset"]:hover:not(:disabled),
+html.cc-shares-rbneutral.cc-on-main #displaybox table.array_status button:not([role="tab"]):hover:not(:disabled),
+html.cc-shares-rbneutral.cc-on-main #displaybox table.array_status a.button:hover {
+  background: var(--cc-rb-c, var(--cc-shr-accent, #2f6feb)) !important; color: var(--cc-rb-ct, var(--cc-shr-accent-text, #fff)) !important;
+}
+html.cc-shares-rbneutral.cc-on-main #displaybox form[name="shutdownOps"] input[name="reboot"]:hover:not(:disabled),
+html.cc-shares-rbneutral.cc-on-main #displaybox form[name="shutdownOps"] input[name="shutdown"]:hover:not(:disabled) {
+  background: #d9433f !important; color: #fff !important;
 }
 /* v2.29.0: the sub-mode reaches BELOW Unassigned Devices too (user: "ab unassigned devices abwaerts
    ist nicht alles ... inbegriffen") — the UD tables' value badges follow the same contract: neutral

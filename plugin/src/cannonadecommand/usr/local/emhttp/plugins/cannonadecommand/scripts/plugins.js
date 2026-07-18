@@ -404,17 +404,16 @@
       var cont = navt.querySelector(".tabs-container"), host = document.getElementById("cc-plugbtns");
       if (!cont || !host || !host.offsetHeight) return;
       var tab0 = cont.querySelector("button[role='tab']"); if (!tab0) return;
+      // ALWAYS pin (user: "auf gleicher Hoehe wie die Subtab-Badges"): the in-flow home plus a
+      // fix-only-when-off threshold still left a few px of drift — pin the group's centre to the
+      // measured pill centre on every pass instead, guarded to the px so there is no write churn.
       navt.style.setProperty("position", "relative", "important");
-      host.style.setProperty("position", "static", "important");
-      host.style.setProperty("margin", "0 0 0 auto", "important");
-      var tr0 = tab0.getBoundingClientRect(), hr0 = host.getBoundingClientRect();
-      if (Math.abs((tr0.top + tr0.height / 2) - (hr0.top + hr0.height / 2)) > 4) {
-        var nr0 = navt.getBoundingClientRect();
-        host.style.setProperty("position", "absolute", "important");
-        host.style.setProperty("right", "0", "important");
-        host.style.setProperty("margin", "0", "important");
-        host.style.setProperty("top", Math.round((tr0.top + tr0.height / 2) - nr0.top - hr0.height / 2) + "px", "important");
-      }
+      host.style.setProperty("position", "absolute", "important");
+      host.style.setProperty("right", "0", "important");
+      host.style.setProperty("margin", "0", "important");
+      var tr0 = tab0.getBoundingClientRect(), nr0 = navt.getBoundingClientRect(), hh0 = host.offsetHeight;
+      var top0 = Math.round((tr0.top + tr0.height / 2) - nr0.top - hh0 / 2);
+      if (Math.abs((parseInt(host.style.top, 10) || 0) - top0) > 1) host.style.setProperty("top", top0 + "px", "important");
     } catch (e) {}
   }
   function relocateChecks() {

@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.31.1">
+  <!ENTITY version   "2.31.2">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,23 @@
 </ICON>
 
 <CHANGES>
+### 2.31.2
+#1 Plugin-Tab: Der Aktualisierungen-Button wird jetzt bei JEDEM Durchlauf exakt auf die gemessene
+   Mitte der Unterreiter-Badges gepinnt (vorher nur korrigiert, wenn die Abweichung gross war --
+   ein paar Pixel Drift blieben).
+#2 "Gestartet" und "Paritaetspruefung laeuft." behalten IMMER ihre Zustandsfarbe und reagieren
+   nicht auf die Maus -- sie waren faelschlich vom Nur-aktives-Badge-Modus miterfasst worden.
+#3 Beide Rainbow-Modi fuer die Array-Vorgang-Buttons: Im Nur-aktiv-Modus sind sie neutral grau
+   und zeigen ihre Palettenfarbe NUR beim Ueberfahren (Neustart/Herunterfahren huellen sich beim
+   Hover in ihr semantisches Rot); im vollen Rainbow-Modus tragen sie ihre Palettenfarbe dauerhaft.
+#4 Der dunkle Fleck: In den Datentraeger-Listen malt jetzt GAR NICHTS mehr einen eigenen
+   Hintergrund (Tabelle, Koerper, Zeilen, Zellen, Container) -- im CC-Look sitzt jede Flaeche auf
+   einem Badge oder Balken, also stirbt der Streifen, egal welche Theme-Regel ihn malte.
+#5 Kontroll-Cluster: Der Spalten-Reset-Pfeil hat Abstand zur Schalter-Gruppe; der Lese-/Schreib-
+   Schalter traegt seinen Hinweis jetzt als Mouseover-Text OHNE (i)-Bubble, die UD-Schalter
+   ebenso; die Zahnrad-/Aktualisieren-Glyphen sitzen exakt mittig in ihren Kacheln (die alte
+   20px-Innenbox ist neutralisiert).
+
 ### 2.31.1
 #1 Toggle-Groesse ZURUECKGENOMMEN: alle Schalter wieder im schlanken 44x24-Mass (die 30px-Version
    war zu klobig). Im Start-Tab sind stattdessen AUSNAHMSWEISE die Icon-Kacheln (Zahnrad,
@@ -1017,7 +1034,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>00be549277a70bdbc7da8ff8274aa28aedc0984b2d6cd4d726623ba0a4c82728</SHA256>
+  <SHA256>b79845ef6978762ab2523d27a546ff20ba2702ccfda04a5d4e780b4a4468a21e</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

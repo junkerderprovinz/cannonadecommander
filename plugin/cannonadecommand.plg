@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.40.0">
+  <!ENTITY version   "2.41.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,30 @@
 </ICON>
 
 <CHANGES>
+### 2.41.0
+- #1 Docker-Tab: Der reaktive Regenbogen wirkt jetzt PRO ZEILE -- Ueberfahren einer
+  Container-Zeile faerbt alle ihre Badges, Aktions-Icons UND den Logo-Hintergrund
+  (ruht grau); Karten-Ansicht gleichgezogen.
+- #2 Reaktiver Modus umfasst jetzt auch die Logo-/Icon-Hintergruende der Einstellungen-/
+  Werkzeuge-Kacheln; NEU: globale Karte "Logos &amp; Icons" im Allgemein-Tab (Hintergrund,
+  Farbe, Intensitaet) -- die Logo-Farbwaehler der Tabs verhalten sich jetzt wie bei den
+  Badges (Farbwahl schaltet auf eigene Farbe, Uebernehmen springt live auf die globale).
+- #3 "Nur aktives Badge faerben" heisst jetzt "Reaktiver Regenbogen-Modus" und steht
+  direkt unter dem Regenbogen-Modus; die CC-Reiter im Einstellungs-Panel machen im
+  reaktiven Modus mit (nur der aktive Reiter farbig, Rest grau mit Hover-Farbe).
+- #4 Tabansicht: Der Schalter heisst jetzt "Tabansicht", wohnt in der Stil-Karte des
+  jeweiligen Tabs, ist standardmaessig AN (native Unterreiter) und stapelt beim
+  Ausschalten die Unterreiter als CC-Abschnitte. BUGFIX: Auf dem Freigaben-Tab war der
+  Schalter wirkungslos (zwei Lesestellen mit verschiedenen Standardwerten).
+- #5 Die Anzeige-Zeilen (Farbschema, Unraid-Tabansicht) sind in die Theming-Karte gewandert.
+- #6 Kopfbereich: Der Unraid-Versions-Chip sitzt jetzt rechts bei der Status-Insel;
+  Glocke und Menue-Knopf docken in der Icon-Reihe der Hauptmenueleiste an (mehr Platz);
+  die Insel darf zweizeilig umbrechen; der Array-Fuellstand ist wieder ein richtiger
+  Balken (gruen/bernstein/rot je Fuellstand).
+- #7 FIX: Die Icons der Hauptmenueleiste hatten keinen Mouseover-Text mehr -- die
+  Leiste beschneidet CSS-Blasen (overflow); die Menue-Icons nutzen jetzt eine
+  schwebende CC-Blase auf Seitenebene.
+
 ### 2.40.0
 - #1 Kopfbereich: Glocke und Menue-Knopf sind jetzt Badges (graue Chip-Flaeche, Badge-Form);
   die Status-Insel sitzt buendig ganz rechts direkt vor den beiden; Temperaturen sind IMMER
@@ -1386,7 +1410,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>c7f6a02604be453f7a853188f93233db38d8b889e6ee0c085a3749ce5b0ea376</SHA256>
+  <SHA256>d10c1da1d559e9241df391b7480e5f1dda60e9fdd501f8b9408fb13f1eb41bb0</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

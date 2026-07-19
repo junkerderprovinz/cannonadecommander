@@ -119,6 +119,23 @@ html.cc-settingsgrid-on.cc-settingsgrid-rbneutral #displaybox .Panel > a:hover >
   color: var(--cc-rb-ct, var(--cc-iconbg-text, var(--cc-accent-text, #fff))) !important;
 }
 
+/* GLOBAL reactive signal (cc.rbmode=active → shares.js stamps html.cc-shares-rbneutral on EVERY
+   page): the SAME rest-grey/hover-colour contract as the local -settingsgrid-rbneutral block
+   above, keyed on the global class so the /Settings + /Tools tile badges react even when only
+   the global signal is present. Both blocks agree visually when both classes are set. Gated on
+   .cc-settingsgrid-on exactly like above — absent ⇒ zero effect anywhere. Category-group
+   HEADINGS stay exempt (house law: section heads ALWAYS keep their colour). */
+html.cc-shares-rbneutral.cc-settingsgrid-on #displaybox .Panel > a > span { background: rgba(128, 128, 128, .18) !important; }
+html.cc-shares-rbneutral.cc-settingsgrid-on #displaybox .Panel > a > span > i.PanelIcon,
+html.cc-shares-rbneutral.cc-settingsgrid-on #displaybox .Panel > a > span { color: #cfcfcf !important; }   /* span = tailscale-mask ink twin */
+html.cc-shares-rbneutral.cc-settingsgrid-on #displaybox .Panel > a:hover > span {
+  background: var(--cc-rb-c, var(--cc-iconbg-color, var(--cc-accent, #2f6feb))) !important; filter: none !important;
+}
+html.cc-shares-rbneutral.cc-settingsgrid-on #displaybox .Panel > a:hover > span > i.PanelIcon,
+html.cc-shares-rbneutral.cc-settingsgrid-on #displaybox .Panel > a:hover > span {   /* span = tailscale-mask ink twin */
+  color: var(--cc-rb-ct, var(--cc-iconbg-text, var(--cc-accent-text, #fff))) !important;
+}
+
 /* ═══ category-group HEADINGS (/Settings + /Tools) -> filled accent badges ═══
    Native DOM read from source (include/DefaultPageLayout/MainContentTabless.php:12-18 +
    include/PageBuilder.php tab_title()) — IDENTICAL on both pages (both Type="xmenu" Tabs="false",

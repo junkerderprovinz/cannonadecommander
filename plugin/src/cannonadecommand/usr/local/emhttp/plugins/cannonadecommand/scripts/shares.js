@@ -730,10 +730,12 @@
           });
         }
       }
-      // Tab-Ansicht: stacked CC sections (default) or native sub-tabs. cardPanels() prepends the
+      // Tab-Ansicht: native sub-tabs (default) or stacked CC sections. cardPanels() prepends the
       // section-header badges; when the per-area toggle is OFF, flattenTeardown() reverts to the native
-      // sub-tabs. ccSelects(box) runs in BOTH modes (the disk-dropdown look is layout-independent).
-      if (g("cc.sections.shares", "1") !== "0") cardPanels(box); else flattenTeardown();
+      // sub-tabs. Default "0" MUST match the cc-sections-share class stamp in apply() — a mismatch
+      // builds the flatten DOM without the gating class (dead toggle, live-proven on /Shares).
+      // ccSelects(box) runs in BOTH modes (the disk-dropdown look is layout-independent).
+      if (g("cc.sections.shares", "0") !== "0") cardPanels(box); else flattenTeardown();
       ccSelects(box);   // convert native <select> to the CC disk-dropdown look (see ccWrapSelect)
     } catch (e) {}
   }

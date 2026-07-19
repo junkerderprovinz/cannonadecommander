@@ -250,6 +250,50 @@
     (function () {
       var tc = card(T("Theming", "Theming"), T("Aus = nur die Docker-FUNKTIONEN von CannonadeCommand bleiben (Startplan, Abhängigkeiten, Health-Gate, Watchdog, Zeitpläne, Limits, Bandbreite, Auto-Stop bei Leerlauf). Das gesamte visuelle Theming — Badges, Farben, Rainbow, Karten und die Umgestaltung aller Tabs — wird abgeschaltet.", "Off = only CannonadeCommand's Docker FUNCTIONS remain (start plan, dependencies, health-gate, watchdog, schedules, limits, bandwidth, idle auto-stop). All visual theming — badges, colours, rainbow, cards and every tab's restyling — is turned off."));
       tc.appendChild(toggleRow(T("Theming aktiv", "Theming on"), localStorage.getItem("cc.theming") !== "0", function (v) { set("cc.theming", v ? "1" : "0"); render(); syncHeaderBar(); syncSharesBar(); }));
+      // ── Anzeige (Unraid): direct wire to Unraid's native display settings — lives INSIDE the
+      // Theming card now (user call), before the Sichern & Übertragen rows appended later. Posts
+      // the SAME hidden fields the native /Settings/DisplaySettings form sends
+      // (#file/#section/csrf_token), so the values land in dynamix/dynamix.cfg and the page
+      // reloads with them applied. Built ONLY when the csrf_token global exists — without it the
+      // native POST is impossible.
+      if (typeof csrf_token !== "undefined") {
+        var dl9 = el("div", "cc-set-lbl cc-set-lblwrap");
+        dl9.appendChild(el("span", null, T("Anzeige (Unraid)", "Display (Unraid)")));
+        dl9.appendChild(infoIcon(T("Direktdraht zu Unraids Anzeige-Einstellungen: Änderungen hier werden nativ gespeichert und laden die Seite neu.", "Direct wire to Unraid's display settings: changes are saved natively and reload the page.")));
+        tc.appendChild(dl9);
+        var postDisplay = function (field, value) {
+          try {
+            // URLSearchParams, NOT FormData: update.php 504s on multipart (live-proven) — the
+            // native form posts application/x-www-form-urlencoded and only that returns 200.
+            var fd = new URLSearchParams();
+            fd.append("#file", "dynamix/dynamix.cfg");
+            fd.append("#section", "display");
+            fd.append("csrf_token", window.csrf_token);
+            fd.append(field, value);
+            fetch("/update.php", { method: "POST", body: fd, credentials: "same-origin" }).then(function () { location.reload(); });
+          } catch (e9) {}
+        };
+        // current theme is stamped on <html> as Theme--<name>
+        var thm = (/Theme--(azure|black|gray|white)/.exec(document.documentElement.className || "") || [])[1] || "black";
+        tc.appendChild(segRow(T("Farbschema", "Colour scheme"), [["white", T("Hell", "Light")], ["black", T("Dunkel", "Dark")], ["azure", T("Azurblau", "Azure")], ["gray", T("Grau", "Gray")]], thm, function (v) { postDisplay("theme", v); }));
+        // tabbed view: the current value only lives in the native settings page -> build the row
+        // with a provisional "0", then fetch+parse the <select name="tabs"> and repaint the
+        // selection. Parse failure keeps the default and disables nothing.
+        var tabsKeys = ["0", "1"];
+        var tabsRow = segRow(T("Tabansicht", "Tabbed view"), [["0", T("Mit Tabs", "Tabbed")], ["1", T("Ohne Tabs", "Non-tabbed")]], "0", function (v) { postDisplay("tabs", v); });
+        tc.appendChild(tabsRow);
+        fetch("/Settings/DisplaySettings", { credentials: "same-origin" }).then(function (r) { return r.text(); }).then(function (html) {
+          try {
+            var cur = "0";
+            var sel = /<select[^>]*\bname=["']?tabs["']?[^>]*>([\s\S]*?)<\/select>/i.exec(html || "");
+            (sel ? sel[1].match(/<option\b[^>]*>/gi) || [] : []).forEach(function (tag) {
+              if (/\bselected\b/i.test(tag)) { var vm = /\bvalue=["']?([^"'\s>]+)/i.exec(tag); if (vm) cur = vm[1]; }
+            });
+            // segRow's seg container is the row's last child; buttons follow the opts order
+            Array.prototype.slice.call(tabsRow.lastChild.children).forEach(function (b9, i9) { b9.classList.toggle("cc-seg-on", tabsKeys[i9] === cur); });
+          } catch (e9) {}
+        }).catch(function () {});
+      }
       themingCard = tc;
       wrapMain.appendChild(tc);
     })();
@@ -265,47 +309,7 @@
       });
       wrapMain.appendChild(c);
     })();
-    // ── Anzeige: direct wire to Unraid's native display settings. Posts the SAME hidden
-    // fields the native /Settings/DisplaySettings form sends (#file/#section/csrf_token),
-    // so the values land in dynamix/dynamix.cfg and the page reloads with them applied.
-    // Built ONLY when the csrf_token global exists — without it the native POST is impossible.
-    (function () {
-      if (typeof csrf_token === "undefined") return; // no token -> no card
-      var c = card(T("Anzeige", "Display"), T("Direktdraht zu Unraids Anzeige-Einstellungen: Änderungen hier werden nativ gespeichert und laden die Seite neu.", "Direct wire to Unraid's display settings: changes are saved natively and reload the page."));
-      function postDisplay(field, value) {
-        try {
-          // URLSearchParams, NOT FormData: update.php 504s on multipart (live-proven) — the
-          // native form posts application/x-www-form-urlencoded and only that returns 200.
-          var fd = new URLSearchParams();
-          fd.append("#file", "dynamix/dynamix.cfg");
-          fd.append("#section", "display");
-          fd.append("csrf_token", window.csrf_token);
-          fd.append(field, value);
-          fetch("/update.php", { method: "POST", body: fd, credentials: "same-origin" }).then(function () { location.reload(); });
-        } catch (e9) {}
-      }
-      // current theme is stamped on <html> as Theme--<name>
-      var thm = (/Theme--(azure|black|gray|white)/.exec(document.documentElement.className || "") || [])[1] || "black";
-      c.appendChild(segRow(T("Farbschema", "Colour scheme"), [["white", T("Hell", "Light")], ["black", T("Dunkel", "Dark")], ["azure", T("Azurblau", "Azure")], ["gray", T("Grau", "Gray")]], thm, function (v) { postDisplay("theme", v); }));
-      // tabbed view: the current value only lives in the native settings page -> build the row
-      // with a provisional "0", then fetch+parse the <select name="tabs"> and repaint the
-      // selection. Parse failure keeps the default and disables nothing.
-      var tabsKeys = ["0", "1"];
-      var tabsRow = segRow(T("Tabansicht", "Tabbed view"), [["0", T("Mit Tabs", "Tabbed")], ["1", T("Ohne Tabs", "Non-tabbed")]], "0", function (v) { postDisplay("tabs", v); });
-      c.appendChild(tabsRow);
-      fetch("/Settings/DisplaySettings", { credentials: "same-origin" }).then(function (r) { return r.text(); }).then(function (html) {
-        try {
-          var cur = "0";
-          var sel = /<select[^>]*\bname=["']?tabs["']?[^>]*>([\s\S]*?)<\/select>/i.exec(html || "");
-          (sel ? sel[1].match(/<option\b[^>]*>/gi) || [] : []).forEach(function (tag) {
-            if (/\bselected\b/i.test(tag)) { var vm = /\bvalue=["']?([^"'\s>]+)/i.exec(tag); if (vm) cur = vm[1]; }
-          });
-          // segRow's seg container is the row's last child; buttons follow the opts order
-          Array.prototype.slice.call(tabsRow.lastChild.children).forEach(function (b9, i9) { b9.classList.toggle("cc-seg-on", tabsKeys[i9] === cur); });
-        } catch (e9) {}
-      }).catch(function () {});
-      wrapMain.appendChild(c);
-    })();
+    // (the Anzeige rows live INSIDE the Theming card above now — no standalone card)
     // ── section order = the USER'S main-menu order. header.js persists the drag-reordered
     // menu as cc.navorder.all {left:[href keys],right:[...]}; read DEFENSIVELY (accept .left
     // or a plain array; absent/garbage -> native menu order fallback below).
@@ -346,12 +350,23 @@
     // rainbow never reached the CC tab bar). palG() is the shared rainbow palette; idealText is hoisted.
     function paintSetTabs() {
       var rb = get("cc.rainbow", "0") === "1";
+      // reactive sub-mode: idle tabs rest on the grey base CSS and only carry their palette
+      // colour as vars (--cc-rb-c/--cc-rb-ct — the docker.css :hover rule paints from them);
+      // the ACTIVE tab keeps its direct colour.
+      var reactive = rb && get("cc.rbmode", "all") === "active";
       // palG() is scoped inside buildStyleCards, not reachable here -> read the palette directly.
       var DEF = ["#d9433f", "#f97316", "#eab308", "#1f9d55", "#0ea5a4", "#2f6feb", "#8b5cf6", "#e05299"], p = DEF;
       try { var j = JSON.parse(get("cc.rbpal", "null")); if (j && j.length) p = j; } catch (e) {}
       tabBtns.forEach(function (b, i) {
-        if (rb) { var c = p[i % p.length]; b.style.setProperty("background", c, "important"); b.style.setProperty("color", idealText(c), "important"); }
-        else { b.style.removeProperty("background"); b.style.removeProperty("color"); }
+        if (rb) {
+          var c = p[i % p.length];
+          b.style.setProperty("--cc-rb-c", c); b.style.setProperty("--cc-rb-ct", idealText(c));
+          if (reactive && !b.classList.contains("cc-set-tab-on")) { b.style.removeProperty("background"); b.style.removeProperty("color"); return; }
+          b.style.setProperty("background", c, "important"); b.style.setProperty("color", idealText(c), "important");
+        } else {
+          b.style.removeProperty("background"); b.style.removeProperty("color");
+          b.style.removeProperty("--cc-rb-c"); b.style.removeProperty("--cc-rb-ct");
+        }
       });
     }
     // hide the tab of any disabled area immediately; if we were ON it, fall back to Bereiche
@@ -412,6 +427,17 @@
     rr.appendChild(el("span", null, T("Regenbogen-Modus", "Rainbow mode")));
     rr.appendChild(toggle(rainbow, function (v) { rainbow = v; set("cc.rainbow", v ? "1" : "0"); if (!v) set("cc.rainbowrot", "0"); render(); syncHeaderBar(); syncSharesBar(); }));
     c1.appendChild(rr);
+    // rainbow sub-mode: REACTIVE — everything rests neutral grey, colours on hover, the ACTIVE
+    // one keeps its colour. Global like cc.rainbow (key cc.rbmode); sits DIRECTLY under the
+    // rainbow master switch (user call). Live-applied via the sync + the settings tab strip.
+    var rmode = el("div", "cc-set-row cc-set-inline");
+    var rmodeL = el("span", "cc-set-lblwrap");
+    rmodeL.appendChild(el("span", null, T("Reaktiver Regenbogen-Modus", "Reactive rainbow mode")));
+    rmodeL.appendChild(infoIcon(T("AN = alles ruht grau und färbt sich beim Überfahren; Aktives bleibt farbig. Gilt global für alle Bereiche inklusive Logo-Hintergründen.", "ON = everything rests grey and colours on hover; active stays coloured. Global, including logo backgrounds.")));
+    rmode.appendChild(rmodeL);
+    rmode.appendChild(toggle(get("cc.rbmode", "all") === "active", function (v) { set("cc.rbmode", v ? "active" : "all"); paintSetTabs(); syncHeaderBar(); syncSharesBar(); }));
+    if (!rainbow) { rmode.style.opacity = ".4"; rmode.style.pointerEvents = "none"; } // only makes sense WITH rainbow
+    c1.appendChild(rmode);
     // rotation toggle: on = every tab reload deals a fresh colour mapping; off = stable colours
     var rrot = el("div", "cc-set-row cc-set-inline");
     var rrotL = el("span", "cc-set-lblwrap");
@@ -421,16 +447,6 @@
     rrot.appendChild(toggle(get("cc.rainbowrot", "1") !== "0", function (v) { set("cc.rainbowrot", v ? "1" : "0"); syncHeaderBar(); syncSharesBar(); }));
     if (!rainbow) { rrot.style.opacity = ".4"; rrot.style.pointerEvents = "none"; } // only makes sense WITH rainbow
     c1.appendChild(rrot);
-    // rainbow sub-mode: "active only" — idle badges go neutral grey, the ACTIVE one keeps its colour,
-    // and any badge shows its colour on hover. Global like cc.rainbow; live-applied via the sync.
-    var rmode = el("div", "cc-set-row cc-set-inline");
-    var rmodeL = el("span", "cc-set-lblwrap");
-    rmodeL.appendChild(el("span", null, T("Nur aktives Badge färben", "Colour only the active badge")));
-    rmodeL.appendChild(infoIcon(T("Statt alle Badges einzufärben, bleiben sie neutral-grau; nur das aktive Badge zeigt Farbe, und jedes Badge wird bei Mausüber farbig. Gilt für die Hauptmenüleiste.", "Instead of colouring every badge, they stay neutral grey; only the active badge shows colour, and any badge colours on hover. Applies to the main menu bar.")));
-    rmode.appendChild(rmodeL);
-    rmode.appendChild(toggle(get("cc.rbmode", "all") === "active", function (v) { set("cc.rbmode", v ? "active" : "all"); syncHeaderBar(); syncSharesBar(); }));
-    if (!rainbow) { rmode.style.opacity = ".4"; rmode.style.pointerEvents = "none"; } // only makes sense WITH rainbow
-    c1.appendChild(rmode);
     // EVERY rainbow palette colour is editable: click a swatch, adjust it in the
     // embedded picker below; stored as cc.rbpal (JSON), read live by the Docker tab.
     var RBDEF = ["#d9433f", "#f97316", "#eab308", "#1f9d55", "#0ea5a4", "#2f6feb", "#8b5cf6", "#e05299"]; // real rainbow order
@@ -467,6 +483,33 @@
     prev.appendChild(pvName); prev.appendChild(pvVal); prev.appendChild(pvTab);
     prev.id = "cc-set-prev"; c1.appendChild(prev);
     wrapMain.appendChild(c1); // GLOBAL badge colour + rainbow -> the "Allgemein" tab (was the Docker tab)
+    // ── Logos & Icons (GLOBAL): edits the shared cc.iconbg / cc.iconcolor / cc.iconstrength
+    // keys every adopting tab resolves through eff('icon…'). Same control set as the per-area
+    // Logos cards, minus the preview (this card is the source, not a consumer).
+    (function () {
+      var cLI = card(T("Logos & Icons", "Logos & icons"), T("Globale Logo-/Icon-Farben. Tabs mit aktivem 'Globale Badge-Farbe übernehmen' folgen auch hier.", "Global logo/icon colours. Tabs adopting the global colour follow these too."));
+      var gcol = get("cc.iconcolor", ""), gbg = get("cc.iconbg", "0") === "1";
+      var gstrow; // strength row — dimmed in background mode (same rule as the area cards)
+      function gsync() { syncAllStyleCards(); syncHeaderBar(); syncSharesBar(); } // adopt-ON area cards repaint with the new globals
+      function gApplyBg(v) { gbg = v; gstrow.style.opacity = v ? ".4" : ""; gstrow.style.pointerEvents = v ? "none" : ""; }
+      cLI.appendChild(toggleRow(T("Hintergrund", "Background"), gbg, function (v) { set("cc.iconbg", v ? "1" : "0"); gApplyBg(v); gsync(); }));
+      var ghx = el("input", "cc-set-hexin"); ghx.type = "text"; ghx.value = gcol || ""; ghx.placeholder = "#1f9d55"; ghx.maxLength = 7; ghx.spellcheck = false;
+      var gpk = inlinePicker(/^#[0-9a-f]{6}$/i.test(gcol) ? gcol : "#1f9d55", function (v) { gcol = v; ghx.value = v; set("cc.iconcolor", v); gsy(); });
+      function gOn() { return !!gcol; }
+      var gtg = el("span", "cc-set-toggle" + (gOn() ? " cc-set-toggle-on" : "")); gtg.setAttribute("role", "switch"); gtg.setAttribute("tabindex", "0"); gtg.setAttribute("aria-checked", gOn() ? "true" : "false"); gtg.appendChild(el("span", "cc-set-knob"));
+      function gsy() { gtg.classList.toggle("cc-set-toggle-on", gOn()); gtg.setAttribute("aria-checked", gOn() ? "true" : "false"); gsync(); }
+      gtg.addEventListener("click", function () { if (gOn()) { gcol = ""; del("cc.iconcolor"); ghx.value = ""; } else { gcol = gpk._get(); ghx.value = gcol; set("cc.iconcolor", gcol); } gsy(); });
+      gtg.addEventListener("keydown", function (e) { if (e.key === " " || e.key === "Enter") { e.preventDefault(); gtg.click(); } });
+      ghx.addEventListener("input", function () { var v = normHex(ghx.value); if (v) { gcol = v; gpk._set(v); set("cc.iconcolor", v); gsy(); } });
+      var gir = el("div", "cc-set-pickrow"); gir.appendChild(gpk); gir.appendChild(ghx); cLI.appendChild(gir);
+      var gtr = el("div", "cc-set-row cc-set-inline"); gtr.appendChild(el("span", null, T("Einfärben", "Colourise"))); gtr.appendChild(gtg); cLI.appendChild(gtr);
+      gstrow = el("div", "cc-set-row"); gstrow.appendChild(el("span", "cc-set-rl", T("Intensität", "Strength")));
+      var gsl = el("input"); gsl.type = "range"; gsl.min = "10"; gsl.max = "100"; gsl.value = String(parseInt(get("cc.iconstrength", "100"), 10) || 100); gsl.style.flex = "1";
+      gsl.addEventListener("input", function () { set("cc.iconstrength", gsl.value); gsync(); });
+      gstrow.appendChild(gsl); cLI.appendChild(gstrow);
+      gApplyBg(gbg);
+      wrapMain.appendChild(cLI);
+    })();
     // Docker is now a normal area like the others: a "Stil" adopt card + its OWN Badges (accent)
     // card at the TOP of the Docker tab. buildStyleCards writes ccd.accent; docker.js reads it via
     // effc() (adopt on = follow global cc.accent, the default -> no change for existing installs).
@@ -479,14 +522,14 @@
     var c2 = card(T("Logos", "Logos"), T("Der Schalter aktiviert die Färbung.", "The switch turns the tint on."));
     var iconbg = get("cc.iconbg", "0") === "1";
     function applyBgMode(v) { iconbg = v; c2.classList.toggle("cc-bg-mode", v); strow.style.opacity = v ? ".4" : ""; strow.style.pointerEvents = v ? "none" : ""; tprevWrap.classList.toggle("cc-prev-bg", v); try { tintPrev(); } catch (e9) {} }
-    c2.appendChild(toggleRow(T("Hintergrund", "Background"), iconbg, function (v) { set("cc.iconbg", v ? "1" : "0"); applyBgMode(v); }));
+    c2.appendChild(toggleRow(T("Hintergrund", "Background"), iconbg, function (v) { set("cc.iconbg", v ? "1" : "0"); applyBgMode(v); syncAllStyleCards(); }));
     var ihexIn = el("input", "cc-set-hexin"); ihexIn.type = "text"; ihexIn.value = iconcolor || ""; ihexIn.placeholder = "#1f9d55"; ihexIn.maxLength = 7; ihexIn.spellcheck = false;
     var ipick = inlinePicker(/^#[0-9a-f]{6}$/i.test(iconcolor) ? iconcolor : (/^#[0-9a-f]{6}$/i.test(accent) ? accent : "#1f9d55"), function (v) { iconcolor = v; ihexIn.value = v; set("cc.iconcolor", v); syncIconTog(); });
     // A real ON/OFF toggle drives the tint (empty cc.iconcolor = off). The picker/hex
     // set WHICH colour; changing either also switches the tint on.
     function iconOn() { return !!iconcolor; }
     var iconTog = el("span", "cc-set-toggle" + (iconOn() ? " cc-set-toggle-on" : "")); iconTog.setAttribute("role", "switch"); iconTog.setAttribute("tabindex", "0"); iconTog.setAttribute("aria-checked", iconOn() ? "true" : "false"); iconTog.appendChild(el("span", "cc-set-knob"));
-    function syncIconTog() { var on = iconOn(); iconTog.classList.toggle("cc-set-toggle-on", on); iconTog.setAttribute("aria-checked", on ? "true" : "false"); try { tintPrev(); } catch (e9) {} }
+    function syncIconTog() { var on = iconOn(); iconTog.classList.toggle("cc-set-toggle-on", on); iconTog.setAttribute("aria-checked", on ? "true" : "false"); try { tintPrev(); } catch (e9) {} syncAllStyleCards(); /* global cc.iconcolor changed -> adopt-ON area cards follow */ }
     function setIcon(v) { iconcolor = v; ipick._set(v); ihexIn.value = v; set("cc.iconcolor", iconcolor); syncIconTog(); }
     function setIconOn(on) { if (on) { setIcon(ipick._get()); } else { iconcolor = ""; del("cc.iconcolor"); ihexIn.value = ""; syncIconTog(); } }
     iconTog.addEventListener("click", function () { setIconOn(!iconOn()); });
@@ -498,7 +541,7 @@
     var strow = el("div", "cc-set-row");
     strow.appendChild(el("span", "cc-set-rl", T("Intensität", "Strength")));
     var sl = el("input"); sl.type = "range"; sl.min = "10"; sl.max = "100"; sl.value = String(iconstrength); sl.style.flex = "1";
-    sl.addEventListener("input", function () { iconstrength = parseInt(sl.value, 10); set("cc.iconstrength", sl.value); try { tintPrev(); } catch (e9) {} });
+    sl.addEventListener("input", function () { iconstrength = parseInt(sl.value, 10); set("cc.iconstrength", sl.value); try { tintPrev(); } catch (e9) {} syncAllStyleCards(); });
     strow.appendChild(sl);
     c2.appendChild(strow);
     // (the VM-icons toggle is obsolete — the VM tab has its own style section)
@@ -652,8 +695,22 @@
       adoptToggles[key] = tg; row.appendChild(tg);
       return row;
     }
+    // per-area "Tabansicht" row — lives IN the Stil card now (was its own Tab-Ansicht card).
+    // INVERTED vs storage on purpose: toggle ON = cc.sections.<area> "0" (native Unraid
+    // sub-tabs, the DEFAULT), toggle OFF = "1" (sub-tabs stacked as CC sections). Only areas
+    // that actually HAVE sub-tabs get it: Freigaben, Start (/Main), Plugin, VM.
+    function tabviewRow(area, applyFn) {
+      var row = el("div", "cc-set-row cc-set-inline");
+      var lw = el("span", "cc-set-lblwrap");
+      lw.appendChild(el("span", null, T("Tabansicht", "Tabbed view")));
+      lw.appendChild(infoIcon(T("AUS = Unterreiter dieses Tabs werden als CC-Abschnitte untereinander gestapelt. Unraids globale Tabansicht (Theming-Karte) ist der Master: steht sie auf 'Ohne Tabs', rendert Unraid überall Abschnitte und dieser Schalter wirkt nicht.", "OFF = this tab's sub-tabs stack as CC sections. Unraid's global tabbed view (Theming card) is the master: set to non-tabbed, Unraid renders sections everywhere and this switch has no effect.")));
+      row.appendChild(lw);
+      row.appendChild(toggle(get("cc.sections." + area, "0") === "0", function (v) { set("cc.sections." + area, v ? "0" : "1"); if (applyFn) applyFn(); }));
+      return row;
+    }
     var cP = card(T("Stil", "Style"), T("AN = die globale Badge-Farbe (Allgemein) gilt auch hier. AUS = die eigene Farbe dieses Abschnitts gilt.", "ON = the global badge colour (General) applies here too. OFF = this section's own colour applies."));
     cP.appendChild(styleToggle("cc.styleplugin", null));
+    cP.appendChild(tabviewRow("plugins", syncPluginsBar));
     // per-tab style controls — the SAME set as the Docker tab, active while the
     // adopt-toggle above is OFF (own key prefix per tab)
     // The Plugin/VM sections carry EXACTLY the Docker tab's style cards (same
@@ -733,13 +790,25 @@
       }
       paintPv();
       cA.appendChild(pv);
-      // adopt flip / global-accent edit → this card repaints with the effective colour
+      // adopt flip / global edit → this card repaints with the effective colour. ALSO repaints
+      // the Logos card below with the EFFECTIVE icon values (adopt ON -> global cc.icon*, OFF ->
+      // this area's own P+icon*) — same effAcc() pattern, reusing sy()/applyBg2 for the paint.
+      // The cB handles (bgTg/ipk/ihx/sl2) are vars assigned below; the refresher only ever runs
+      // after buildStyleCards finished, so they are live by then.
       if (adoptKey) styleCardSync[adoptKey] = function () {
         acc = effAcc();
         try { pk._set(/^#[0-9a-f]{6}$/i.test(acc) ? acc : "#2f6feb"); } catch (e9) {}
         hx.value = acc;
         Array.prototype.slice.call(sr.querySelectorAll(".cc-set-sw")).forEach(function (sw9) { sw9.classList.toggle("cc-set-sw-on", sw9.getAttribute("data-tip") === acc); });
         paintPv();
+        var ga = localStorage.getItem(adoptKey) !== "0";
+        icol = ga ? get("cc.iconcolor", "") : get(P + "iconcolor", "");
+        try { ipk._set(/^#[0-9a-f]{6}$/i.test(icol) ? icol : "#1f9d55"); } catch (e9) {}
+        ihx.value = icol || "";
+        sl2.value = String(parseInt(ga ? get("cc.iconstrength", "100") : get(P + "iconstrength", "100"), 10) || 100);
+        sy(); // Einfärben knob + preview follow icol
+        var ebg = (ga ? get("cc.iconbg", "0") : get(P + "iconbg", P === "ccs." ? "1" : "0")) === "1";
+        bgTg._setOn(ebg); applyBg2(ebg);
       };
       into.appendChild(cA);
       // Badge-Form (shape) is now a single GLOBAL control in the Allgemein "Badges" card, so it is
@@ -747,19 +816,24 @@
       var cB = card(T("Logos", "Logos"), T("Der Schalter aktiviert die Färbung.", "The switch turns the tint on."));
       var ibg = get(P + "iconbg", P === "ccs." ? "1" : "0") === "1";
       function applyBg2(v) { ibg = v; cB.classList.toggle("cc-bg-mode", v); st2.style.opacity = v ? ".4" : ""; st2.style.pointerEvents = v ? "none" : ""; tpw.classList.toggle("cc-prev-bg", v); try { tp(); } catch (e9) {} }
-      cB.appendChild(toggleRow(T("Hintergrund", "Background"), ibg, function (v) { set(P + "iconbg", v ? "1" : "0"); applyBg2(v); }));
+      // every value change = "this area uses its OWN style" -> useOwn() flips the adopt toggle
+      // off, exactly like the Badges card handlers (own key set FIRST so the bar sync reads it).
+      // bgTg is kept as a handle: the adopt-sync refresher below repaints it with the EFFECTIVE state.
+      var bgTg = toggle(ibg, function (v) { set(P + "iconbg", v ? "1" : "0"); useOwn(); applyBg2(v); });
+      var bgRow = el("div", "cc-set-row"); bgRow.appendChild(el("span", null, T("Hintergrund", "Background"))); bgRow.appendChild(el("span", "cc-set-spacer")); bgRow.appendChild(bgTg);
+      cB.appendChild(bgRow);
       var ihx = el("input", "cc-set-hexin"); ihx.type = "text"; ihx.value = icol || ""; ihx.placeholder = "#1f9d55"; ihx.maxLength = 7; ihx.spellcheck = false;
-      var ipk = inlinePicker(/^#[0-9a-f]{6}$/i.test(icol) ? icol : "#1f9d55", function (v) { icol = v; ihx.value = v; set(P + "iconcolor", v); sy(); });
+      var ipk = inlinePicker(/^#[0-9a-f]{6}$/i.test(icol) ? icol : "#1f9d55", function (v) { icol = v; ihx.value = v; set(P + "iconcolor", v); useOwn(); sy(); });
       function on2() { return !!icol; }
       var tg2 = el("span", "cc-set-toggle" + (on2() ? " cc-set-toggle-on" : "")); tg2.setAttribute("role", "switch"); tg2.setAttribute("tabindex", "0"); tg2.appendChild(el("span", "cc-set-knob"));
       function sy() { tg2.classList.toggle("cc-set-toggle-on", on2()); tg2.setAttribute("aria-checked", on2() ? "true" : "false"); try { tp(); } catch (e9) {} }
-      tg2.addEventListener("click", function () { if (on2()) { icol = ""; del(P + "iconcolor"); ihx.value = ""; } else { icol = ipk._get(); ihx.value = icol; set(P + "iconcolor", icol); } sy(); });
-      ihx.addEventListener("input", function () { var v = normHex(ihx.value); if (v) { icol = v; ipk._set(v); set(P + "iconcolor", v); sy(); } });
+      tg2.addEventListener("click", function () { if (on2()) { icol = ""; del(P + "iconcolor"); ihx.value = ""; } else { icol = ipk._get(); ihx.value = icol; set(P + "iconcolor", icol); } useOwn(); sy(); });
+      ihx.addEventListener("input", function () { var v = normHex(ihx.value); if (v) { icol = v; ipk._set(v); set(P + "iconcolor", v); useOwn(); sy(); } });
       var ir2 = el("div", "cc-set-pickrow"); ir2.appendChild(ipk); ir2.appendChild(ihx); cB.appendChild(ir2);
       var tr2 = el("div", "cc-set-row cc-set-inline"); tr2.appendChild(el("span", null, T("Einfärben", "Colourise"))); tr2.appendChild(tg2); cB.appendChild(tr2);
       var st2 = el("div", "cc-set-row"); st2.appendChild(el("span", "cc-set-rl", T("Intensität", "Strength")));
       var sl2 = el("input"); sl2.type = "range"; sl2.min = "10"; sl2.max = "100"; sl2.value = String(istr); sl2.style.flex = "1";
-      sl2.addEventListener("input", function () { set(P + "iconstrength", sl2.value); try { tp(); } catch (e9) {} });
+      sl2.addEventListener("input", function () { set(P + "iconstrength", sl2.value); useOwn(); try { tp(); } catch (e9) {} });
       st2.appendChild(sl2); cB.appendChild(st2);
       // live logo preview with real icons of this tab
       cB.appendChild(el("div", "cc-set-lbl", T("Vorschau", "Preview")));
@@ -827,6 +901,9 @@
         tpImgs.forEach(function (im9) { im9.style.filter = "url(#" + fid + ")"; im9.style.background = ""; im9.style.padding = ""; im9.style.borderRadius = ""; });
       }
       cB.appendChild(tpw); tp(); applyBg2(ibg);
+      // initial paint = the EFFECTIVE values (cA already initialises via effAcc(); run the
+      // refresher once so cB starts on the global icon values while adopt is ON, own while OFF)
+      if (adoptKey) { try { styleCardSync[adoptKey](); } catch (e9) {} }
       if (!noLogos) into.appendChild(cB); // header tab: badges only, no logo card
     }
     // the adopt "Stil" card is the FIRST card of every section (user call), then
@@ -834,6 +911,7 @@
     // the Kopfbereich additionally carries the Fussleiste toggle + Status-Insel card.
     var cV = card(T("Stil", "Style"), T("AN = die globale Badge-Farbe (Allgemein) gilt auch hier. AUS = die eigene Farbe dieses Abschnitts gilt.", "ON = the global badge colour (General) applies here too. OFF = this section's own colour applies."));
     cV.appendChild(styleToggle("cc.stylevms", null));
+    cV.appendChild(tabviewRow("vms", syncVmsBar));
     var cH = card(T("Stil", "Style"), T("AN = die globale Badge-Farbe (Allgemein) gilt auch hier. AUS = die eigene Farbe dieses Abschnitts gilt.", "ON = the global badge colour (General) applies here too. OFF = this section's own colour applies."));
     cH.appendChild(styleToggle("cc.styleheader", null));
     // footer visibility (cc.footer, "1" hidden = DEFAULT): header.js applies it; same-page live via syncHeaderBar
@@ -846,6 +924,7 @@
     cH.appendChild(cHf);
     var cSh = card(T("Stil", "Style"), T("AN = die globale Badge-Farbe (Allgemein) gilt auch hier. AUS = die eigene Farbe dieses Abschnitts gilt.", "ON = the global badge colour (General) applies here too. OFF = this section's own colour applies."));
     cSh.appendChild(styleToggle("cc.styleshares", null));
+    cSh.appendChild(tabviewRow("shares", syncSharesBar));
     var cSet = card(T("Stil", "Style"), T("AN = die globale Badge-Farbe (Allgemein) gilt auch hier. AUS = die eigene Farbe dieses Abschnitts gilt.", "ON = the global badge colour (General) applies here too. OFF = this section's own colour applies."));
     cSet.appendChild(styleToggle("cc.stylesettings", null));
     // tile size of the /Settings + /Tools category grid (cc.sgsize s/m/l, default m; settingsgrid.js
@@ -855,25 +934,11 @@
     cFav.appendChild(styleToggle("cc.stylefavorites", null));
     var cStart = card(T("Stil", "Style"), T("AN = die globale Badge-Farbe (Allgemein) gilt auch hier. AUS = die eigene Farbe dieses Abschnitts gilt.", "ON = the global badge colour (General) applies here too. OFF = this section's own colour applies."));
     cStart.appendChild(styleToggle("cc.stylemain", null));
+    cStart.appendChild(tabviewRow("main", syncSharesBar));
     wrapHeader.appendChild(cH); wrapShares.appendChild(cSh); wrapPlugin.appendChild(cP); wrapVms.appendChild(cV); wrapSettings.appendChild(cSet); wrapFavorites.appendChild(cFav); wrapStart.appendChild(cStart);
-    // per-area "Tab-Ansicht" toggle: native Unraid sub-tabs (default) vs stacked CC sections. Persists
-    // cc.sections.<area> (default "0" = native sub-tabs; the user opts INTO stacking per tab). Shown ONLY
-    // in areas that actually HAVE sub-tabs to flatten: Freigaben (/Shares/Share), Start (/Main), Plugin
-    // (/Plugins) and VM (/VMs). Live re-apply via each area's same-page hook.
-    function sectionsToggleRow(area, applyFn) {
-      return toggleRow(T("Unterreiter als Abschnitte stapeln", "Stack sub-tabs as sections"), get("cc.sections." + area, "0") !== "0", function (v) { set("cc.sections." + area, v ? "1" : "0"); if (applyFn) applyFn(); });
-    }
-    function sectionsCard(area, applyFn) {
-      var c = card(T("Tab-Ansicht", "Tab view"), T("AN = Unterreiter als CC-Abschnitte untereinander. AUS = native Unraid-Unterreiter (Standard).", "ON = sub-tabs stacked as CC sections. OFF = native Unraid sub-tabs (default)."));
-      c.appendChild(sectionsToggleRow(area, applyFn));
-      return c;
-    }
+    // (the per-area Tabansicht toggle lives IN each Stil card now — see tabviewRow above)
     function syncPluginsBar() { try { if (typeof window.ccPluginsApply === "function") window.ccPluginsApply(); } catch (e) {} }
     function syncVmsBar() { try { if (typeof window.ccVmsApply === "function") window.ccVmsApply(); } catch (e) {} }
-    wrapShares.appendChild(sectionsCard("shares", syncSharesBar));
-    wrapStart.appendChild(sectionsCard("main", syncSharesBar));
-    wrapPlugin.appendChild(sectionsCard("plugins", syncPluginsBar));
-    wrapVms.appendChild(sectionsCard("vms", syncVmsBar));
     buildStyleCards("cch.", wrapHeader, [], true); // Kopfbereich (menu bar): pill/badge settings only
     // Kopfbereich covers the main menu bar AND the top strip: the Status-Insel (top strip)
     // belongs to THIS area. header.js renders it and reads cc.island / cc.tempwarn live.

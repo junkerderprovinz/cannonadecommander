@@ -1182,15 +1182,23 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 /* ═══ REACTIVE RAINBOW "active only" on /Docker (global signal html.cc-shares-rbneutral, stamped
    by shares.js on every page — same contract as /Main, see CannonadeCommand.Shares.css): ALL
    CC-painted chrome rests GREY and takes its stamped palette colour (--cc-rb-c/--cc-rb-ct per
-   element, accent fallback) only on :hover. ACTIVE/checked/selected chrome keeps its colour:
+   element, accent fallback) on hover — ROW-LEVEL on the container list/grid (user: "pro ganzer
+   Container-Zeile inkl. Logo/Hintergrund"): hovering ANYWHERE on a tr.sortable row / .cc-card
+   lights up the WHOLE container at once — badges, logo tile, limit gears, action icons.
+   ACTIVE/checked/selected chrome keeps its colour:
    [aria-selected=true] tabs, .cc-plan-on (Startplan aktiv), checked switch tracks (.checked —
    exempt by not being matched below), .cc-limbtn-set (= a configured limit), and the semantic
    state/update badges + dots (.cc-badge-*, green/orange-text, .sl-chip, .cc-statdot — none are
    .cc-b, so no rule below reaches them). Everything gated on .cc-docker-on so other tabs are
    untouched; !important beats the inline palette paints docker.js stamps. ═══ */
-/* value badges in #docker_list (incl. the idle Startplan chip; .cc-plan-on = active, keeps colour) */
-html.cc-shares-rbneutral.cc-docker-on #docker_list .cc-b:not(.cc-plan-on) { background: rgba(128, 128, 128, .18) !important; color: #cfcfcf !important; }
-html.cc-shares-rbneutral.cc-docker-on #docker_list .cc-b:not(.cc-plan-on):hover { background: var(--cc-rb-c, var(--cc-accent, #2f6feb)) !important; color: var(--cc-rb-ct, #fff) !important; }
+/* value badges rest grey in BOTH views (list rows + grid cards; incl. the idle Startplan chip;
+   .cc-plan-on = active, keeps colour) */
+html.cc-shares-rbneutral.cc-docker-on #docker_list .cc-b:not(.cc-plan-on),
+html.cc-shares-rbneutral.cc-docker-on .cc-grid-holder .cc-b:not(.cc-plan-on) { background: rgba(128, 128, 128, .18) !important; color: #cfcfcf !important; }
+/* ROW hover, generic fallback for kind-less badges (ID/Von/Tag/CPU/RAM/BW, idle plan chip):
+   the stamped --cc-rb-c, else the accent. The per-KIND rules further down override this. */
+html.cc-shares-rbneutral.cc-docker-on #docker_list tr.sortable:hover .cc-b:not(.cc-plan-on),
+html.cc-shares-rbneutral.cc-docker-on .cc-grid-holder .cc-card:hover .cc-b:not(.cc-plan-on) { background: var(--cc-rb-c, var(--cc-accent, #2f6feb)) !important; color: var(--cc-rb-ct, #fff) !important; }
 /* bottom action bar: the docked .js-actions buttons rest grey, palette colour on hover */
 html.cc-shares-rbneutral.cc-docker-on div.js-actions input[type=button]:not(:disabled) { background: rgba(128, 128, 128, .18) !important; color: #cfcfcf !important; }
 html.cc-shares-rbneutral.cc-docker-on div.js-actions input[type=button]:hover:not(:disabled) { background: var(--cc-rb-c, var(--cc-accent, #2f6feb)) !important; color: var(--cc-rb-ct, #fff) !important; }
@@ -1198,9 +1206,11 @@ html.cc-shares-rbneutral.cc-docker-on div.js-actions input[type=button]:hover:no
    the [aria-selected=true] tab stays painted */
 html.cc-shares-rbneutral.cc-docker-on nav.tabs .tabs-container > button[role=tab]:not([aria-selected="true"]) { background: rgba(128, 128, 128, .18) !important; color: #cfcfcf !important; }
 html.cc-shares-rbneutral.cc-docker-on nav.tabs .tabs-container > button[role=tab]:not([aria-selected="true"]):hover { background: var(--cc-rb-c, var(--cc-accent, #2f6feb)) !important; color: var(--cc-rb-ct, var(--cc-accent-text, #fff)) !important; }
-/* limit gears (list rows + grid cards): idle gear rests grey; a SET gear stays green (live state) */
+/* limit gears (list rows + grid cards): the idle gear rests grey (gearFill skips its inline
+   paint in neutral) and joins the ROW/card hover; a SET gear keeps its paint (live state) */
 html.cc-shares-rbneutral.cc-docker-on .cc-limbtn:not(.cc-limbtn-set) { background: rgba(128, 128, 128, .18) !important; color: #cfcfcf !important; }
-html.cc-shares-rbneutral.cc-docker-on .cc-limbtn:not(.cc-limbtn-set):hover { background: var(--cc-rb-c, var(--cc-accent, #2f6feb)) !important; color: var(--cc-rb-ct, #fff) !important; }
+html.cc-shares-rbneutral.cc-docker-on #docker_list tr.sortable:hover .cc-limbtn:not(.cc-limbtn-set),
+html.cc-shares-rbneutral.cc-docker-on .cc-grid-holder .cc-card:hover .cc-limbtn:not(.cc-limbtn-set) { background: var(--cc-rb-c, var(--cc-accent, #2f6feb)) !important; color: var(--cc-rb-ct, #fff) !important; }
 /* popup chrome painted by docker.js (.cc-pop editors + the .cc-menu gear menu): buttons —
    incl. the accent-filled .cc-btn-primary — rest grey; selected day chips (.cc-day-on),
    checked toggles and selected cores keep their colour (active contract). */
@@ -1210,18 +1220,42 @@ html.cc-shares-rbneutral.cc-docker-on .cc-pop .cc-day:not(.cc-day-on) { backgrou
 html.cc-shares-rbneutral.cc-docker-on .cc-pop .cc-day:not(.cc-day-on):hover { background: var(--cc-rb-c, var(--cc-accent, #2f6feb)) !important; color: var(--cc-rb-ct, #fff) !important; }
 /* action icons: tintAct() skips its inline paint in neutral and stamps --cc-rb-c instead —
    enabled icons rest DARK grey (their own base, not the translucent chip grey) and take the
-   stamped palette colour on hover; disabled .cc-actoff keeps its inline grey (never matched). */
+   stamped palette colour on ROW/card hover; disabled .cc-actoff keeps its inline grey (never
+   matched). */
 html.cc-shares-rbneutral.cc-docker-on .cc-actbtn:not(.cc-actoff) { background: #2e2e2e !important; color: #e9e9e9 !important; }
-html.cc-shares-rbneutral.cc-docker-on .cc-actbtn:not(.cc-actoff):hover { background: var(--cc-rb-c, var(--cc-accent, #2f6feb)) !important; color: var(--cc-rb-ct, #fff) !important; }
+html.cc-shares-rbneutral.cc-docker-on #docker_list tr.sortable:hover .cc-actbtn:not(.cc-actoff),
+html.cc-shares-rbneutral.cc-docker-on .cc-grid-holder .cc-card:hover .cc-actbtn:not(.cc-actoff) { background: var(--cc-rb-c, var(--cc-accent, #2f6feb)) !important; color: var(--cc-rb-ct, #fff) !important; }
 /* value badges carry per-KIND colours (--cc-rb-net/ip/lan/port/vol, stamped on the container,
-   see the .cc-rainbow kind rules above) — hovering restores the badge's OWN kind colour instead
-   of the generic accent fallback. Placed after the generic hover so equal importance resolves
-   by order. */
-html.cc-shares-rbneutral.cc-docker-on #docker_list .cc-b-net:hover { background: var(--cc-rb-net, #1f9d55) !important; color: var(--cc-rb-net-t, #fff) !important; }
-html.cc-shares-rbneutral.cc-docker-on #docker_list .cc-b-ip:hover { background: var(--cc-rb-ip, #2f6feb) !important; color: var(--cc-rb-ip-t, #fff) !important; }
-html.cc-shares-rbneutral.cc-docker-on #docker_list .cc-b-lan:hover { background: var(--cc-rb-lan, #e0912a) !important; color: var(--cc-rb-lan-t, #161616) !important; }
-html.cc-shares-rbneutral.cc-docker-on #docker_list .cc-b-port:hover { background: var(--cc-rb-port, #8b5cf6) !important; color: var(--cc-rb-port-t, #fff) !important; }
-html.cc-shares-rbneutral.cc-docker-on #docker_list .cc-b-vol:hover { background: var(--cc-rb-vol, #0891b2) !important; color: var(--cc-rb-vol-t, #fff) !important; }
+   see the .cc-rainbow kind rules above) — the ROW hover restores the badge's OWN kind colour
+   instead of the generic accent fallback. .cc-b.cc-b-* ties the generic row-hover rule's :not()
+   specificity; source order AFTER it resolves the tie per kind. */
+html.cc-shares-rbneutral.cc-docker-on #docker_list tr.sortable:hover .cc-b.cc-b-net,
+html.cc-shares-rbneutral.cc-docker-on .cc-grid-holder .cc-card:hover .cc-b.cc-b-net { background: var(--cc-rb-net, #1f9d55) !important; color: var(--cc-rb-net-t, #fff) !important; }
+html.cc-shares-rbneutral.cc-docker-on #docker_list tr.sortable:hover .cc-b.cc-b-ip,
+html.cc-shares-rbneutral.cc-docker-on .cc-grid-holder .cc-card:hover .cc-b.cc-b-ip { background: var(--cc-rb-ip, #2f6feb) !important; color: var(--cc-rb-ip-t, #fff) !important; }
+html.cc-shares-rbneutral.cc-docker-on #docker_list tr.sortable:hover .cc-b.cc-b-lan,
+html.cc-shares-rbneutral.cc-docker-on .cc-grid-holder .cc-card:hover .cc-b.cc-b-lan { background: var(--cc-rb-lan, #e0912a) !important; color: var(--cc-rb-lan-t, #161616) !important; }
+html.cc-shares-rbneutral.cc-docker-on #docker_list tr.sortable:hover .cc-b.cc-b-port,
+html.cc-shares-rbneutral.cc-docker-on .cc-grid-holder .cc-card:hover .cc-b.cc-b-port { background: var(--cc-rb-port, #8b5cf6) !important; color: var(--cc-rb-port-t, #fff) !important; }
+html.cc-shares-rbneutral.cc-docker-on #docker_list tr.sortable:hover .cc-b.cc-b-vol,
+html.cc-shares-rbneutral.cc-docker-on .cc-grid-holder .cc-card:hover .cc-b.cc-b-vol { background: var(--cc-rb-vol, #0891b2) !important; color: var(--cc-rb-vol-t, #fff) !important; }
+/* LOGO TILE joins the row: in neutral the tile rests grey like the badges and returns to its
+   configured tile colour on ROW/card hover. Gated on the iconbg mode class — the list stamps it
+   on the native table (applyEnhanceClasses), the grid holder gets the SAME class from renderGrid.
+   The mono ink the JS applies to the logo itself stays untouched. */
+html.cc-shares-rbneutral.cc-docker-on .cc-enh.cc-docker-iconbg #docker_list td.ct-name .outer > span.hand { background: rgba(128, 128, 128, .18) !important; }
+html.cc-shares-rbneutral.cc-docker-on .cc-enh.cc-docker-iconbg #docker_list tr.sortable:hover td.ct-name .outer > span.hand { background: var(--cc-iconbg-color, var(--cc-accent, #2f6feb)) !important; }
+html.cc-shares-rbneutral.cc-docker-on .cc-grid-holder.cc-docker-iconbg .cc-card-ico { background: rgba(128, 128, 128, .18) !important; }
+html.cc-shares-rbneutral.cc-docker-on .cc-grid-holder.cc-docker-iconbg .cc-card:hover .cc-card-ico { background: var(--cc-iconbg-color, var(--cc-accent, #2f6feb)) !important; }
+/* PLUGINS tab logo tiles (their background rule lives above: html.cc-plugins-iconbg .cc-plugico):
+   same reactive contract — rest grey, the ROW hover restores the configured tile colour.
+   cc-plugins-iconbg is only ever stamped on /Plugins, so nothing can leak elsewhere. */
+html.cc-shares-rbneutral.cc-plugins-iconbg .cc-plugico { background: rgba(128, 128, 128, .18) !important; }
+html.cc-shares-rbneutral.cc-plugins-iconbg #plugin_list tr:hover .cc-plugico { background: var(--cc-iconbg-color, var(--cc-accent, #2f6feb)) !important; }
+/* CC-SETTINGS tab strip (companion to the settings.js --cc-rb-c stamping): idle tabs already
+   rest on their grey base rule and take the stamped palette colour on hover; the ACTIVE tab is
+   excluded so its painted colour (inline, settings.js) can never lose to this !important. */
+html.cc-shares-rbneutral #cc-settings .cc-set-tab:hover:not(.cc-set-tab-on) { background: var(--cc-rb-c, var(--cc-accent, #2f6feb)) !important; color: var(--cc-rb-ct, #fff) !important; }
 
 /* ___ badge-shape MASTER overrides: these must remain the LAST rules in this
    file, because any later rule with the same !important radius would win

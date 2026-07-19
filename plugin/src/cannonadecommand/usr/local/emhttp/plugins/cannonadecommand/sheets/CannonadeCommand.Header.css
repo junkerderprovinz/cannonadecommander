@@ -102,13 +102,15 @@ html.cc-header-on #menu .nav-tile .nav-item.util img.system {
 }
 
 /* ═══ hover bubbles ═══
-   (a) OUR bubble for the utility icons: header.js moves the native title -> data-cc-tip (the OS
-   balloon can't be styled); pure-CSS bubble, frameless, follows the badge form (user law).
-   (b) tooltipster + jQuery-UI tooltips (Unraid's own systems) get the same frameless dark look. */
-/* bubble shared by the #menu icons AND the status-island chips (#cc-island) — opens DOWNWARD.
+   (a) #menu icons: the nav tiles carry overflow, which CLIPS any pure-CSS ::after bubble opening
+   below the 30px icon row (live-proven: it renders but is invisible) — the menu therefore uses
+   ONE shared FLOATING bubble div#cc-tipfloat, a BODY child header.js fills + positions (fixed,
+   centred under the hovered icon, viewport-clamped) via delegated listeners on #menu.
+   (b) island chips (#cc-island, in the un-clipped #header) keep the pure-CSS ::after bubble.
+   (c) tooltipster + jQuery-UI tooltips (Unraid's own systems) get the same frameless dark look.
    UNIFIED BUBBLE SPEC (identical across all CC sheets — keep in sync). */
-html.cc-header-on :is(#menu, #cc-island) [data-cc-tip] { position: relative; }
-html.cc-header-on :is(#menu, #cc-island) [data-cc-tip]:hover::after {
+html.cc-header-on #cc-island [data-cc-tip] { position: relative; }
+html.cc-header-on #cc-island [data-cc-tip]:hover::after {
   content: attr(data-cc-tip); position: absolute; left: 50%; top: calc(100% + 8px); transform: translateX(-50%);
   z-index: 9999; width: max-content; max-width: 280px;
   background: #393939; color: #f4f4f4; border: none; border-radius: min(var(--cc-b-radius, 8px), 10px);
@@ -118,9 +120,29 @@ html.cc-header-on :is(#menu, #cc-island) [data-cc-tip]:hover::after {
   box-shadow: 0 8px 24px rgba(0, 0, 0, .55); pointer-events: none;
 }
 /* the arrow: a FILLED triangle (border-trick = fill, not a stroke) bridging chip and bubble */
-html.cc-header-on :is(#menu, #cc-island) [data-cc-tip]:hover::before {
+html.cc-header-on #cc-island [data-cc-tip]:hover::before {
   content: ""; position: absolute; left: 50%; top: calc(100% + 2px); transform: translateX(-50%);
   z-index: 9999; width: 0; height: 0;
+  border-style: solid; border-width: 0 6px 6px 6px;
+  border-color: transparent transparent #393939 transparent;
+  pointer-events: none;
+}
+/* the floating menu bubble — SAME spec. header.js sets display/left/top inline (left = icon
+   centre, the translateX centres the box, clamped into the viewport) */
+html.cc-header-on #cc-tipfloat {
+  position: fixed; display: none; transform: translateX(-50%);
+  z-index: 9999; width: max-content; max-width: 280px;
+  background: #393939; color: #f4f4f4; border: none; border-radius: min(var(--cc-b-radius, 8px), 10px);
+  padding: 9px 12px; font-size: 12.5px; font-weight: 400; line-height: 1.45;
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  text-transform: none; letter-spacing: normal; white-space: normal; text-align: left;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .55); pointer-events: none;
+}
+/* its arrow rides --cc-tip-ax (set by header.js) so it stays over the icon even when the
+   clamped bubble shifts off-centre at the viewport edge */
+html.cc-header-on #cc-tipfloat::before {
+  content: ""; position: absolute; left: var(--cc-tip-ax, 50%); top: -6px; transform: translateX(-50%);
+  width: 0; height: 0;
   border-style: solid; border-width: 0 6px 6px 6px;
   border-color: transparent transparent #393939 transparent;
   pointer-events: none;
@@ -142,10 +164,13 @@ html.cc-header-on .tooltipster-base .tooltipster-arrow { display: none !importan
    fill alone is the chip; the dot COLOUR is set inline per state by header.js. */
 html.cc-header-on #header { display: flex; align-items: center; }   /* flex row so margin-left:auto works + everything centres on ONE 91px line */
 html.cc-header-on #cc-island {
-  display: inline-flex; align-items: center; gap: 8px; flex-wrap: nowrap;
-  /* flush right (user call: "ganz rechts"): clearance = exactly the bell+burger zone
-     (~106px) + 8px gap, so the chip row ends right where the controls begin */
-  margin-left: auto; margin-right: 114px; align-self: center;
+  display: inline-flex; align-items: center; gap: 8px; row-gap: 6px;
+  /* bell+burger left the strip (docked into the menu icon row by header.js) — the old 114px
+     reserve is obsolete: the chips run out to the right and WRAP onto right-aligned rows,
+     vertically centred in the 91px strip */
+  flex-wrap: wrap; justify-content: flex-end; max-width: 52vw;
+  margin-left: auto; margin-right: 12px; align-self: center;
+  order: 2;   /* right cluster: island first, version chip (order 3) after it */
 }
 /* island bubbles anchor RIGHT: the chips sit at the page edge — a centred 280px bubble
    on the last chip would overflow the viewport */
@@ -164,6 +189,15 @@ html.cc-header-on #cc-island .cc-isl-dot {
   width: 10px; height: 10px; flex: 0 0 auto; margin-right: 6px;
   border-radius: var(--cc-dot-r, 50%);           /* state dots follow the global dot radius */
 }
+/* usage chip MINI BAR (user: "die Füllstandanzeige soll so ein schöner balken sein wie zuvor"):
+   grey track + coloured fill; width/colour come inline from header.js — the fill IS the state
+   (green <80, amber <95, red above), so this chip carries no dot */
+html.cc-header-on #cc-island .cc-isl-bar {
+  width: 46px; height: 8px; flex: 0 0 auto; margin-right: 6px;
+  border-radius: var(--cc-dot-r, 4px);
+  background: rgba(128, 128, 128, .25); overflow: hidden;
+}
+html.cc-header-on #cc-island .cc-isl-fill { display: block; height: 100%; }
 
 /* ═══ TOP HEADER TAKEOVER: brand + version chip + bell/burger in CC style ═══
    The Connect components render LIGHT DOM, so outside CSS matches and survives the
@@ -187,7 +221,7 @@ html.cc-header-on.cc-usage-isl #menu .usage-bar { display: none !important; }
 html.cc-header-on #cc-brand {
   display: inline-flex; align-items: center; gap: 10px;
   font-size: 22px; font-weight: 600; color: #f4f4f4; letter-spacing: .3px;
-  margin-right: 14px;
+  margin-right: 14px; order: 0;   /* leftmost on the #header flex row (island 2, version chip 3) */
 }
 /* the native version dropdown trigger stays FUNCTIONAL, dressed as an S-tier chip */
 html.cc-header-on unraid-header-os-version span[id^="reka-menu-trigger"] {
@@ -206,13 +240,17 @@ html.cc-header-on unraid-header-os-version span[id^="reka-menu-trigger"]:focus-v
 }
 /* complete the height chain + vertically centre what remains of the component: the wrapper
    div (native mt-4 ml-4 flex-col) spans the 91px strip and centres the version chip, so
-   brand, chip, island and the native controls all sit on the ONE #header flex line */
-html.cc-header-on unraid-header-os-version { display: inline-flex; align-items: center; height: 100%; }
+   brand, chip and island all sit on the ONE #header flex line. The COMPONENT rides RIGHT of
+   the island via flex ORDER (CSS-only, no DOM moves — law; proven live: order moves the
+   host) — the wordmark stays hidden, so only the S-tier version chip shows in the cluster */
+html.cc-header-on unraid-header-os-version { display: inline-flex; align-items: center; height: 100%; order: 3; margin-left: 8px; }
 html.cc-header-on unraid-header-os-version > div { margin: 0 !important; justify-content: center; height: 100%; }
 
-/* 3) bell + burger: #UserProfile stays ABSOLUTE top-right (native positioning untouched);
-   after the hides its controls row keeps only the two triggers — centred over the full 91px */
-html.cc-header-on #UserProfile > div:nth-child(2) { height: 100%; align-items: center; gap: 8px; }
+/* 3) bell + burger: div#UserProfile is DOCKED into the MENU icon row by header.js
+   ccDockProfile() (inline position:fixed + height:26px, measured against the first visible
+   utility icon — no DOM move, auto-mount-safe); after the hides its controls row keeps only
+   the two 26px trigger chips (the old height:100% strip-centring is obsolete) */
+html.cc-header-on #UserProfile > div:nth-child(2) { align-items: center; gap: 8px; }
 /* bell + burger dress as BADGES (user call): the same grey chip fill as the island chips,
    badge-form radius, hover = brightness only (law) */
 html.cc-header-on #UserProfile > div:nth-child(2) > span {

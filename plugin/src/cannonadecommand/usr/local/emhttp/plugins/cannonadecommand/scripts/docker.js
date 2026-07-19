@@ -1229,6 +1229,9 @@
     relocateTopBar(); // collapse the ToggleViewMode row in card view too
     gridHolder.classList.toggle("cc-rainbow", localStorage.getItem("cc.rainbow") === "1");
     gridHolder.classList.toggle("cc-tint-icons", !!localStorage.getItem("cc.iconcolor"));
+    // grid twin of the table's iconbg gate (applyEnhanceClasses) — the reactive
+    // logo-tile rest/hover rules key on it, so card view matches the list
+    gridHolder.classList.toggle("cc-docker-iconbg", localStorage.getItem("cc.iconbg") === "1");
     // The grid needs its OWN gear: the list-toolbar gear lives in/near the native table
     // area, which is not a reliable anchor in card view ("which gear menu?"). This one is
     // pinned to the grid holder's top-right corner. A rebuild detaches the old gear — if
@@ -1689,6 +1692,13 @@
   // the fill is enforced INLINE with priority: Unraid's theme CSS beats the
   // stylesheet (the gears looked hollow again on the box)
   function gearFill(lb, set) {
+    // reactive sub-mode: an IDLE gear paints NOTHING inline (inline !important beats every
+    // sheet rule) — CSS rests it grey and colours it on ROW/card hover. A SET gear keeps
+    // its paint (active contract).
+    if (!set && themingOn() && localStorage.getItem("cc.rainbow") === "1" && localStorage.getItem("cc.rbmode") === "active") {
+      lb.style.removeProperty("background"); lb.style.removeProperty("color");
+      return;
+    }
     var bg = set ? (effc("accent") || "#2f6feb") : "#4a4a4a"; // active = badge accent (user call)
     var tx = "#f2f2f2";
     if (set) { var n2 = parseInt(String(bg).replace("#", ""), 16), L2 = 0.299 * (n2 >> 16 & 255) + 0.587 * (n2 >> 8 & 255) + 0.114 * (n2 & 255); tx = L2 > 150 ? "#161616" : "#fff"; }

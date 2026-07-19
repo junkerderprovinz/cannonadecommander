@@ -557,6 +557,10 @@
       var accent = effc("accent"); if (accent) { root.setProperty("--cc-accent", accent); root.setProperty("--cc-accent-text", idealText(accent)); }
       root.setProperty("--cc-b-radius", ({ pill: "999px", rounded: "6px", square: "0px", circle: "999px" })[localStorage.getItem("cc.badgeshape") || "pill"] || "999px");
       var dens = localStorage.getItem("cc.density"); root.setProperty("--cc-density", { compact: "5px", normal: "9px", airy: "14px" }[dens] || "9px");
+      // ONE global tile-size key (cc.sgsize, same as the Settings grid) drives the
+      // Docker/Plugins logo tile: [img, box] per step; box - img = 2x tile padding.
+      var lg = ({ s: ["48px", "62px"], m: ["62px", "78px"], l: ["76px", "94px"] })[localStorage.getItem("cc.sgsize") || "m"] || ["62px", "78px"];
+      root.setProperty("--cc-logo-img", lg[0]); root.setProperty("--cc-logo-box", lg[1]);
       // Colour for ShipLog's "update all" button (which we restyle to match our badges,
       // in the toggle row). documentElement so it reaches .ToggleViewMode, which lives
       // OUTSIDE our enhanced table. Green in rainbow mode, the accent otherwise.
@@ -961,9 +965,12 @@
     try {
       var f = document.getElementById("footer");
       var fixed = f && getComputedStyle(f).position === "fixed";
-      var h = f ? Math.round(f.getBoundingClientRect().height) : 0;
-      if (fixed && h > 0 && h < 160) document.documentElement.style.setProperty("--cc-footer-h", h + "px");
-      else document.documentElement.style.removeProperty("--cc-footer-h");
+      // ALWAYS stamp the var: offsetHeight is 0 when the footer is display:none, a
+      // missing #footer counts as 0, non-fixed = 0 (bar flows below 768px anyway).
+      // Leaving the var UNSET let the old 30px CSS fallback float the bar.
+      var h = fixed && f ? f.offsetHeight : 0;
+      if (!(h > 0 && h < 160)) h = 0;
+      document.documentElement.style.setProperty("--cc-footer-h", h + "px");
       // the docked bar's own height feeds the scroll clearance (CSS padding-bottom)
       var bar = document.querySelector("div.js-actions");
       if (bar) { var bh = Math.round(bar.getBoundingClientRect().height); if (bh > 0 && bh < 200) document.documentElement.style.setProperty("--cc-actbar-h", bh + "px"); }

@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.37.0">
+  <!ENTITY version   "2.38.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,22 @@
 </ICON>
 
 <CHANGES>
+### 2.38.0
+- #1 NEU: Status-Insel im Kopfbereich -- Array-Zustand, laufende Dienste (z. B. shiplog) und
+  Temperatur-Warnungen als kompakte Chips mit Zustandspunkt oben rechts neben dem
+  Benachrichtigungszentrum; Details beim Ueberfahren, live aktualisiert. Abschaltbar,
+  Temperatur-Schwelle einstellbar.
+- #2 CC-Einstellungen aufgeraeumt: Die Reiter sortieren sich wie die Hauptmenueleiste,
+  Allgemein steht immer zuerst, danach der Kopfbereich (Hauptmenueleiste + oberer Bereich
+  verschmolzen); Tab-Bereiche heissen stringent "XXX-Tab"; Sichern und Uebertragen wohnt
+  jetzt im Allgemein-Bereich; die Badge-Form-Auswahl ist nach Rundung sortiert.
+- #3 Die Kachelgroesse steuert jetzt auch die Logo-Kacheln im Docker- und Plugin-Tab
+  (eigener Regler in der Docker-Karte, derselbe globale Wert).
+- #4 Tailscale-Punkte jetzt richtig eingefaerbt -- sie folgen exakt der Glyphenfarbe der
+  Kachel in jedem Farbmodus.
+- #5 Docker-Tab: die untere Buttonleiste schwebt nicht mehr (sie dockte an der
+  ausgeblendeten Fussleiste an).
+
 ### 2.37.0
 - #1 CC-Werte gehen IMMER vor: Beim Setzen von CPU- oder RAM-Limits entfernt die Engine
   konfligierende Eintraege (--memory, -m, --memory-swap, --cpus, --cpuset-cpus,
@@ -1306,7 +1322,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>e936d3dacc7edcd988cb6581bd00d217d1e7f5406b90bb5401cb6c5a30b3d4fa</SHA256>
+  <SHA256>7db961893add1d47447b7c4c762b2da5536bd17bf724ff30c29693fdb6880e70</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

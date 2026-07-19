@@ -277,6 +277,79 @@
       }
     } catch (e) {}
   }
+  // ── STATUS ISLAND (user-approved concept). The 91px top strip (div#header) is EMPTY between
+  // Unraid's two Connect web components (unraid-header-os-version left, unraid-user-profile
+  // right). Both are Shadow-DOM and UNTOUCHABLE (law: never restyle/move them) — so we build
+  // our OWN light-DOM span#cc-island NEXT to them (inserted before the profile; the sheet's
+  // margin-left:auto pushes it right). Data source = the CSS-hidden native footer: span#statusbar
+  // textContent is bullet-separated ("Array gestartet•shiplog: started (pid …, port …)" — first
+  // segment = array state, each following segment = "name: status (details)" per service), and
+  // the footer text also carries the CPU/board temps ("38 °C27.8 °C" — unmarked spans, so we
+  // parse TEXT, not structure). Chips are S-tier (~21px, 11px font) with 10px state dots
+  // (radius var(--cc-dot-r)); tooltips ride the frameless CC data-cc-tip bubble, never title=.
+  var ccIslandObs = null, ccIslandSig = "";
+  function ccIslandOn() { return g("cc.enable.header", "0") !== "0" && g("cc.theming", "1") !== "0" && g("cc.island", "1") !== "0"; }
+  function ccIsland() {
+    try {
+      var isle = document.getElementById("cc-island");
+      if (!ccIslandOn()) { if (isle && isle.parentNode) isle.parentNode.removeChild(isle); ccIslandSig = ""; return; }   // teardown: gate off = island gone
+      var hdr = document.getElementById("header"); if (!hdr) return;
+      var foot = document.getElementById("footer"), sb = document.getElementById("statusbar");
+      var raw = ((sb && sb.textContent) || "").replace(/^\s+|\s+$/g, "");
+      var footTxt = (foot && foot.textContent) || "";
+      // every "NN.N °C" in the footer text (defensive: temp span markup varies per board/plugins)
+      var temps = [], tm, tre = /(\d+(?:[.,]\d+)?)\s*°\s*C/g;
+      while ((tm = tre.exec(footTxt))) temps.push(parseFloat(tm[1].replace(",", ".")));
+      var warn = parseFloat(g("cc.tempwarn", "60")); if (!isFinite(warn) || warn <= 0) warn = 60;
+      // parity/…% progress text (e.g. "Parity … 12.3 %") — goes into the ARRAY chip tooltip only
+      var par = /parit[^•%]{0,120}?\d+(?:[.,]\d+)?\s*%/i.exec(footTxt);
+      // idempotence guard: nchan rewrites the footer every few seconds with UNCHANGED text most
+      // of the time — compare the source signature and skip the DOM rebuild when nothing moved
+      var sig = raw + "|" + temps.join(",") + "|" + warn + "|" + (par ? par[0] : "");
+      if (isle && sig === ccIslandSig) return;
+      ccIslandSig = sig;
+      if (!isle) {
+        isle = document.createElement("span"); isle.id = "cc-island";
+        var prof = hdr.querySelector("unraid-user-profile");   // insert BESIDE the web component, never inside it
+        if (prof) hdr.insertBefore(isle, prof); else hdr.appendChild(isle);
+      }
+      while (isle.firstChild) isle.removeChild(isle.firstChild);   // clear + refill = idempotent rebuild
+      function chip(label, dot, tip) {
+        var c = document.createElement("span"); c.className = "cc-isl-chip";
+        var d = document.createElement("span"); d.className = "cc-isl-dot";
+        d.style.background = dot;   // state COLOUR inline; size/shape (var(--cc-dot-r)) in the sheet
+        c.appendChild(d); c.appendChild(document.createTextNode(label));
+        if (tip) c.setAttribute("data-cc-tip", tip);   // frameless CC bubble (law) — no native balloon
+        isle.appendChild(c);
+      }
+      var segs = raw ? raw.split("•") : [], i, s;
+      for (i = 0; i < segs.length; i++) {
+        s = segs[i].replace(/^\s+|\s+$/g, ""); if (!s) continue;
+        if (i === 0) {   // ARRAY chip: first segment = array state, label = the segment text
+          var low = s.toLowerCase(), dc = "#d6a243";   // amber = unclear/transitional state
+          if (low.indexOf("gestartet") !== -1 || low.indexOf("started") !== -1) dc = "#3fae6a";
+          else if (low.indexOf("gestoppt") !== -1 || low.indexOf("stopped") !== -1) dc = "#d9433f";
+          chip(s, dc, par ? s + " — " + par[0].replace(/\s+/g, " ") : s);
+        } else {         // ONE chip per service segment: label = name before ":", full text -> bubble
+          var ci = s.indexOf(":"), name = ci > 0 ? s.slice(0, ci).replace(/\s+$/, "") : s;
+          var rest = ci > 0 ? s.slice(ci + 1).toLowerCase() : "";
+          chip(name, rest.indexOf("started") !== -1 ? "#3fae6a" : "#d6a243", s);
+        }
+      }
+      // TEMP chips ONLY at/above the warn threshold (calm strip: a healthy box shows nothing)
+      for (i = 0; i < temps.length; i++) {
+        if (temps[i] >= warn) chip(Math.round(temps[i]) + " °C", temps[i] >= warn + 15 ? "#d9433f" : "#d6a243", temps[i] + " °C");
+      }
+    } catch (e) {}
+  }
+  function watchIsland() {   // nchan rewrites the (hidden) footer live — mirror every update into the island
+    try {
+      if (ccIslandObs) return;
+      var f = document.getElementById("footer"); if (!f) return;   // no footer yet -> the next apply() retries
+      ccIslandObs = new MutationObserver(function () { ccIsland(); });
+      ccIslandObs.observe(f, { childList: true, subtree: true, characterData: true });   // we write into #header, never #footer -> no loop
+    } catch (e) {}
+  }
   function apply() {
     try {
       var root = document.documentElement;
@@ -304,6 +377,7 @@
       // reverts the menu bar instead of leaving the coloured tabs behind.
       if (!on) {
         paintNav(); measureAlign();
+        ccIsland();   // gate off inside -> removes span#cc-island from div#header
         // styled hover bubbles -> native title balloons back (area off = fully native)
         var tps0 = document.querySelectorAll("#menu [data-cc-tip]");
         for (var tq = 0; tq < tps0.length; tq++) { tps0[tq].setAttribute("title", tps0[tq].getAttribute("data-cc-tip")); tps0[tq].removeAttribute("data-cc-tip"); }
@@ -326,6 +400,8 @@
       setupNavDrag();   // make the tabs draggable (idempotent per tile)
       paintNav();
       measureAlign();   // after the pill geometry is live -> measure the real left edge
+      ccIsland();       // status island in the top strip (self-gated on cc.island, default on)
+      watchIsland();    // live footer observer so nchan status/temp updates flow into the chips
     } catch (e) {}
   }
   // gui_search() prepends #guiSearchBoxSpan at the FAR-LEFT of .nav-tile.right, focuses

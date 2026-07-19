@@ -235,8 +235,7 @@
     var wrapSettings = el("div", "cc-set-wrap");
     var wrapFavorites = el("div", "cc-set-wrap");
     var wrapStart = el("div", "cc-set-wrap");   // Start (/Main) area — its own CC-settings section
-    var wrapBackup = el("div", "cc-set-wrap");  // Sichern & Übertragen: settings export/import
-    var wrapMain = el("div", "cc-set-wrap");
+    var wrapMain = el("div", "cc-set-wrap");    // Allgemein — also hosts the export/import card (last)
     var adoptToggles = {}; // adopt-key → its toggle element (a colour pick flips it live); declared UP here (not further down) because the Docker area's styleToggle now runs early, with the moved global Badges card
     // MASTER THEMING switch (first, prominent). Off = keep ONLY the Docker orchestration
     // FUNCTIONS (start plan, dependencies, health-gate, watchdog, schedules, limits, bandwidth,
@@ -251,7 +250,7 @@
     // Bereiche: enable/disable each area CannonadeCommand enhances
     (function () {
       var c = card(T("Bereiche", "Areas"), T("Aktiviere, welche Bereiche CannonadeCommand verschönert. Ein deaktivierter Bereich blendet seinen Tab hier sofort aus.", "Choose which areas CannonadeCommand enhances. Disabling an area hides its tab here immediately."));
-      [["cc.enable.main", T("Start", "Start"), "0"], ["cc.enable.header", T("Hauptmenüleiste", "Main menu bar"), "0"], ["cc.enable.shares", T("Freigaben", "Shares"), "0"], ["cc.enable.docker", T("Docker-Tab", "Docker tab"), "1"], ["cc.enable.plugins", T("Plugin-Tab", "Plugins tab"), "1"], ["cc.enable.vms", T("VM-Tab", "VMs tab"), "1"], ["cc.enable.settings", T("Einstellungen & Werkzeuge", "Settings & Tools"), "1"], ["cc.enable.favorites", T("Favoriten", "Favorites"), "1"]].forEach(function (a) {
+      [["cc.enable.main", T("Start-Tab", "Start tab"), "0"], ["cc.enable.header", T("Kopfbereich", "Header area"), "0"], ["cc.enable.shares", T("Freigaben-Tab", "Shares tab"), "0"], ["cc.enable.docker", T("Docker-Tab", "Docker tab"), "1"], ["cc.enable.plugins", T("Plugin-Tab", "Plugins tab"), "1"], ["cc.enable.vms", T("VM-Tab", "VMs tab"), "1"], ["cc.enable.settings", T("Einstellungen- & Werkzeuge-Tabs", "Settings & Tools tabs"), "1"], ["cc.enable.favorites", T("Favoriten-Tab", "Favorites tab"), "1"]].forEach(function (a) {
         var row = el("div", "cc-set-row cc-set-inline");
         row.appendChild(el("span", null, a[1]));
         var cur = localStorage.getItem(a[0]);
@@ -260,23 +259,39 @@
       });
       wrapMain.appendChild(c);
     })();
+    // ── section order = the USER'S main-menu order. header.js persists the drag-reordered
+    // menu as cc.navorder.all {left:[href keys],right:[...]}; read DEFENSIVELY (accept .left
+    // or a plain array; absent/garbage -> native menu order fallback below).
+    var NAVDEF = ["Start", "Favorites", "Freigaben", "Einstellungen", "Docker", "Plugins", "VMs", "Werkzeuge", "Stats", "Apps"];
+    var navOrder = NAVDEF;
+    try { var no9 = JSON.parse(get("cc.navorder.all", "null")); var arr9 = no9 && no9.left ? no9.left : no9; if (arr9 && arr9.length && typeof arr9.forEach === "function") navOrder = arr9; } catch (e9b) {}
+    // one normalised token per entry: "/Docker" == "Docker" == "docker" (hrefs, labels alike)
+    var navToks = [];
+    navOrder.forEach(function (k9) { navToks.push(String(k9).replace(/^\//, "").split(/[/?#]/)[0].toLowerCase()); });
+    function navRank(aliases) { var best = -1; aliases.forEach(function (a9) { var i9 = navToks.indexOf(a9); if (i9 >= 0 && (best < 0 || i9 < best)) best = i9; }); return best; }
+    // fixed head: Allgemein first, Kopfbereich second (chrome, not a menu tab). The tab
+    // sections follow the menu order; tabs missing from it keep native relative order at the
+    // END. Each section carries a STABLE id — cc.settab persists that id, never the index.
     var SECS = [
-      { t: T("Allgemein", "General"), w: wrapMain, key: null },
-      { t: T("Start", "Start"), w: wrapStart, key: "cc.enable.main" },
-      { t: T("Hauptmenüleiste", "Main menu bar"), w: wrapHeader, key: "cc.enable.header" },
-      { t: T("Freigaben", "Shares"), w: wrapShares, key: "cc.enable.shares" },
-      { t: T("Docker-Tab", "Docker tab"), w: wrap, key: "cc.enable.docker" },
-      { t: T("Plugin-Tab", "Plugins tab"), w: wrapPlugin, key: "cc.enable.plugins" },
-      { t: T("VM-Tab", "VMs tab"), w: wrapVms, key: "cc.enable.vms" },
-      { t: T("Einstellungen & Werkzeuge", "Settings & Tools"), w: wrapSettings, key: "cc.enable.settings" },
-      { t: T("Favoriten", "Favorites"), w: wrapFavorites, key: "cc.enable.favorites" },
-      { t: T("Sichern & Übertragen", "Backup & transfer"), w: wrapBackup, key: null } // always on (key null), LAST tab
+      { id: "general", t: T("Allgemein", "General"), w: wrapMain, key: null },
+      { id: "header", t: T("Kopfbereich", "Header area"), w: wrapHeader, key: "cc.enable.header" }
     ];
+    [
+      { id: "main", t: T("Start-Tab", "Start tab"), w: wrapStart, key: "cc.enable.main", tabs: ["start", "main"] },
+      { id: "shares", t: T("Freigaben-Tab", "Shares tab"), w: wrapShares, key: "cc.enable.shares", tabs: ["freigaben", "shares"] },
+      { id: "docker", t: T("Docker-Tab", "Docker tab"), w: wrap, key: "cc.enable.docker", tabs: ["docker"] },
+      { id: "plugins", t: T("Plugin-Tab", "Plugins tab"), w: wrapPlugin, key: "cc.enable.plugins", tabs: ["plugins"] },
+      { id: "vms", t: T("VM-Tab", "VMs tab"), w: wrapVms, key: "cc.enable.vms", tabs: ["vms"] },
+      { id: "settings", t: T("Einstellungen- & Werkzeuge-Tabs", "Settings & Tools tabs"), w: wrapSettings, key: "cc.enable.settings", tabs: ["einstellungen", "settings", "werkzeuge", "tools"] },
+      { id: "favorites", t: T("Favoriten-Tab", "Favorites tab"), w: wrapFavorites, key: "cc.enable.favorites", tabs: ["favorites", "favoriten"] }
+    ].map(function (s9, i9) { return { s: s9, i: i9, r: navRank(s9.tabs) }; })
+      .sort(function (a9, b9) { return (a9.r < 0 ? 1e9 + a9.i : a9.r) - (b9.r < 0 ? 1e9 + b9.i : b9.r) || a9.i - b9.i; })
+      .forEach(function (d9) { SECS.push(d9.s); });
     var tabBtns = [];
     function areaOn(key) { return !key || localStorage.getItem(key) !== "0"; }
     function showSec(i) {
       if (!SECS[i] || !areaOn(SECS[i].key)) i = 0; // never land on a hidden section
-      localStorage.setItem("cc.settab", String(i));
+      localStorage.setItem("cc.settab", SECS[i].id); // stable id, NOT the index — a menu reorder must never restore the wrong tab
       SECS.forEach(function (sc, j) { sc.w.style.display = j === i ? "" : "none"; tabBtns[j].classList.toggle("cc-set-tab-on", j === i); });
       paintSetTabs();
     }
@@ -310,7 +325,7 @@
       tabBtns.push(b); tabRow.appendChild(b);
     });
     root.appendChild(tabRow);
-    root.appendChild(wrapMain); root.appendChild(wrapStart); root.appendChild(wrapHeader); root.appendChild(wrapShares); root.appendChild(wrap); root.appendChild(wrapPlugin); root.appendChild(wrapVms); root.appendChild(wrapSettings); root.appendChild(wrapFavorites); root.appendChild(wrapBackup);
+    root.appendChild(wrapMain); root.appendChild(wrapStart); root.appendChild(wrapHeader); root.appendChild(wrapShares); root.appendChild(wrap); root.appendChild(wrapPlugin); root.appendChild(wrapVms); root.appendChild(wrapSettings); root.appendChild(wrapFavorites);
 
     // ── Badges ──
     var c1 = card(T("Badges", "Badges"), T("Akzentfarbe und Farbmodus der Badges.", "Accent colour and colour mode of the badges."));
@@ -342,7 +357,8 @@
     c1.appendChild(srow);
     // GLOBAL badge SHAPE (Form) — one control for every area, exactly like the global colour above
     // (writes the shared cc.badgeshape). The per-area cards no longer repeat it.
-    c1.appendChild(segRow(T("Badge-Form", "Badge shape"), [["pill", "Pills"], ["rounded", T("abgerundet", "rounded")], ["square", T("eckig", "square")], ["circle", T("Kreise", "Circles")]], get("cc.badgeshape", "pill"), function (v) { set("cc.badgeshape", v); applyShape(); syncHeaderBar(); syncSharesBar(); }));
+    // options sorted by ASCENDING roundness (square -> circle), keys unchanged (user call)
+    c1.appendChild(segRow(T("Badge-Form", "Badge shape"), [["square", T("eckig", "square")], ["rounded", T("abgerundet", "rounded")], ["pill", "Pills"], ["circle", T("Kreise", "Circles")]], get("cc.badgeshape", "pill"), function (v) { set("cc.badgeshape", v); applyShape(); syncHeaderBar(); syncSharesBar(); }));
     // rainbow toggle: label + switch adjacent (no parenthetical, no far-right spacer)
     var rr = el("div", "cc-set-row cc-set-inline");
     rr.appendChild(el("span", null, T("Regenbogen-Modus", "Rainbow mode")));
@@ -438,6 +454,11 @@
     strow.appendChild(sl);
     c2.appendChild(strow);
     // (the VM-icons toggle is obsolete — the VM tab has its own style section)
+    // cc.sgsize is GLOBAL (same key + builder as the Einstellungen area): ONE size drives the
+    // Settings/Tools grid AND the Docker logo tiles — surfaced here too for discoverability.
+    var sgRow = segRow(T("Logo-Kachelgröße", "Logo tile size"), [["s", T("Klein", "Small")], ["m", T("Mittel", "Medium")], ["l", T("Groß", "Large")]], get("cc.sgsize", "m"), function (v) { set("cc.sgsize", v); });
+    sgRow.insertBefore(infoIcon(T("Gilt global – dieselbe Größe steuert auch das Einstellungen-/Werkzeuge-Raster.", "Global – the same size also drives the Settings/Tools grid.")), sgRow.lastChild);
+    c2.appendChild(sgRow);
     c2.appendChild(el("div", "cc-set-lbl", T("Vorschau", "Preview")));
     var tprevWrap = el("div", "cc-set-prev");
     var tprevImgs = [];
@@ -746,7 +767,8 @@
       if (!noLogos) into.appendChild(cB); // header tab: badges only, no logo card
     }
     // the adopt "Stil" card is the FIRST card of every section (user call), then
-    // the Badges/Logos cards. Same cards for the Hauptmenueleiste as Plugins/VMs.
+    // the Badges/Logos cards. Same cards for the Kopfbereich (menu bar) as Plugins/VMs;
+    // the Kopfbereich additionally carries the Fussleiste toggle + Status-Insel card.
     var cV = card(T("Stil", "Style"), T("AN = die globale Badge-Farbe (Allgemein) gilt auch hier. AUS = die eigene Farbe dieses Abschnitts gilt.", "ON = the global badge colour (General) applies here too. OFF = this section's own colour applies."));
     cV.appendChild(styleToggle("cc.stylevms", null));
     var cH = card(T("Stil", "Style"), T("AN = die globale Badge-Farbe (Allgemein) gilt auch hier. AUS = die eigene Farbe dieses Abschnitts gilt.", "ON = the global badge colour (General) applies here too. OFF = this section's own colour applies."));
@@ -788,14 +810,23 @@
     wrapStart.appendChild(sectionsCard("main", syncSharesBar));
     wrapPlugin.appendChild(sectionsCard("plugins", syncPluginsBar));
     wrapVms.appendChild(sectionsCard("vms", syncVmsBar));
-    buildStyleCards("cch.", wrapHeader, [], true); // Hauptmenueleiste: pill/badge settings only
+    buildStyleCards("cch.", wrapHeader, [], true); // Kopfbereich (menu bar): pill/badge settings only
+    // Kopfbereich covers the main menu bar AND the top strip: the Status-Insel (top strip)
+    // belongs to THIS area. header.js renders it and reads cc.island / cc.tempwarn live.
+    (function () {
+      var cI = card(T("Status-Insel", "Status island"), T("Die Status-Insel im oberen Streifen gehört zum Kopfbereich.", "The status island in the top strip belongs to the header area."));
+      cI.appendChild(toggleRow(T("Status-Insel", "Status island"), get("cc.island", "1") !== "0", function (v) { set("cc.island", v ? "1" : "0"); syncHeaderBar(); }));
+      cI.appendChild(segRow(T("Temperatur-Warnschwelle", "Temperature warning threshold"), [["50", "50 °C"], ["60", "60 °C"], ["70", "70 °C"]], get("cc.tempwarn", "60"), function (v) { set("cc.tempwarn", v); syncHeaderBar(); }));
+      wrapHeader.appendChild(cI);
+    })();
     buildStyleCards("ccsh.", wrapShares, [], true); // Freigaben: tab pills use FA glyphs -> badges only, no logo card
     buildStyleCards("ccs.", wrapSettings, ["fa-cog", "fa-globe", "fa-star"], false); // Einstellungs-Tab: badges + logo-tint + Logo-Hintergrund cards; the tiles use FA glyphs, so the preview shows sample glyphs (cog/globe/star = System/Network/User category icons), coloured via CSS not the raster filter
     buildStyleCards("ccp.", wrapPlugin, ["/plugins/dynamix.plugin.manager/images/dynamix.plugin.manager.png", "/plugins/dynamix.docker.manager/images/dynamix.docker.manager.png", "/plugins/cannonadecommand/images/cannonadecommand.png"]);
     buildStyleCards("ccv.", wrapVms, ["/plugins/dynamix.vm.manager/templates/images/linux.png", "/plugins/dynamix.vm.manager/templates/images/windows.png", "/plugins/cannonadecommand/images/cannonadecommand.png"]);
     buildStyleCards("ccf.", wrapFavorites, ["fa-star", "fa-heart", "fa-cog"], false); // Favoriten: tiles use FA glyphs -> preview shows sample glyphs coloured via CSS (like the Settings card)
     buildStyleCards("ccm.", wrapStart, [], true); // Start (/Main): disk_status value + name badges, no per-row logos -> badges only, no logo card
-    // ── Sichern & Übertragen: export/import of every cc-family localStorage setting ──
+    // ── Sichern & Übertragen: export/import of every cc-family localStorage setting.
+    // Lives as the LAST card of the Allgemein section now (no own tab, user call). ──
     (function () {
       var cX = card(T("Sichern & Übertragen", "Backup & transfer"), T("Exportiert alle CC-Einstellungen (cc.*-Schlüssel) als JSON-Datei. Der Import schreibt sie zurück und lädt die Seite neu.", "Exports every CC setting (cc.* keys) as a JSON file. Import writes them back and reloads the page."));
       var note = el("div", "cc-set-xnote"); // inline notice — this page has no toast mechanism
@@ -843,10 +874,14 @@
       im.addEventListener("click", function () { fin.click(); });
       var brow = el("div", "cc-set-row"); brow.appendChild(ex); brow.appendChild(im);
       cX.appendChild(brow); cX.appendChild(fin); cX.appendChild(note);
-      wrapBackup.appendChild(cX);
+      wrapMain.appendChild(cX); // last Allgemein card (runs after every other wrapMain append)
     })();
     refreshTabs();
-    showSec(parseInt(localStorage.getItem("cc.settab") || "0", 10) || 0);
+    // cc.settab holds a stable section id ("general"/"header"/…). A legacy numeric index
+    // or any unknown value migrates silently to 0 (Allgemein).
+    var st0 = localStorage.getItem("cc.settab"), ix0 = 0;
+    SECS.forEach(function (sc9, j9) { if (sc9.id === st0) ix0 = j9; });
+    showSec(ix0);
     paintPrev();
   }
   function saveNotify(btn) {

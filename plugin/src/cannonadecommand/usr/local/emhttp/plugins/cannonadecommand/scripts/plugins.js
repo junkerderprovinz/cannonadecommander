@@ -113,6 +113,16 @@
     var off = ls("cc.rainbowrot") === "0" ? 0 : RB_OFFSET;
     return pal()[(i + off) % pal().length];
   }
+  // ONE global tile-size key (cc.sgsize, GLOBAL like cc.rainbow — not eff-gated):
+  // s 48/62 · m 62/78 · l 76/94 [img, box]. Docker's applySettings stamps the same
+  // vars there; stamp them HERE too (docker.js doesn't run on this page) so the
+  // docker.css #plugin_list/.cc-plugico rules agree, and return the img px for the
+  // inline stamps below.
+  function logoSize() {
+    var lg = ({ s: ["48px", "62px"], m: ["62px", "78px"], l: ["76px", "94px"] })[ls("cc.sgsize") || "m"] || ["62px", "78px"];
+    try { var rs = document.documentElement.style; rs.setProperty("--cc-logo-img", lg[0]); rs.setProperty("--cc-logo-box", lg[1]); } catch (e) {}
+    return lg[0];
+  }
 
   // the Docker-tab icon tint, standalone: luminance x target colour via an SVG
   // feColorMatrix, blended by cc.iconstrength; imgs get filter: url(#cc-plug-tint)
@@ -272,9 +282,10 @@
     var ibgOn = document.documentElement.classList.contains("cc-plugins-iconbg");
     var ibgIcon = eff("iconcolor"); var ibgBg = (ibgIcon && /^#?[0-9a-f]{6}$/i.test(ibgIcon)) ? ibgIcon : accent();
     var ibgMono = ibgOn ? ensureMonoFilter("cc-plug-mono-svg", "cc-plug-mono-tint", ibgBg) : "";
+    var LOGO = logoSize(); // cc.sgsize step = Docker/VM logo size (m default 62px)
     Array.prototype.slice.call(tds[0].querySelectorAll("img, i")).forEach(function (el2) {
-      el2.style.setProperty("width", "62px", "important");   // 62px = Docker/VM logo size (was 56px)
-      el2.style.setProperty("height", "62px", "important");
+      el2.style.setProperty("width", LOGO, "important");
+      el2.style.setProperty("height", LOGO, "important");
       el2.style.setProperty("vertical-align", "middle", "important");
       if (el2.tagName === "IMG") {
         el2.style.setProperty("object-fit", "contain", "important");
@@ -283,8 +294,8 @@
         el2.style.setProperty("filter", ibgMono || f2 || "none", "important");
       } else {
         // font glyph (fa- or icon-): size + center to visually match the images
-        el2.style.setProperty("font-size", "62px", "important");   // 62px = Docker/VM glyph size (was 50px)
-        el2.style.setProperty("line-height", "62px", "important");
+        el2.style.setProperty("font-size", LOGO, "important");
+        el2.style.setProperty("line-height", LOGO, "important");
         el2.style.setProperty("text-align", "center", "important");
         el2.style.setProperty("display", "inline-block", "important");
         if (ibgOn) el2.style.setProperty("color", idealText(ibgBg), "important");

@@ -59,6 +59,10 @@ html.cc-settingsgrid-on #displaybox .Panel > a > span > i.PanelIcon {
   font-size: var(--cc-sg-glyph, 38px) !important; line-height: 1 !important;
   color: var(--cc-iconbg-text, var(--cc-accent-text, #fff)) !important; margin: 0 !important; padding: 0 !important;
 }
+/* span twin of the glyph colour: the tailscale ::after mask paints with currentColor, so the
+   span must carry EXACTLY the i.PanelIcon ink in every mode — every i.PanelIcon colour rule
+   in this sheet has this twin next to it. Glyph tiles unaffected (their i sets its own color). */
+html.cc-settingsgrid-on #displaybox .Panel > a > span { color: var(--cc-iconbg-text, var(--cc-accent-text, #fff)) !important; }
 /* a raster logo can't be tinted -> just scale it to the badge. Covers BOTH img.PanelImg AND img.icon:
    a category whose Tag= is a .png renders <img class="icon"> (PageBuilder.php:97), and paintGrid used to
    skip it, so a PNG-logo tile in Tools/Settings kept its full colour while glyph tiles went monochrome
@@ -75,7 +79,7 @@ html.cc-settingsgrid-on #displaybox .Panel > a[href*="ailscale"] > span > img { 
 html.cc-settingsgrid-on #displaybox .Panel > a[href*="ailscale"] > span::after {
   content: ""; display: block;   /* the span is already a centred flex box -> auto-centred */
   width: var(--cc-sg-glyph, 38px); height: var(--cc-sg-glyph, 38px);
-  background-color: var(--cc-iconbg-text, var(--cc-accent-text, #fff));
+  background-color: currentColor;   /* = the span's ink (twin rules) -> tracks i.PanelIcon in every mode */
   -webkit-mask: url(/plugins/cannonadecommand/images/tailscale-dots.svg) center / contain no-repeat;
   mask: url(/plugins/cannonadecommand/images/tailscale-dots.svg) center / contain no-repeat;
 }
@@ -105,11 +109,13 @@ html.cc-settingsgrid-on #displaybox .Panel > a { color: #cfcfcf !important; text
    badge branch and never clears it when badge/theming/area turns off, so pairing with -on stops the
    neutral rules the instant -on is removed (else grey badges leak onto native tiles until a reload). */
 html.cc-settingsgrid-on.cc-settingsgrid-rbneutral #displaybox .Panel > a > span { background: rgba(128, 128, 128, .18) !important; }
-html.cc-settingsgrid-on.cc-settingsgrid-rbneutral #displaybox .Panel > a > span > i.PanelIcon { color: #cfcfcf !important; }
+html.cc-settingsgrid-on.cc-settingsgrid-rbneutral #displaybox .Panel > a > span > i.PanelIcon,
+html.cc-settingsgrid-on.cc-settingsgrid-rbneutral #displaybox .Panel > a > span { color: #cfcfcf !important; }   /* span = tailscale-mask ink twin */
 html.cc-settingsgrid-on.cc-settingsgrid-rbneutral #displaybox .Panel > a:hover > span {
   background: var(--cc-rb-c, var(--cc-iconbg-color, var(--cc-accent, #2f6feb))) !important; filter: none !important;
 }
-html.cc-settingsgrid-on.cc-settingsgrid-rbneutral #displaybox .Panel > a:hover > span > i.PanelIcon {
+html.cc-settingsgrid-on.cc-settingsgrid-rbneutral #displaybox .Panel > a:hover > span > i.PanelIcon,
+html.cc-settingsgrid-on.cc-settingsgrid-rbneutral #displaybox .Panel > a:hover > span {   /* span = tailscale-mask ink twin */
   color: var(--cc-rb-ct, var(--cc-iconbg-text, var(--cc-accent-text, #fff))) !important;
 }
 

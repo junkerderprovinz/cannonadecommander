@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.38.0">
+  <!ENTITY version   "2.38.1">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,16 @@
 </ICON>
 
 <CHANGES>
+### 2.38.1
+- #1 FIX: Browser-Einfrieren beim Umschalten der Fussleiste (und anderen Kopfbereich-Aenderungen)
+  behoben. Ursache: Unraids Connect-Skript baut seine Menue-Komponenten bei jeder Umsortierung
+  neu auf, worauf CCs Menue-Ueberwachung sofort erneut sortierte -- eine Endlos-Schleife, die den
+  Browser blockierte. CC entprellt die Ueberwachung jetzt und stellt die Sortierung nach
+  mehreren verlorenen Runden fuer ein paar Sekunden zurueck (Waffenruhe), statt endlos zu kaempfen.
+- #2 CC-Einstellungen: Jeder Karten-Infotext wohnt jetzt hinter einer Info-Bubble (i-Symbol neben
+  der Ueberschrift, Erklaerung beim Ueberfahren) -- die Karten bleiben aufgeraeumt.
+- #3 Die CC-Reiter haben jetzt exakt denselben Abstand wie die Tabs der Hauptmenueleiste.
+
 ### 2.38.0
 - #1 NEU: Status-Insel im Kopfbereich -- Array-Zustand, laufende Dienste (z. B. shiplog) und
   Temperatur-Warnungen als kompakte Chips mit Zustandspunkt oben rechts neben dem
@@ -1322,7 +1332,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>7db961893add1d47447b7c4c762b2da5536bd17bf724ff30c29693fdb6880e70</SHA256>
+  <SHA256>7e6fe05a8c23e4fb85b7e2ca182a428c792927308b32e0a708dd1609bfc88edb</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

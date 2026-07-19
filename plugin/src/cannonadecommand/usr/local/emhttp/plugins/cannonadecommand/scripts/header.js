@@ -189,6 +189,12 @@
   function applyNavOrder() {
     try {
       if (ccReorder || ccDragged) return;                      // never fight a live drag
+      // TRUCE (freeze root cause, live-proven via localStorage stack dumps): Unraid's Connect
+      // auto-mount script observes the menu and REBUILDS its component nodes on our reorder —
+      // its rebuild refires our observer, place() reorders again, and the two observers ping-pong
+      // the main thread into a hard freeze (>4000 insertBefore from place() captured). If the
+      // arrangement does not SETTLE after a few attempts, stand down for a while.
+      if (Date.now() < ccNavTruce) return;
       var o = navReadAll(); if (!o) return;
       var lt = navTile(), rt = navTileR(); if (!lt || !rt) return;
       var byKey = {}, all = navAllParts(), i, k;
@@ -206,7 +212,15 @@
         for (j = 0; j < have.length; j++) if (have[j] !== wantHere[j]) return false;
         return true;
       }
-      if (inPlace(lt, o.left) && inPlace(rt, o.right)) return;
+      if (inPlace(lt, o.left) && inPlace(rt, o.right)) { ccNavTries = 0; return; }
+      // Auto-mount undoes our reorder ASYNCHRONOUSLY, so a post-place re-check would always pass —
+      // instead count how often we have to RE-place within a short window: a lone apply (page load,
+      // late-added icon) is 1-2 rounds, a fight is an endless chain. Stand down BEFORE placing, so
+      // the opponent gets nothing to react to and the chain dies.
+      var now = Date.now();
+      if (now - ccNavLast > 3000) ccNavTries = 0;              // old rounds don't count as a fight
+      ccNavLast = now;
+      if (++ccNavTries >= 4) { ccNavTruce = now + 5000; ccNavTries = 0; return; }
       function place(tile2, want) {
         var anchor = tile2.querySelector(":scope > .nav-user");   // the user menu stays the tail; null => append
         for (var j = 0; j < want.length; j++) { var it = byKey[want[j]]; if (it) tile2.insertBefore(it, anchor); }
@@ -222,6 +236,7 @@
     } catch (e) {}
   }
   var ccDragged = null, ccReorder = false, ccHoldTimer = null, ccPressXY = null, ccSuppressClick = false, ccDocBound = false;
+  var ccNavTruce = 0, ccNavTries = 0, ccNavLast = 0;   // anti-ping-pong truce vs Unraid's Connect auto-mount observer (see applyNavOrder)
   function cancelHold() { if (ccHoldTimer) { clearTimeout(ccHoldTimer); ccHoldTimer = null; } ccPressXY = null; }
   function enterReorder() {   // long-press satisfied => EVERYTHING jiggles and becomes draggable (one zone)
     if (ccReorder) return; ccReorder = true;
@@ -435,13 +450,22 @@
   function watchSearch() {
     try {
       var target = document.getElementById("menu") || document.body;
+      // DEBOUNCED (freeze fix): a synchronous callback here ping-ponged with Unraid's Connect
+      // auto-mount observer (its component rebuilds refire us, our reorder refires it) and the
+      // microtask storm froze the tab. The timer hop lets the event loop breathe and coalesces
+      // auto-mount's burst into ONE pass; the applyNavOrder truce covers the rest.
+      var moT = null;
       var mo = new MutationObserver(function () {
-        reorderSearch();
-        document.documentElement.classList.toggle("cc-search-open", !!document.getElementById("guiSearchBoxSpan"));
-        // late-added utility icons (native scripts append them AFTER boot) get their saved slot
-        // + drag wiring here — applyNavOrder is a strict no-op once the arrangement matches.
-        if (document.documentElement.classList.contains("cc-header-on")) { applyNavOrder(); setupNavDrag(); }
-        paintNav();
+        if (moT) return;
+        moT = setTimeout(function () {
+          moT = null;
+          reorderSearch();
+          document.documentElement.classList.toggle("cc-search-open", !!document.getElementById("guiSearchBoxSpan"));
+          // late-added utility icons (native scripts append them AFTER boot) get their saved slot
+          // + drag wiring here — applyNavOrder is a strict no-op once the arrangement matches.
+          if (document.documentElement.classList.contains("cc-header-on")) { applyNavOrder(); setupNavDrag(); }
+          paintNav();
+        }, 120);
       });
       mo.observe(target, { childList: true, subtree: true });
     } catch (e) {}

@@ -169,7 +169,9 @@
   var cardN = 0;
   function card(title, sub) {
     var c = el("div", "cc-set-card"); // no coloured top bar (user call)
-    c.appendChild(el("div", "cc-set-h", title)); if (sub) c.appendChild(el("div", "cc-set-sub", sub)); return c;
+    var h = el("div", "cc-set-h", title);
+    if (sub) h.appendChild(infoIcon(sub)); // info text lives behind the ⓘ bubble, never on the card (user call)
+    c.appendChild(h); return c;
   }
   function elk(t) { var s = el("span", "cc-b-k"); s.textContent = t; return s; }
   function elv(t) { var s = el("span", "cc-b-v"); s.textContent = t; return s; }

@@ -760,17 +760,14 @@ html.cc-plugins-iconbg .cc-plugico {
 .cc-set-logo { width: 64px; height: 64px; border-radius: 14px; display: block; }
 .cc-set-claim { color: var(--dim); font-size: 13px; font-style: italic; margin-top: 2px; }
 .cc-set-version { margin-left: auto; text-align: right; align-self: center; }
-.cc-set-tabs { display: flex; gap: 8px; margin: 0 0 18px; }
+.cc-set-tabs { display: flex; gap: 6px; margin: 0 0 18px; } /* 6px = the main menu bar's per-tab margin 0 3px — identical tab distance (user call) */
 .cc-set-tab { background: #2a2a2a !important; border: none !important; box-shadow: none !important; color: #b5b5b5 !important; cursor: pointer; display: inline-flex !important; align-items: center; justify-content: center; height: var(--cc-md-h, 30px) !important; padding: var(--cc-md-pad, 0 20px) !important; font-size: var(--cc-md-fs, 13px) !important; font-weight: 600 !important; text-transform: uppercase !important; letter-spacing: 1.5px !important; border-radius: 999px !important; font-family: inherit !important; } /* typography FORCED — Unraid's button CSS overrode it */
 .cc-set-tab-on { background: var(--cc-accent, #2f6feb) !important; color: var(--cc-accent-text, #fff) !important; }
-/* rainbow: every settings tab is palette-coloured inline by paintSetTabs(); ring the active one so it
-   stays obvious. id+2-class specificity beats .cc-set-tab{box-shadow:none!important}. */
-box-shadow: none !important;   /* KEINE Rahmen/Ringe — Nutzer-Gesetz, gilt auch fuer aktive/selektierte Badges */
 .cc-set-brand { font-size: 24px; letter-spacing: .2px; } .cc-set-brand b { font-weight: 700; } .cc-set-brand span { font-weight: 400; color: var(--dim); }
 .cc-set-sub { color: var(--dim2); font-size: 12.5px; }
 .cc-set-wrap { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; } /* auto-fill: identical arrangement on every tab */
 .cc-set-card { background: #222222; border: none; border-radius: 12px; padding: 16px 18px; box-shadow: 0 1px 4px rgba(0,0,0,.45); } /* borderless but clearly a card */
-.cc-set-h { font-size: 15px; font-weight: 600; margin-bottom: 3px; }
+.cc-set-h { font-size: 15px; font-weight: 600; margin-bottom: 3px; display: flex; align-items: center; gap: 7px; } /* flex: heading text + ⓘ info bubble side by side */
 .cc-set-card .cc-set-sub { margin-bottom: 12px; }
 .cc-set-card .cc-set-row, .cc-set-card .cc-set-swatches, .cc-set-card .cc-set-lbl { margin-top: 12px; } /* airier cards */
 .cc-set-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; flex-wrap: wrap; }

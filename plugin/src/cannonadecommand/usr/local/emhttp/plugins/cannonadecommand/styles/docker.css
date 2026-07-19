@@ -804,49 +804,20 @@ html.cc-plugins-iconbg .cc-plugico {
    by settings.js paintPv(); idle tabs keep the grey pill below. */
 .cc-set-navprev { gap: 6px; align-items: center; }
 .cc-navtab { display: inline-flex; align-items: center; justify-content: center; height: var(--cc-md-h, 30px); padding: 0 16px; line-height: 1; border-radius: var(--cc-b-radius, 999px); background: rgba(128,128,128,.18); color: #cfcfcf; font-size: var(--cc-md-fs, 13px); font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; white-space: nowrap; }   /* pad stays 0 16px, NOT --cc-md-pad: the preview strip is narrow */
-/* ═══ systemwide INFO ICON ═══ a clean SVG "i" glyph + a hover/focus bubble; hides long explanations
-   behind a small icon so the cards stay uncluttered. settings.js infoIcon(tip) emits
+/* ═══ systemwide INFO ICON ═══ a clean SVG "i" glyph; hides long explanations behind a small
+   icon so the cards stay uncluttered. settings.js infoIcon(tip) emits
    <span class="cc-info" data-tip="…"><svg>…</svg></span>. Neutral colour (var(--dim)), never accent.
-   .cc-set-card has no overflow clip, so the ::after bubble shows in full. Reuse .cc-info anywhere. */
+   The tip TEXT is shown by the central floating bubble (header.js), not by this sheet. */
 .cc-set-lblwrap { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
 .cc-info { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; background: none; color: var(--txt, #e6e6e6); opacity: .8; cursor: help; position: relative; flex: 0 0 auto; }
 .cc-info svg { width: 15px; height: 15px; display: block; background: none; }
 .cc-info:hover, .cc-info:focus { opacity: 1; outline: none; }
-/* the bubble covers ANY [data-tip] carrier in the settings panel (colour swatches .cc-set-sw,
-   the reset button .cc-set-ibtn, ...) AND every CC control on the Docker pages — docker.js now
-   emits data-tip instead of native title everywhere (state badges, copy badges, Startplan chips,
-   action icons, limit gears, cfg dots, pin grid, gear button). They just need the anchor position. */
+/* every [data-tip] carrier in the settings panel AND on the Docker pages (state badges, copy
+   badges, Startplan chips, action icons, limit gears, cfg dots, pin grid, gear button) is served
+   by header.js's FLOATING body-level bubble — the per-element ::after/::before bubble rules left
+   this sheet. Only the harmless anchor positions remain. */
 :is(#cc-settings, .cc-enh, .cc-grid-holder, .cc-actbar, .cc-pop, .cc-menu, nav.tabs) [data-tip],
 button.cc-hgear[data-tip], .cc-b[data-tip], .cc-badge[data-tip], .cc-pill[data-tip] { position: relative; }
-/* UNIFIED bubble spec — identical in every sheet (keep hover AND focus triggers).
-   white-space pre-line: the volume badge joins its mount list with \n — keep those breaks,
-   single-line tips are unaffected. */
-.cc-info[data-tip]:hover::after, .cc-info[data-tip]:focus::after,
-:is(#cc-settings, .cc-enh, .cc-grid-holder, .cc-actbar, .cc-pop, .cc-menu, nav.tabs) [data-tip]:hover::after,
-:is(button.cc-hgear, .cc-b, .cc-badge, .cc-pill)[data-tip]:hover::after,
-#cc-settings [data-tip]:focus::after {
-  content: attr(data-tip); position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%);
-  z-index: 9999; width: max-content; max-width: 280px; text-align: left;
-  background: #393939; color: #f4f4f4; border: none; border-radius: min(var(--cc-b-radius, 8px), 10px);   /* hover bubbles: no frame, follow the badge form (user law) */
-  padding: 9px 12px; font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
-  font-size: 12.5px; font-weight: 400; font-style: normal; line-height: 1.45;
-  text-transform: none; letter-spacing: normal; white-space: pre-line;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .55); pointer-events: none;   /* elevation shadow, not a ring */
-}
-.cc-info[data-tip]:hover::before, .cc-info[data-tip]:focus::before,
-:is(#cc-settings, .cc-enh, .cc-grid-holder, .cc-actbar, .cc-pop, .cc-menu, nav.tabs) [data-tip]:hover::before,
-:is(button.cc-hgear, .cc-b, .cc-badge, .cc-pill)[data-tip]:hover::before,
-#cc-settings [data-tip]:focus::before {
-  content: ""; position: absolute; left: 50%; bottom: calc(100% + 3px); transform: translateX(-50%);
-  z-index: 9999; border: 5px solid transparent; border-top-color: #393939; pointer-events: none;
-}
-/* inside the settings cards the bubble anchors LEFT (grows rightward): a centred 280px bubble on
-   a first-column card overflowed the page edge (user report). The ::before arrow stays centred
-   on the icon, so the pointer still marks the anchor. */
-#cc-settings .cc-set-card [data-tip]:hover::after, #cc-settings .cc-set-card [data-tip]:focus::after,
-#cc-settings .cc-set-card .cc-info[data-tip]:hover::after, #cc-settings .cc-set-card .cc-info[data-tip]:focus::after {
-  left: -6px; transform: none;
-}
 .cc-set-mini { background: transparent; color: var(--dim); border: 1px solid var(--line2); border-radius: 7px; padding: 5px 12px; font-size: 12.5px; cursor: pointer; }
 .cc-set-mini-on { color: #fff; border-color: var(--cc-accent, #2f6feb); background: rgba(255,255,255,.05); }
 /* limit-diagnostics card: monospace log lines, red on a docker rejection */
@@ -1195,7 +1166,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
    .cc-plan-on = active, keeps colour) */
 html.cc-shares-rbneutral.cc-docker-on #docker_list .cc-b:not(.cc-plan-on),
 html.cc-shares-rbneutral.cc-docker-on .cc-grid-holder .cc-b:not(.cc-plan-on) { background: rgba(128, 128, 128, .18) !important; color: #cfcfcf !important; }
-/* ROW hover, generic fallback for kind-less badges (ID/Von/Tag/CPU/RAM/BW, idle plan chip):
+/* ROW hover, generic fallback for kind-less badges (ID/Von/Tag, idle plan chip):
    the stamped --cc-rb-c, else the accent. The per-KIND rules further down override this. */
 html.cc-shares-rbneutral.cc-docker-on #docker_list tr.sortable:hover .cc-b:not(.cc-plan-on),
 html.cc-shares-rbneutral.cc-docker-on .cc-grid-holder .cc-card:hover .cc-b:not(.cc-plan-on) { background: var(--cc-rb-c, var(--cc-accent, #2f6feb)) !important; color: var(--cc-rb-ct, #fff) !important; }
@@ -1225,10 +1196,10 @@ html.cc-shares-rbneutral.cc-docker-on .cc-pop .cc-day:not(.cc-day-on):hover { ba
 html.cc-shares-rbneutral.cc-docker-on .cc-actbtn:not(.cc-actoff) { background: #2e2e2e !important; color: #e9e9e9 !important; }
 html.cc-shares-rbneutral.cc-docker-on #docker_list tr.sortable:hover .cc-actbtn:not(.cc-actoff),
 html.cc-shares-rbneutral.cc-docker-on .cc-grid-holder .cc-card:hover .cc-actbtn:not(.cc-actoff) { background: var(--cc-rb-c, var(--cc-accent, #2f6feb)) !important; color: var(--cc-rb-ct, #fff) !important; }
-/* value badges carry per-KIND colours (--cc-rb-net/ip/lan/port/vol, stamped on the container,
-   see the .cc-rainbow kind rules above) — the ROW hover restores the badge's OWN kind colour
-   instead of the generic accent fallback. .cc-b.cc-b-* ties the generic row-hover rule's :not()
-   specificity; source order AFTER it resolves the tie per kind. */
+/* value badges carry per-KIND colours (--cc-rb-net/ip/lan/port/vol/cpu/ram/bw, stamped on the
+   container, see the .cc-rainbow kind rules above) — the ROW hover restores the badge's OWN kind
+   colour instead of the generic accent fallback. .cc-b.cc-b-* ties the generic row-hover rule's
+   :not() specificity; source order AFTER it resolves the tie per kind. */
 html.cc-shares-rbneutral.cc-docker-on #docker_list tr.sortable:hover .cc-b.cc-b-net,
 html.cc-shares-rbneutral.cc-docker-on .cc-grid-holder .cc-card:hover .cc-b.cc-b-net { background: var(--cc-rb-net, #1f9d55) !important; color: var(--cc-rb-net-t, #fff) !important; }
 html.cc-shares-rbneutral.cc-docker-on #docker_list tr.sortable:hover .cc-b.cc-b-ip,
@@ -1239,6 +1210,12 @@ html.cc-shares-rbneutral.cc-docker-on #docker_list tr.sortable:hover .cc-b.cc-b-
 html.cc-shares-rbneutral.cc-docker-on .cc-grid-holder .cc-card:hover .cc-b.cc-b-port { background: var(--cc-rb-port, #8b5cf6) !important; color: var(--cc-rb-port-t, #fff) !important; }
 html.cc-shares-rbneutral.cc-docker-on #docker_list tr.sortable:hover .cc-b.cc-b-vol,
 html.cc-shares-rbneutral.cc-docker-on .cc-grid-holder .cc-card:hover .cc-b.cc-b-vol { background: var(--cc-rb-vol, #0891b2) !important; color: var(--cc-rb-vol-t, #fff) !important; }
+html.cc-shares-rbneutral.cc-docker-on #docker_list tr.sortable:hover .cc-b.cc-b-cpu,
+html.cc-shares-rbneutral.cc-docker-on .cc-grid-holder .cc-card:hover .cc-b.cc-b-cpu { background: var(--cc-rb-cpu, #d9433f) !important; color: var(--cc-rb-cpu-t, #fff) !important; }
+html.cc-shares-rbneutral.cc-docker-on #docker_list tr.sortable:hover .cc-b.cc-b-ram,
+html.cc-shares-rbneutral.cc-docker-on .cc-grid-holder .cc-card:hover .cc-b.cc-b-ram { background: var(--cc-rb-ram, #2f9d8b) !important; color: var(--cc-rb-ram-t, #fff) !important; }
+html.cc-shares-rbneutral.cc-docker-on #docker_list tr.sortable:hover .cc-b.cc-b-bw,
+html.cc-shares-rbneutral.cc-docker-on .cc-grid-holder .cc-card:hover .cc-b.cc-b-bw { background: var(--cc-rb-bw, #e0912a) !important; color: var(--cc-rb-bw-t, #161616) !important; }
 /* LOGO TILE joins the row: in neutral the tile rests grey like the badges and returns to its
    configured tile colour on ROW/card hover. Gated on the iconbg mode class — the list stamps it
    on the native table (applyEnhanceClasses), the grid holder gets the SAME class from renderGrid.

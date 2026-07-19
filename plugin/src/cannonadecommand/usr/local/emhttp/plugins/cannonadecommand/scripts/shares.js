@@ -285,13 +285,22 @@
     try {
       if (g("cc.enable.shares", "0") === "0") return; // area disabled -> don't touch the DOM
       if (pn() !== "/Shares") return; // only the Freigaben landing page
+      // Tab-Ansicht on the OVERVIEW too (user: "die tab ansicht lässt sich nicht umstellen in
+      // abschnittansicht"): the Benutzer-/Laufwerks-Freigaben sub-tabs render the same
+      // MainContentTabbed DOM as /Main, so the same cardPanels flatten applies; the gating class
+      // cc-sections-share is OR-stamped for /Shares in apply(). Teardown parity when the toggle is off.
+      var box = document.getElementById("displaybox");
+      if (box) { if (g("cc.sections.shares", "0") !== "0") cardPanels(box); else flattenTeardown(); }
       var ids = ["shareslist", "disk_list"]; // User Shares + Disk Shares tables
       for (var j = 0; j < ids.length; j++) {
         var tb = document.getElementById(ids[j]); if (!tb) continue;
-        var table = tb.closest ? tb.closest("table") : null; if (table) enhanceHead(table);
+        var table = tb.closest ? tb.closest("table") : null;
+        if (table) { enhanceHead(table); ccShareCols.grips(table); }   // grips AFTER the Browse header insert (same order law as /Main)
         var rows = tb.children;
         for (var r = 0; r < rows.length; r++) if (rows[r].tagName === "TR") enhanceRow(rows[r]);
       }
+      ccShareCols.apply();     // shared widths on BOTH lists (stored user px, else auto-derived + the size-column floor)
+      ccShareCols.resetBtn();  // same reset control idiom as /Main, at the tab bar's right end
       ccMutedEmpties();   // td.empty placeholder -> muted pill (AFTER the row pass: colspan already widened)
     } catch (e) {}
   }
@@ -417,12 +426,7 @@
         if (rb) { var ec = rbColor(bi), ect = idealText(ec); ex.style.setProperty("--cc-rb-c", ec); ex.style.setProperty("--cc-rb-ct", ect); bi++; }
         else { ex.style.removeProperty("--cc-rb-c"); ex.style.removeProperty("--cc-rb-ct"); }
       }
-      // native title balloons on OUR controls -> the styled CC bubble (user: hover bubbles must
-      // be frameless and follow the badge form; the OS balloon can't be styled). title moves to
-      // data-cc-tip; teardown swaps it back. ccUdTitles may re-stamp a title between passes —
-      // the next paint converts it again (idempotent churn, no leak).
-      var tips = document.querySelectorAll("#displaybox a.cc-ud-icon[title], #displaybox a.cc-ibtn[title], #displaybox .cc-dot[title], #displaybox .cc-ud-ctrls [title], #displaybox .cc-aop-link[title]");
-      for (var t3 = 0; t3 < tips.length; t3++) { var te = tips[t3]; te.setAttribute("data-cc-tip", te.getAttribute("title")); te.removeAttribute("title"); }
+      // (native [title] balloons are converted PAGE-WIDE by ccTipSweep now — see enhanceMain)
       // Rainbow reaches the UD area + ALL /Main heading badges. UD rows: same row-counter contract
       // as the disk_status loop (one palette colour per row, neutral sub-mode clears to accent).
       var acc = mainAccent(), accDark = idealText(acc) !== "#fff";
@@ -858,86 +862,209 @@
       target.colSpan = (target.colSpan || 1) + (11 - colsum);
     } catch (e) {}
   }
-  // ── LIVE column drag-resize for the /Main disk_status tables, Windows-Explorer style (user
-  // REJECTED the settings sliders; the Spaltenbreiten card is removed from settings.js again).
-  // Every FULL thead row (11 label cells after the Browse insert; the subpool divider theads — one
-  // colspan-10 cell — get no grips but still follow via their colgroup) gets a .cc-colgrip handle on
-  // each cell's right edge. pointerdown snapshots the grabbed table's CURRENT auto-layout header px,
-  // writes them into an injected <colgroup data-cc-colw> (11 <col>s) on EVERY disk_status table, adds
-  // table.cc-colfix (table-layout:fixed) and an inline table width = the sum — explicit px on ALL
-  // grid columns makes fixed layout safe WITH the colspan rows, and one width set keeps the array/
-  // pool/boot tables in sync. pointermove resizes the dragged column (min 40px); pointerup persists
-  // the 11-width array as JSON in localStorage cc.main.colpx; ccColApply() re-applies on load (thead,
-  // table and colgroup are STATIC markup — the nchan device_list refill replaces ONLY the tbodys,
-  // verified native source). Double-click on any grip resets (storage cleared, colgroups + cc-colfix
-  // + inline width removed -> auto layout). All repeat writes are guarded attribute writes (no
-  // observer loop); the one-time grip/colgroup insertions are idempotent childList changes the
-  // debounced observer re-enters once, then no-ops. cc.main.colpx matches the storage-listener
-  // cc-key regex, so another tab's drag/reset syncs here.
-  var CCW_KEY = "cc.main.colpx", CCW_MIN = 40, CCW_N = 11, ccDrag = null;
-  function ccColRead() {
-    try {
-      var a = JSON.parse(g(CCW_KEY, "null")); if (!a || a.length !== CCW_N) return null;
-      for (var i = 0; i < CCW_N; i++) { var n = Math.round(+a[i]); if (!(n >= CCW_MIN)) return null; a[i] = n; }
-      return a;
-    } catch (e) { return null; }
-  }
-  function ccColTables() { return document.querySelectorAll("#displaybox table.unraid.disk_status"); }
-  function ccColgroup(table) {
-    var cg = table.querySelector(":scope > colgroup[data-cc-colw]");
-    if (!cg) {
-      cg = document.createElement("colgroup"); cg.setAttribute("data-cc-colw", "1");
-      for (var i = 0; i < CCW_N; i++) cg.appendChild(document.createElement("col"));
-      table.insertBefore(cg, table.firstChild);   // colgroup precedes thead -> fixed layout sizes every column from it; colspan rows can no longer skew the grid
+  // ── LIVE column drag-resize, Windows-Explorer style (user REJECTED the settings sliders; and
+  // user: "die spalten sollen in der breite einstellbar sein. wie im start tab. exakt gleich inkl.
+  // reset button" -> the machinery is a parameterised FACTORY now, instantiated for /Main AND both
+  // /Shares lists). Contract per instance: every FULL thead row gets a .cc-colgrip handle on each
+  // cell's right edge (short/divider theads get no grips but still follow via their colgroup).
+  // pointerdown snapshots the grabbed table's CURRENT auto-layout header px, writes them into an
+  // injected <colgroup data-cc-colw> on EVERY matching table, adds table.cc-colfix
+  // (table-layout:fixed) and an inline table width = the sum — explicit px on ALL grid columns makes
+  // fixed layout safe WITH colspan rows, and one width set keeps sibling tables in sync. pointermove
+  // resizes the dragged column (min 40px); pointerup persists the width array as JSON under cfg.key;
+  // apply() re-applies on load (thead, table and colgroup are STATIC markup — AJAX/nchan refills
+  // replace ONLY the tbodys). Double-click any grip or click the .cc-colreset ibtn to reset (storage
+  // cleared -> back to the derived auto set). Widths are applied ALWAYS: stored user px win; else
+  // ONE shared set is auto-derived from the first VISIBLE full table's geometry (not persisted);
+  // cfg.fix may correct ONLY that derived set — user px never pass through it. All repeat writes are
+  // guarded attribute writes (no observer loop); the one-time grip/colgroup insertions are
+  // idempotent childList changes the debounced observer re-enters once, then no-ops. Both keys match
+  // the storage-listener cc-key regex, so another tab's drag syncs here.
+  //   cfg: key   localStorage key ("cc.main.colpx" / "cc.shares.colpx")
+  //        sel   the instance's table family selector
+  //        n     fixed grid column count (/Main: 11 incl. colspan rows); omit -> read the live thead
+  //        host  () -> element hosting the reset ibtn (null = not on this page)
+  //        place (host, btn) -> insert the reset ibtn (per-page spot idiom)
+  //        fix   (widths, headRow) -> correction pass on the DERIVED set only
+  function ccColFactory(cfg) {
+    var min = 40, drag = null, bound = false;
+    function tables() { return document.querySelectorAll(cfg.sel); }
+    function headOf(tb) { return tb.querySelector("thead tr"); }
+    function num() {   // expected column count: the fixed grid, else the first real thead's length
+      if (cfg.n) return cfg.n;
+      var tbs = tables();
+      for (var t = 0; t < tbs.length; t++) { var h = headOf(tbs[t]); if (h && h.children.length > 1) return h.children.length; }
+      return 0;
     }
-    return cg;
-  }
-  function ccColSet(w) {
-    var sum = 0, i; for (i = 0; i < CCW_N; i++) sum += w[i];
-    var tbs = ccColTables();
-    for (var t = 0; t < tbs.length; t++) {
-      var cols = ccColgroup(tbs[t]).children;
-      for (i = 0; i < CCW_N; i++) { var px = w[i] + "px"; if (cols[i].style.width !== px) cols[i].style.width = px; }
-      tbs[t].classList.add("cc-colfix");
-      var tw = sum + "px"; if (tbs[t].style.width !== tw) tbs[t].style.width = tw;   // fixed layout needs a definite width; wider than the container -> .TableContainer's native overflow-x scroll, like Explorer
+    function read() {
+      try {
+        var n = num(); if (!n) return null;
+        var a = JSON.parse(g(cfg.key, "null")); if (!a || a.length !== n) return null;
+        for (var i = 0; i < n; i++) { var v = Math.round(+a[i]); if (!(v >= min)) return null; a[i] = v; }
+        return a;
+      } catch (e) { return null; }
     }
-  }
-  function ccColClear() {
-    var tbs = ccColTables();
-    for (var t = 0; t < tbs.length; t++) {
-      var cg = tbs[t].querySelector(":scope > colgroup[data-cc-colw]"); if (cg) cg.parentNode.removeChild(cg);
-      tbs[t].classList.remove("cc-colfix"); tbs[t].style.removeProperty("width");
-    }
-  }
-  // Widths are applied ALWAYS (user: die Fuellstandsanzeigen sollen ueber alle Listen immer buendig
-  // sein): stored user widths win; otherwise ONE shared set is auto-derived from the first full table's
-  // current auto-layout geometry and applied to ALL tables (not persisted) — the array/pool/boot columns
-  // line up and the super-long boot Identification can no longer stretch its own table (it ellipsis-clips
-  // + marquees instead -> no horizontal scrollbar). Deriving only from a non-colfix table prevents a
-  // measure-set feedback loop; a window resize clears the derived set so it re-fits the new width.
-  var ccColBound = false;
-  function ccColApply() {
-    var w = ccColRead();
-    if (!w) {
-      var tbs = ccColTables();
-      for (var t = 0; t < tbs.length; t++) {
-        var h = tbs[t].querySelector("thead tr");
-        if (!h || h.children.length < CCW_N) continue;
-        if (tbs[t].classList.contains("cc-colfix")) { w = null; break; }   // already derived this load -> keep as is
-        w = []; for (var k = 0; k < CCW_N; k++) w.push(Math.max(CCW_MIN, Math.round(h.children[k].getBoundingClientRect().width)));
-        break;
+    function colgroup(table, n) {
+      var cg = table.querySelector(":scope > colgroup[data-cc-colw]");
+      if (cg && cg.children.length !== n) { cg.parentNode.removeChild(cg); cg = null; }   // stale col count (derived n changed) -> rebuild
+      if (!cg) {
+        cg = document.createElement("colgroup"); cg.setAttribute("data-cc-colw", "1");
+        for (var i = 0; i < n; i++) cg.appendChild(document.createElement("col"));
+        table.insertBefore(cg, table.firstChild);   // colgroup precedes thead -> fixed layout sizes every column from it; colspan rows can no longer skew the grid
       }
-      if (w) { ccColSet(w); ccColMarkAuto(true); }
-    } else { ccColSet(w); ccColMarkAuto(false); }
-    if (!ccColBound) {
-      ccColBound = true;
-      window.addEventListener("resize", function () {
-        if (ccColRead()) return;                       // user widths: keep (Explorer contract)
-        ccColClear();                                  // derived widths: drop -> next enhanceMain re-derives for the new width
-      });
+      return cg;
     }
+    function set(w) {
+      var sum = 0, i, n = w.length; for (i = 0; i < n; i++) sum += w[i];
+      var tbs = tables();
+      for (var t = 0; t < tbs.length; t++) {
+        var cols = colgroup(tbs[t], n).children;
+        for (i = 0; i < n; i++) { var px = w[i] + "px"; if (cols[i].style.width !== px) cols[i].style.width = px; }
+        tbs[t].classList.add("cc-colfix");
+        var tw = sum + "px"; if (tbs[t].style.width !== tw) tbs[t].style.width = tw;   // fixed layout needs a definite width; wider than the container -> .TableContainer's native overflow-x scroll, like Explorer
+      }
+    }
+    function clear() {
+      var tbs = tables();
+      for (var t = 0; t < tbs.length; t++) {
+        var cg = tbs[t].querySelector(":scope > colgroup[data-cc-colw]"); if (cg) cg.parentNode.removeChild(cg);
+        tbs[t].classList.remove("cc-colfix"); tbs[t].style.removeProperty("width");
+      }
+    }
+    function markAuto(on) { var tbs = tables(); for (var t = 0; t < tbs.length; t++) tbs[t].classList.toggle("cc-colauto", !!on); }   // auto-derived: table width stays 100% (no h-scroll); user px keep the Explorer sum-width
+    function apply() {
+      var n = num(); if (!n) return;
+      var w = read();
+      if (!w) {
+        var tbs = tables();
+        for (var t = 0; t < tbs.length; t++) {
+          var h = headOf(tbs[t]);
+          if (!h || h.children.length < n) continue;
+          if (!tbs[t].getBoundingClientRect().width) continue;   // hidden panel (inactive sub-tab) measures 0 -> derive from a visible sibling
+          if (tbs[t].classList.contains("cc-colfix")) { w = null; break; }   // already derived this load -> keep as is
+          w = []; for (var k = 0; k < n; k++) w.push(Math.max(min, Math.round(h.children[k].getBoundingClientRect().width)));
+          if (cfg.fix) cfg.fix(w, h);   // correction on the DERIVED set only — stored user px never pass here
+          break;
+        }
+        if (w) { set(w); markAuto(true); }
+      } else { set(w); markAuto(false); }
+      if (!bound) {
+        bound = true;
+        window.addEventListener("resize", function () {
+          if (read()) return;   // user widths: keep (Explorer contract)
+          clear(); apply();     // derived widths: re-fit for the new width NOW (/Shares has no nchan tick to re-enter later)
+        });
+      }
+    }
+    function down(e) {
+      if (e.button != null && e.button !== 0) return;
+      var table = this.closest("table"), h = table && headOf(table), n = num();
+      if (!h || !n || h.children.length < n) return;
+      var w = read();
+      if (!w) { w = []; for (var k = 0; k < n; k++) w.push(Math.max(min, Math.round(h.children[k].getBoundingClientRect().width))); }   // snapshot the grabbed table's CURRENT geometry -> zero visual jump on grab (siblings snap to the shared set)
+      set(w);
+      var ci = +this.getAttribute("data-cc-col");
+      drag = { i: ci, x: e.clientX, w: w, start: w[ci] };
+      try { this.setPointerCapture(e.pointerId); } catch (e2) {}
+      document.documentElement.classList.add("cc-col-dragging");   // CSS: page-wide user-select:none + col-resize cursor while dragging
+      e.preventDefault();   // no text selection / native drag start
+    }
+    function move(e) {
+      if (!drag) return;
+      drag.w[drag.i] = Math.max(min, Math.round(drag.start + (e.clientX - drag.x)));
+      set(drag.w);
+      e.preventDefault();
+    }
+    function up() {
+      if (!drag) return;
+      try { localStorage.setItem(cfg.key, JSON.stringify(drag.w)); } catch (e) {}
+      drag = null;
+      document.documentElement.classList.remove("cc-col-dragging");
+    }
+    function reset(e) {   // forget the layout -> the caller re-applies the derived auto set
+      try { localStorage.removeItem(cfg.key); } catch (e2) {}
+      clear();
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+    }
+    function grips(table) {
+      var h = headOf(table); if (!h) return;
+      var n = num(); if (!n) return;
+      var tds = h.children; if (tds.length < n) return;   // divider/short thead -> no grips
+      for (var i = 0; i < n; i++) {
+        if (tds[i].querySelector(":scope > .cc-colgrip")) continue;   // idempotent (thead is static, but a re-enable re-runs this)
+        var gp = el("span", "cc-colgrip"); gp.setAttribute("data-cc-col", i);
+        gp.addEventListener("pointerdown", down);
+        gp.addEventListener("pointermove", move);   // setPointerCapture routes the whole drag through the grip, even outside the table
+        gp.addEventListener("pointerup", up);
+        gp.addEventListener("pointercancel", up);
+        gp.addEventListener("dblclick", function (e) { reset(e); apply(); });   // power-user shortcut; re-derives right away
+        tds[i].appendChild(gp);
+      }
+    }
+    function resetBtn() {   // visible reset ibtn in the page's spot idiom; data-cc-tip -> the floating CC bubble
+      try {
+        var host = cfg.host && cfg.host(); if (!host) return;
+        if (document.querySelector('.cc-colreset[data-cc-colreset="' + cfg.key + '"]')) return;
+        var b = el("a", "cc-ibtn cc-colreset");
+        b.href = "#";
+        b.setAttribute("data-cc-colreset", cfg.key);
+        b.setAttribute("data-cc-tip", mtText("Reset column widths"));
+        var ic = document.createElement("i"); ic.className = "fa fa-undo"; b.appendChild(ic);
+        b.addEventListener("click", function (e) { e.preventDefault(); reset(); apply(); });
+        cfg.place(host, b);
+      } catch (e) {}
+    }
+    function teardown() {   // area-disable: grips out, fixed layout off, inline widths gone; STORAGE kept so a re-enable restores the layout
+      try {
+        var gps = document.querySelectorAll(cfg.sel + " .cc-colgrip");
+        for (var i = 0; i < gps.length; i++) gps[i].parentNode.removeChild(gps[i]);
+        var rb2 = document.querySelector('.cc-colreset[data-cc-colreset="' + cfg.key + '"]'); if (rb2) rb2.parentNode.removeChild(rb2);
+        clear();
+        drag = null;
+        document.documentElement.classList.remove("cc-col-dragging");
+      } catch (e) {}
+    }
+    return { apply: apply, grips: grips, resetBtn: resetBtn, teardown: teardown };
   }
-  function ccColMarkAuto(on) { var tbs = ccColTables(); for (var t = 0; t < tbs.length; t++) tbs[t].classList.toggle("cc-colauto", !!on); }   // auto-derived: table width stays 100% (no h-scroll); user px keep the Explorer sum-width
+  // Derived-set correction for the /Shares lists (user: "die spalte der speicher ist zu schmal,
+  // andere zu breit"): every byte-size column — header matched by the size regex — gets a 110px
+  // floor, funded proportionally from the other columns' surplus above a 60px donor floor (the
+  // widest text columns give the most). Runs ONLY on the auto-derived set (see ccColFactory).
+  function ccShareColFix(w, head) {
+    try {
+      var MINB = 110, FLOOR = 60, sz = /Größe|Grösse|Size|Speicher|Storage|frei|free|used/i;   // Grösse: /i cannot case-fold ß onto an uppercased GRÖSSE
+      var need = 0, donors = [], i;
+      for (i = 0; i < w.length; i++) {
+        var ht = ((head.children[i] && head.children[i].textContent) || "").trim();
+        if (sz.test(ht)) { if (w[i] < MINB) { need += MINB - w[i]; w[i] = MINB; } }
+        else donors.push(i);
+      }
+      if (!need) return;
+      var pool = 0, d;
+      for (d = 0; d < donors.length; d++) pool += Math.max(0, w[donors[d]] - FLOOR);
+      if (!pool) return;
+      var take = Math.min(need, pool);
+      for (d = 0; d < donors.length; d++) w[donors[d]] -= Math.round(take * Math.max(0, w[donors[d]] - FLOOR) / pool);
+    } catch (e) {}
+  }
+  // /Main: the exact legacy contract — key cc.main.colpx, fixed 11-col grid (colspan rows are
+  // normalised to 11 by ccFill11), reset ibtn LEADING the diskio cluster: [↺][(i)][toggle].
+  var ccMainCols = ccColFactory({
+    key: "cc.main.colpx", n: 11,
+    sel: "#displaybox table.unraid.disk_status",
+    host: function () { var a = document.querySelector("#displaybox span.status a.tooltip_diskio"); return a ? a.parentNode : null; },
+    place: function (host, b) { host.insertBefore(b, host.firstChild); }   // LEADS the cluster (appended after the toggle it overflowed the right alignment edge)
+  });
+  // /Shares: both share_status lists (#shareslist + #disk_list) share ONE width set — key
+  // cc.shares.colpx, column count read from the live thead (8 after the Browse insert), reset
+  // ibtn at the tab bar's right end (the /Main cluster's native-tabs spot idiom).
+  var ccShareCols = ccColFactory({
+    key: "cc.shares.colpx",
+    sel: "#displaybox table.unraid.share_status",
+    host: function () { return pn() === "/Shares" ? document.querySelector("#displaybox nav.tabs") : null; },
+    place: function (host, b) { host.appendChild(b); },
+    fix: ccShareColFix
+  });
   // Long Identification (the boot USB serial) -> hover MARQUEE like the Docker volume column (user):
   // the pill ellipsis-clips at rest; on mouseover the value slides left just far enough to reveal the
   // tail, and slides back on leave. Delegated once; inline transform only — the nchan refill recreates
@@ -1001,75 +1128,6 @@
       b.removeAttribute("data-cc-marq");
       ccMarqRun = null;
     });
-  }
-  function ccColDown(e) {
-    if (e.button != null && e.button !== 0) return;
-    var table = this.closest("table"), h = table && table.querySelector("thead tr");
-    if (!h || h.children.length < CCW_N) return;
-    var w = ccColRead();
-    if (!w) { w = []; for (var k = 0; k < CCW_N; k++) w.push(Math.max(CCW_MIN, Math.round(h.children[k].getBoundingClientRect().width))); }   // snapshot the grabbed table's CURRENT geometry -> zero visual jump on grab (the sibling tables snap to the shared set)
-    ccColSet(w);
-    var ci = +this.getAttribute("data-cc-col");
-    ccDrag = { i: ci, x: e.clientX, w: w, start: w[ci] };
-    try { this.setPointerCapture(e.pointerId); } catch (e2) {}
-    document.documentElement.classList.add("cc-col-dragging");   // CSS: page-wide user-select:none + col-resize cursor while dragging
-    e.preventDefault();   // no text selection / native drag start
-  }
-  function ccColMove(e) {
-    if (!ccDrag) return;
-    ccDrag.w[ccDrag.i] = Math.max(CCW_MIN, Math.round(ccDrag.start + (e.clientX - ccDrag.x)));
-    ccColSet(ccDrag.w);
-    e.preventDefault();
-  }
-  function ccColUp() {
-    if (!ccDrag) return;
-    try { localStorage.setItem(CCW_KEY, JSON.stringify(ccDrag.w)); } catch (e) {}
-    ccDrag = null;
-    document.documentElement.classList.remove("cc-col-dragging");
-  }
-  function ccColReset(e) {   // double-click a grip -> forget the layout, back to pure auto sizing
-    try { localStorage.removeItem(CCW_KEY); } catch (e2) {}
-    ccColClear();
-    if (e) { e.preventDefault(); e.stopPropagation(); }
-  }
-  function ccColGrips(table) {
-    var h = table && table.querySelector("thead tr"); if (!h) return;
-    var tds = h.children; if (tds.length < CCW_N) return;   // subpool divider thead -> no grips
-    for (var i = 0; i < CCW_N; i++) {
-      if (tds[i].querySelector(":scope > .cc-colgrip")) continue;   // idempotent (thead is static, but a re-enable re-runs this)
-      var gp = el("span", "cc-colgrip"); gp.setAttribute("data-cc-col", i);
-      gp.addEventListener("pointerdown", ccColDown);
-      gp.addEventListener("pointermove", ccColMove);   // setPointerCapture routes the whole drag through the grip, even outside the table
-      gp.addEventListener("pointerup", ccColUp);
-      gp.addEventListener("pointercancel", ccColUp);
-      gp.addEventListener("dblclick", ccColReset);
-      tds[i].appendChild(gp);
-    }
-  }
-  function ccColTeardown() {   // area-disable: grips out, fixed layout off, inline widths gone; STORAGE kept so a re-enable restores the layout
-    try {
-      var gps = document.querySelectorAll("#displaybox table.unraid.disk_status .cc-colgrip");
-      for (var i = 0; i < gps.length; i++) gps[i].parentNode.removeChild(gps[i]);
-      var rb = document.querySelector("#displaybox .cc-colreset"); if (rb) rb.parentNode.removeChild(rb);
-      ccColClear();
-      ccDrag = null;
-      document.documentElement.classList.remove("cc-col-dragging");
-    } catch (e) {}
-  }
-  // visible reset button NEXT TO the read/write toggle (user): lives inside the toggle's span.status,
-  // so it travels with it between nav.tabs and the section head. Same tile look as the UD icon
-  // buttons (.cc-ibtn). Grip double-click stays as the power-user shortcut.
-  function ccColResetBtn() {
-    try {
-      var a = document.querySelector("#displaybox span.status a.tooltip_diskio"); if (!a) return;
-      var st = a.parentNode; if (!st || st.querySelector(".cc-colreset")) return;
-      var b = el("a", "cc-ibtn cc-colreset");
-      b.href = "#";
-      b.setAttribute("title", mtText("Reset column widths"));
-      var ic = document.createElement("i"); ic.className = "fa fa-undo"; b.appendChild(ic);
-      b.addEventListener("click", function (e) { e.preventDefault(); ccColReset(); ccColApply(); });
-      st.insertBefore(b, st.firstChild);   // LEADS the cluster: [↺][(i)][toggle] — appended after the toggle it overflowed the right alignment edge (user: "fehlplatziert")
-    } catch (e) {}
   }
   // ── UD controls relocation (user: Toggles + Zahnrad/Refresh auf Hoehe des UNASSIGNED-DEVICES-
   // Abschnittsbadges). Sections mode only: the UD title bar's control cluster (the span/div.right
@@ -1156,25 +1214,27 @@
         // when all three switchButtons share ONE wrapper, the wrapper-level title from the first
         // label won every hover. Each track gets ITS OWN label's title; a multi-track wrapper
         // loses its stale bulk title.
+        // stamped as data-cc-tip DIRECTLY (header.js renders every [data-cc-tip] as the floating
+        // body-level bubble) — a title write here would churn against ccTipSweep every pass.
         var trks = hosts[h].querySelectorAll(".switch-button-background");
         for (var t3 = 0; t3 < trks.length; t3++) {
           var trk = trks[t3], lb = trk.previousElementSibling, lbt = "";
           if (!(lb && lb.classList && lb.classList.contains("switch-button-label"))) lb = trk.nextElementSibling;
           if (lb && lb.classList && lb.classList.contains("switch-button-label")) lbt = (lb.textContent || "").trim();
           if (!lbt && trk.parentNode) { var pl = trk.parentNode.querySelector(".switch-button-label"); if (pl) lbt = (pl.textContent || "").trim(); }
-          if (lbt && trk.getAttribute("title") !== lbt) trk.setAttribute("title", lbt);
+          if (lbt && trk.getAttribute("data-cc-tip") !== lbt) trk.setAttribute("data-cc-tip", lbt);
         }
         var kids = hosts[h].children;
         for (var k = 0; k < kids.length; k++) {
           var kd = kids[k];
-          if (kd.querySelectorAll && kd.querySelectorAll(".switch-button-background").length > 1) { kd.removeAttribute("title"); continue; }   // bulk wrapper: its single title was the bug
-          if (kd.getAttribute("title")) continue;
+          if (kd.querySelectorAll && kd.querySelectorAll(".switch-button-background").length > 1) { kd.removeAttribute("title"); kd.removeAttribute("data-cc-tip"); continue; }   // bulk wrapper: its single title was the bug
+          if (kd.getAttribute("title") || kd.getAttribute("data-cc-tip")) continue;
           var lbl = kd.querySelector ? kd.querySelector(".switch-button-label") : null;
-          if (lbl) { kd.setAttribute("title", (lbl.textContent || "").trim()); continue; }
+          if (lbl) { kd.setAttribute("data-cc-tip", (lbl.textContent || "").trim()); continue; }
           if (kd.tagName === "A") {
             var kcls = ((kd.querySelector("i, span") || {}).className || "") + " " + (kd.className || "");
-            if (/gear|cog|setting/i.test(kcls)) kd.setAttribute("title", LANG === "de" ? "Unassigned-Devices-Einstellungen" : "Unassigned Devices settings");
-            else if (/refresh|sync|rotate/i.test(kcls)) kd.setAttribute("title", LANG === "de" ? "Datenträger neu einlesen" : "Refresh disks");
+            if (/gear|cog|setting/i.test(kcls)) kd.setAttribute("data-cc-tip", LANG === "de" ? "Unassigned-Devices-Einstellungen" : "Unassigned Devices settings");
+            else if (/refresh|sync|rotate/i.test(kcls)) kd.setAttribute("data-cc-tip", LANG === "de" ? "Datenträger neu einlesen" : "Refresh disks");
           }
         }
         // the "frei schwebende" text appears ON HOVER of gear/refresh — that is UD's own balloon
@@ -1201,21 +1261,88 @@
       wrap.parentNode.removeChild(wrap);
     } catch (e) {}
   }
+  // ── /Main tooltip SWEEP: native [title] balloons -> the floating CC bubble. header.js renders
+  // EVERY [data-cc-tip]/[data-tip] as a body-level bubble (never clipped by table/pill overflow),
+  // so all this side has to do is move the text over. Per-pass idiom (like docker.js
+  // injectAllRowBadges): the nchan tbody refills recreate cells WITH fresh titles, so each pass
+  // converts whatever came back — covers the disk tables, UD block, array-op panel, toggles and
+  // the disk-state orbs in one query. Teardown: apply()'s [data-cc-tip] loop restores title attrs.
+  // The UD gear balloon is special: its content is a nested span.help-content (HTML, multi-row) —
+  // its TEXT becomes the tip, line-broken between rows (the bubble is white-space:pre-line); the
+  // span itself stays display:none via the Shares.css help-content hide rules (verified), and the
+  // balloon machinery loses its triggers (title stripped here; tooltipster instances on the UD
+  // anchors are already disabled + declassed by ccUdTitles).
+  function ccHelpText(host) {
+    var out = "";
+    (function walk(n) {
+      for (var c = n.firstChild; c; c = c.nextSibling) {
+        if (c.nodeType === 3) { out += c.textContent; continue; }
+        if (c.nodeType !== 1) continue;
+        if (c.tagName === "BR") { out += "\n"; continue; }
+        var blk = /^(DIV|P|LI|TR|UL|OL|DL|DT|DD|H[1-6]|TABLE)$/.test(c.tagName);
+        if (blk && out && !/\n$/.test(out)) out += "\n";
+        walk(c);
+        if (blk && !/\n$/.test(out)) out += "\n";
+      }
+    })(host);
+    return out.replace(new RegExp(String.fromCharCode(160), "g"), " ").replace(/[ \t]+/g, " ").replace(/ *\n */g, "\n").replace(/\n+/g, "\n").trim();
+  }
+  function ccTipSweep() {
+    try {
+      if (!onMain()) return;
+      var box = document.getElementById("displaybox"); if (!box) return;
+      // (b) balloon-content anchors (UD gear "Device Settings and Script…"): fold the nested
+      // span.help-content's text into the tip ONCE per anchor (static markup; the attr rides
+      // along when ccUdCtrlsMove relocates the node).
+      var helps = box.querySelectorAll("a:not([data-cc-help]) > span.help-content");
+      for (var h2 = 0; h2 < helps.length; h2++) {
+        var ha = helps[h2].parentNode, ht2 = ccHelpText(helps[h2]);
+        ha.setAttribute("data-cc-help", "1");
+        if (ht2 && ha.getAttribute("data-cc-tip") !== ht2) ha.setAttribute("data-cc-tip", ht2);
+        ha.removeAttribute("title");
+      }
+      // (b2) the disk-state orbs ("Normaler Betrieb, Datenträger aktiv") + the error info-icons are
+      // a.info CSS tooltips — the balloon is a nested <span> default-base.css reveals on :hover,
+      // no title attr at all. Fold the span text into data-cc-tip; a Shares.css rule hides the
+      // native span box on stamped anchors ([data-cc-tip] keys the hide, so teardown reverts it).
+      // disk_status + UD tables only: the array_status a.info wrappers stay with ccFoldDesc.
+      var infos = box.querySelectorAll("table.unraid.disk_status a.info, :is(table.usb_mounts, table.samba_mounts, table.usb_absent) a.info");
+      for (var n2 = 0; n2 < infos.length; n2++) {
+        var ia = infos[n2], sp2 = ia.querySelector(":scope > span"); if (!sp2) continue;
+        var it2 = ccHelpText(sp2); if (!it2) continue;
+        if (ia.getAttribute("data-cc-tip") !== it2) ia.setAttribute("data-cc-tip", it2);
+        ia.removeAttribute("title");
+      }
+      // (a) every REMAINING native title in the enhanced area -> data-cc-tip. Fresh nodes (refill)
+      // carry no data-cc-tip, so their title wins; an element that already has a tip only loses
+      // the stale title (no churn against the direct data-cc-tip stamps).
+      var tips = box.querySelectorAll("[title]");
+      for (var i2 = 0; i2 < tips.length; i2++) {
+        var te2 = tips[i2], tv2 = te2.getAttribute("title");
+        te2.removeAttribute("title");
+        if (tv2 && tv2.replace(/\s+/g, "") && !te2.getAttribute("data-cc-tip")) te2.setAttribute("data-cc-tip", tv2);
+      }
+    } catch (e) {}
+  }
   function enhanceMain() {
     try {
       if (g("cc.enable.main", "0") === "0") return;   // Start (/Main) is its OWN area now (was cc.enable.shares)
       if (!onMain()) return;
       var box = document.getElementById("displaybox");
       if (box) { if (g("cc.sections.main", "0") !== "0") { cardPanels(box); ccDiskioMove(box); } else { ccDiskioHome(); ccUdCtrlsHome(); flattenTeardown(); } }   // Tab-Ansicht default OFF (native sub-tabs); ccDiskioHome/ccUdCtrlsHome BEFORE flattenTeardown — it deletes every .cc-card-head incl. the ones hosting the relocated controls
+      // reads/writes toggle: kill its tooltipster balloon in BOTH tab modes (ccDiskioMove only
+      // runs in sections mode; in native-tabs mode the bar kept the black balloon — user screenshot)
+      var dio = document.querySelector("#displaybox span.status a.tooltip_diskio");
+      if (dio && dio.closest) { var dst = dio.closest("span.status"); if (dst) ccDiskioTip(dst); }
       var tbs = document.querySelectorAll("#displaybox table.unraid.disk_status");
       for (var i = 0; i < tbs.length; i++) {
         enhanceMainHead(tbs[i]);
-        ccColGrips(tbs[i]);   // drag-resize grips on the 11 header cells — AFTER the Browse header insert
+        ccMainCols.grips(tbs[i]);   // drag-resize grips on the 11 header cells — AFTER the Browse header insert
         var rows = tbs[i].querySelectorAll("tbody > tr");
         for (var r = 0; r < rows.length; r++) enhanceMainRow(rows[r]);
       }
-      ccColApply();   // shared column widths on ALL tables (stored user px, else auto-derived once)
-      ccColResetBtn();   // visible width-reset next to the read/write toggle
+      ccMainCols.apply();   // shared column widths on ALL tables (stored user px, else auto-derived once)
+      ccMainCols.resetBtn();   // visible width-reset next to the read/write toggle
       ccMarqResume();   // continue a running ident marquee seamlessly across the tbody refill
       ccIdentMarq();  // hover-marquee for over-long Identification pills (delegated, binds once)
       if (box) enhanceArrayOps(box);   // Array-Vorgang form: CC buttons + (i) info-bubbles, separator lines removed via CSS
@@ -1224,6 +1351,7 @@
       ccUdLoose();   // hide UD's loose native text buttons (our gear/refresh icons carry those functions)
       ccUdTitles();   // hover names on toggles + icons in BOTH homes, every pass
       ccMutedEmpties();   // td.empty + the UD "no ... configured" notices -> muted pills (after the badge passes)
+      ccTipSweep();   // LAST: every remaining native [title] in the enhanced area -> floating CC bubble (per pass; refills bring titles back)
     } catch (e) {}
   }
   // ── /Main "Array-Vorgang" (ArrayOperation.page: table.ArrayOperation-Table.array_status). Each control
@@ -1918,8 +2046,9 @@
       // per-area Tab-Ansicht gates (stacked CC sections vs native sub-tabs) + the /Main (START) marker.
       // cc-on-share-detail STAYS (it gates button/input/dropdown theming in BOTH modes); these are
       // additive gates. The merged CSS flatten rule keys off (.cc-on-share-detail.cc-sections-share)
-      // OR (.cc-on-main.cc-sections-main), so turning a section toggle off reverts to native sub-tabs.
-      root.classList.toggle("cc-sections-share", on && g("cc.sections.shares", "0") !== "0" && pn() === "/Shares/Share");   // Tab-Ansicht default OFF
+      // OR (.cc-on-shares.cc-sections-share — the /Shares OVERVIEW) OR (.cc-on-main.cc-sections-main),
+      // so turning a section toggle off reverts to native sub-tabs.
+      root.classList.toggle("cc-sections-share", on && g("cc.sections.shares", "0") !== "0" && (pn() === "/Shares/Share" || pn() === "/Shares"));   // Tab-Ansicht default OFF; OR-gate: the /Shares OVERVIEW flattens too (the detail-only gate was why the list page never switched)
       root.classList.toggle("cc-sections-main", onMainArea && g("cc.sections.main", "0") !== "0" && onMain());              // Tab-Ansicht default OFF
       root.classList.toggle("cc-on-main", onMainArea && onMain());
       // the file manager (/<parent>/Browse). CSS-ONLY area: nothing is injected, so this class toggle IS
@@ -1974,7 +2103,8 @@
           // strip the lg disk-name badge classes off the device link.
           var mname = document.querySelectorAll("#displaybox table.unraid.disk_status a.cc-b-name");
           for (var mn = 0; mn < mname.length; mn++) { mname[mn].classList.remove("cc-b"); mname[mn].classList.remove("cc-b-name"); }
-          ccColTeardown();   // drag-resize: grips + colgroups + cc-colfix + inline widths out (cc.main.colpx storage kept for a re-enable)
+          ccMainCols.teardown();   // drag-resize: grips + colgroups + cc-colfix + inline widths out (cc.main.colpx storage kept for a re-enable)
+          ccShareCols.teardown();  // same for the /Shares lists (cc.shares.colpx storage kept)
           aopTeardown();   // Array-Vorgang: pull (i) info-bubbles, un-hide description cells, drop markers
           udTeardown();   // UD: restore the joined heading text + unwrap the UD table badges — MUST run BEFORE ccI18nTeardown so its text-node-matching restore finds the (restored) translated text nodes
           ccMutedTeardown();   // empty-state pills -> bare native text back
@@ -1982,6 +2112,8 @@
           // styled hover bubbles -> native title balloons back
           var tps = document.querySelectorAll("#displaybox [data-cc-tip]");
           for (var tp = 0; tp < tps.length; tp++) { tps[tp].setAttribute("title", tps[tp].getAttribute("data-cc-tip")); tps[tp].removeAttribute("data-cc-tip"); }
+          var hps = document.querySelectorAll("#displaybox [data-cc-help]");
+          for (var hp = 0; hp < hps.length; hp++) hps[hp].removeAttribute("data-cc-help");   // gear-balloon fold marker off -> a re-enable re-derives
           ccI18nTeardown();   // restore the original English strings (sleep value + UD/native text nodes)
         } catch (e) {}
         return;

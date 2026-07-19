@@ -129,22 +129,23 @@ html.cc-shares-on:not(.Theme--sidebar) #displaybox > nav.tabs { margin-top: 0 !i
 /* ═══ roomier rows (user: "nicht so gedrungen") ═══ a bit more vertical breathing room per body row */
 html.cc-shares-on #displaybox table.unraid.share_status tbody td { padding-top: 7px; padding-bottom: 7px; }
 
-/* ═══ re-assert per-column widths for the CC 9-column layout (user: "Speicherspalte zu schmal") ═══
-   CC inserts Status+Browse after Name, so Unraid's fixed-layout nth-child widths land on SHIFTED
-   columns: Status stole Comment's 30%, SMB stole Storage's 15%, and Storage fell onto the 10% bucket
-   (~8% after the 120%-total down-scale) -> "Cache -> Array" clipped. Re-map all nine columns (sum =
-   100% so fixed-layout does no down-scaling); Storage gets the widest slot. #displaybox + 4 classes
-   beats default-base.css's table.share_status nth-child rules on specificity, no !important. Scoped
-   .cc-on-shares (list only). Covers both #shareslist + #disk_list (both share_status). */
+/* ═══ re-assert per-column widths for the CC 8-column layout (user: "Speicherspalte zu schmal") ═══
+   CC inserts ONE column (Browse) after Name — the old own Status column is a name-cell dot since
+   v2.35.0, but this remap still mapped NINE columns, so every bucket right of Browse sat one column
+   off (Storage fell onto an 8% slot = the too-narrow Speicher). Re-map the real EIGHT columns
+   (sum = 100% so fixed-layout does no down-scaling); Storage + the byte columns get usable slots.
+   #displaybox + 4 classes beats default-base.css's table.share_status nth-child rules on
+   specificity, no !important. Scoped .cc-on-shares (list only). Covers #shareslist + #disk_list
+   (both share_status). NB this is only the pre-JS auto layout — the drag-resize colgroup px
+   (cc-colfix, applied every pass) override it; see the .cc-colfix block below. */
 html.cc-shares-on.cc-on-shares #displaybox table.unraid.share_status tr > td:nth-child(1) { width: 15%; } /* Name        */
-html.cc-shares-on.cc-on-shares #displaybox table.unraid.share_status tr > td:nth-child(2) { width:  8%; } /* Status (CC) */
-html.cc-shares-on.cc-on-shares #displaybox table.unraid.share_status tr > td:nth-child(3) { width:  9%; } /* Browse (CC) */
-html.cc-shares-on.cc-on-shares #displaybox table.unraid.share_status tr > td:nth-child(4) { width: 16%; } /* Comment     */
-html.cc-shares-on.cc-on-shares #displaybox table.unraid.share_status tr > td:nth-child(5) { width:  8%; } /* SMB         */
-html.cc-shares-on.cc-on-shares #displaybox table.unraid.share_status tr > td:nth-child(6) { width:  8%; } /* NFS         */
-html.cc-shares-on.cc-on-shares #displaybox table.unraid.share_status tr > td:nth-child(7) { width: 18%; } /* Storage     */
-html.cc-shares-on.cc-on-shares #displaybox table.unraid.share_status tr > td:nth-child(8) { width:  9%; } /* Size        */
-html.cc-shares-on.cc-on-shares #displaybox table.unraid.share_status tr > td:nth-child(9) { width:  9%; } /* Free        */
+html.cc-shares-on.cc-on-shares #displaybox table.unraid.share_status tr > td:nth-child(2) { width:  9%; } /* Browse (CC) */
+html.cc-shares-on.cc-on-shares #displaybox table.unraid.share_status tr > td:nth-child(3) { width: 16%; } /* Comment     */
+html.cc-shares-on.cc-on-shares #displaybox table.unraid.share_status tr > td:nth-child(4) { width:  8%; } /* SMB         */
+html.cc-shares-on.cc-on-shares #displaybox table.unraid.share_status tr > td:nth-child(5) { width:  8%; } /* NFS         */
+html.cc-shares-on.cc-on-shares #displaybox table.unraid.share_status tr > td:nth-child(6) { width: 18%; } /* Storage     */
+html.cc-shares-on.cc-on-shares #displaybox table.unraid.share_status tr > td:nth-child(7) { width: 13%; } /* Size        */
+html.cc-shares-on.cc-on-shares #displaybox table.unraid.share_status tr > td:nth-child(8) { width: 13%; } /* Free        */
 
 /* ═══ list-cell values -> CC badges ═══
    shares.js wraps each SMB/NFS/Storage/Size/Free value in .cc-b>.cc-b-v. docker.css
@@ -438,6 +439,42 @@ html.cc-col-dragging #displaybox .TableContainer { overflow-x: hidden !important
 html.cc-shares-on.cc-on-main #displaybox .TableContainer::-webkit-scrollbar { height: 8px; }
 html.cc-shares-on.cc-on-main #displaybox .TableContainer::-webkit-scrollbar-track { background: transparent; }
 html.cc-shares-on.cc-on-main #displaybox .TableContainer::-webkit-scrollbar-thumb { background: rgba(128, 128, 128, .35); border-radius: 4px; }
+/* ═══ /Shares: the SAME live column drag-resize, instantiated on both share_status lists by
+   shares.js/ccColFactory (user: "die spalten sollen in der breite einstellbar sein. wie im start
+   tab. exakt gleich inkl. reset button"). Widths persist in cc.shares.colpx; the grip/colfix
+   recipe mirrors the /Main block above 1:1, only the table family + page gate differ. ═══ */
+html.cc-shares-on.cc-on-shares #displaybox table.unraid.share_status thead td { position: relative; }
+html.cc-shares-on.cc-on-shares #displaybox table.unraid.share_status thead td > .cc-colgrip {
+  position: absolute; top: 0; bottom: 0; right: -4px; width: 8px;
+  cursor: col-resize; touch-action: none; user-select: none; z-index: 3;
+}
+html.cc-shares-on.cc-on-shares #displaybox table.unraid.share_status thead td > .cc-colgrip::after {
+  content: ""; position: absolute; top: 15%; bottom: 15%; left: 3px; width: 2px;
+  border-radius: 1px; background: transparent; transition: background .12s;
+}
+html.cc-shares-on.cc-on-shares #displaybox table.unraid.share_status thead tr:hover td > .cc-colgrip::after {
+  background: rgba(128, 128, 128, .45);
+}
+html.cc-shares-on.cc-on-shares #displaybox table.unraid.share_status thead td > .cc-colgrip:hover::after,
+html.cc-col-dragging #displaybox table.unraid.share_status thead td > .cc-colgrip::after {
+  background: var(--cc-shr-accent, #2f6feb);
+}
+/* resized mode: the colgroup px rule EVERY column — the fixed layout reads the cols first, and the
+   width:auto !important kills the nth-child percent remap above so it can never fight the drag. */
+html.cc-shares-on.cc-on-shares #displaybox .TableContainer table.unraid.share_status.cc-colfix { table-layout: fixed !important; min-width: 0 !important; }
+html.cc-shares-on.cc-on-shares #displaybox table.unraid.share_status.cc-colfix tr > td { width: auto !important; }
+/* under explicit px the cells clip instead of bleeding into their neighbours (Explorer contract) */
+html.cc-shares-on.cc-on-shares #displaybox table.unraid.share_status.cc-colfix td { overflow: hidden; }
+/* auto-derived shared widths: table stays at container width -> NO horizontal scrollbar (the /Main
+   fleck lesson); only explicit user-dragged px keep the Explorer sum-width (which may scroll). */
+html.cc-shares-on.cc-on-shares #displaybox .TableContainer table.unraid.share_status.cc-colfix.cc-colauto { width: 100% !important; }
+html.cc-shares-on.cc-on-shares #displaybox .TableContainer:has(table.unraid.share_status.cc-colauto) { overflow-x: hidden !important; }
+html.cc-shares-on.cc-on-shares #displaybox .TableContainer::-webkit-scrollbar { height: 8px; }
+html.cc-shares-on.cc-on-shares #displaybox .TableContainer::-webkit-scrollbar-track { background: transparent; }
+html.cc-shares-on.cc-on-shares #displaybox .TableContainer::-webkit-scrollbar-thumb { background: rgba(128, 128, 128, .35); border-radius: 4px; }
+/* reset ibtn: right end of the tab bar — the /Main cluster's native-tabs spot idiom (shares.js
+   appends it into nav.tabs; the a.cc-ibtn tile recipe below covers the look). */
+html.cc-shares-on.cc-on-shares #displaybox nav.tabs > a.cc-colreset { margin-left: auto; align-self: center; float: right; }
 /* centre the DS / GROESSE / BENUTZT / FREI columns (8-11; Browse insert makes Device=1, Browse=2,
    user: "benutzt und frei sollen zentriert in der spalte sein ... auch DS und Groesse"). Inline-flex
    value badges centre via text-align; the usage bars centre via their auto margins above. Structural
@@ -573,7 +610,7 @@ html.cc-shares-on.cc-on-main #displaybox :is(.show-disks, .show-shares, .show-hi
    Covers both UD DOM variants (glyph in an <i> child OR as the anchor's own text) and CC's own
    icon buttons (.cc-ibtn, e.g. the column-width reset next to the read/write toggle). */
 html.cc-shares-on.cc-on-main #displaybox a.cc-ud-icon,
-html.cc-shares-on.cc-on-main #displaybox a.cc-ibtn {
+html.cc-shares-on:is(.cc-on-main, .cc-on-shares) #displaybox a.cc-ibtn {   /* .cc-on-shares: the /Shares column-reset ibtn wears the same tile */
   display: inline-flex !important; align-items: center; justify-content: center;
   box-sizing: border-box !important; flex: 0 0 auto;
   width: 24px !important; height: 24px !important; padding: 0 !important;   /* /Main exception (user): icon tiles match the SLIM toggle height, not the 30px menu tier */
@@ -583,17 +620,17 @@ html.cc-shares-on.cc-on-main #displaybox a.cc-ibtn {
 }
 html.cc-shares-on.cc-on-main #displaybox a.cc-ud-icon,
 html.cc-shares-on.cc-on-main #displaybox a.cc-ud-icon *,
-html.cc-shares-on.cc-on-main #displaybox a.cc-ibtn,
-html.cc-shares-on.cc-on-main #displaybox a.cc-ibtn * {
+html.cc-shares-on:is(.cc-on-main, .cc-on-shares) #displaybox a.cc-ibtn,
+html.cc-shares-on:is(.cc-on-main, .cc-on-shares) #displaybox a.cc-ibtn * {
   font-size: 13px !important; line-height: 1 !important; color: var(--cc-rb-ct, var(--cc-shr-accent-text, #fff)) !important;   /* glyph proportional to the 24px tile, dead-centred by the flex box */
 }
 html.cc-shares-on.cc-on-main #displaybox a.cc-ud-icon:hover,
-html.cc-shares-on.cc-on-main #displaybox a.cc-ibtn:hover { filter: brightness(1.14); }
+html.cc-shares-on:is(.cc-on-main, .cc-on-shares) #displaybox a.cc-ibtn:hover { filter: brightness(1.14); }
 /* dead-centre the glyph: UD's own rules (and our older generic one) gave the inner <i> a fixed
    20px box + inline-block baseline — inside the 24px tile that sat visibly off (user: "logo ist
    nicht zentriert"). Neutralise every inner box; the flex tile does the centring. */
 html.cc-shares-on.cc-on-main #displaybox a.cc-ud-icon :is(i, img, span:not(.help-content)),
-html.cc-shares-on.cc-on-main #displaybox a.cc-ibtn :is(i, img, span:not(.help-content)) {
+html.cc-shares-on:is(.cc-on-main, .cc-on-shares) #displaybox a.cc-ibtn :is(i, img, span:not(.help-content)) {
   width: auto !important; height: auto !important; line-height: 1 !important;
   margin: 0 !important; padding: 0 !important; display: block !important; opacity: 1 !important;
 }
@@ -607,7 +644,7 @@ html.cc-shares-on.cc-on-main #displaybox div.title.ud span.help-content { displa
 html.cc-shares-on.cc-on-main #displaybox a.cc-colreset { margin-right: 14px !important; }
 /* Badge-Form "circle": full round like the header tiles */
 html.cc-shape-circle.cc-shares-on.cc-on-main #displaybox a.cc-ud-icon,
-html.cc-shape-circle.cc-shares-on.cc-on-main #displaybox a.cc-ibtn { border-radius: 50% !important; }
+html.cc-shape-circle.cc-shares-on:is(.cc-on-main, .cc-on-shares) #displaybox a.cc-ibtn { border-radius: 50% !important; }
 /* the relocated controls cluster: right end of the UNASSIGNED-DEVICES badge ROW. Anchor = the
    position:relative SECTION (like the diskio switch), NOT the .cc-card-head — the head IS the badge
    pill (fit-content), so right:0 of the head landed ON the badge text (the v2.27.0 overlap). The head
@@ -878,8 +915,10 @@ html.cc-shares-on.cc-on-main #displaybox :is(table.array_status, .cc-aop-pills) 
 html.cc-shares-on.cc-on-main #displaybox :is(table.array_status, .cc-aop-pills) .cc-aop-status.cc-aop-warn { background: #e0912a; color: #1a1a1a; }
 html.cc-shares-on.cc-on-main #displaybox :is(table.array_status, .cc-aop-pills) .cc-aop-status.cc-aop-off  { background: #3c3c3c; color: #cfcfcf; }
 html.cc-shares-on.cc-on-main #displaybox :is(table.array_status, .cc-aop-pills) .cc-aop-status a.info { display: none !important; }   /* user: Badge OHNE Statuspunkt — the pill's colour already IS the state, the orb dot is redundant (its a.info tooltip goes with it) */
-/* §9 (i) info-bubble — MIRRORED from styles/docker.css (not loaded on /Main). Neutral (currentColor, NEVER
-   accent); hover/focus reveals a pure-CSS tooltip from data-tip. */
+/* §9 (i) info-icon — MIRRORED from styles/docker.css (not loaded on /Main). Neutral (currentColor,
+   NEVER accent). ICON ONLY: the bubble itself is NOT CSS any more — header.js renders every
+   [data-cc-tip]/[data-tip] as ONE floating body-level bubble (unified look, never clipped by
+   table/pill overflow), which replaced the old ::after/::before pseudo-element balloon here. */
 html.cc-shares-on.cc-on-main #displaybox .cc-info {
   position: relative; display: inline-flex; align-items: center; justify-content: center;
   width: 15px; height: 15px; margin-left: 10px; flex: 0 0 auto; vertical-align: middle;
@@ -888,22 +927,6 @@ html.cc-shares-on.cc-on-main #displaybox .cc-info {
 html.cc-shares-on.cc-on-main #displaybox .cc-info:hover,
 html.cc-shares-on.cc-on-main #displaybox .cc-info:focus { opacity: 1; outline: none; }
 html.cc-shares-on.cc-on-main #displaybox .cc-info svg { width: 15px; height: 15px; display: block; }
-html.cc-shares-on.cc-on-main #displaybox .cc-info::after {
-  content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
-  width: max-content; max-width: 280px; white-space: normal; text-align: left; line-height: 1.45;
-  background: #393939; color: #f4f4f4; padding: 9px 12px; border: none; border-radius: min(var(--cc-b-radius, 8px), 10px);
-  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; font-size: 12.5px; font-weight: 400;
-  text-transform: none; letter-spacing: normal;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .55); z-index: 9999; opacity: 0; pointer-events: none; transition: opacity .12s;
-}
-html.cc-shares-on.cc-on-main #displaybox .cc-info::before {
-  content: ""; position: absolute; bottom: calc(100% + 3px); left: 50%; transform: translateX(-50%);
-  border: 5px solid transparent; border-top-color: #393939; z-index: 9999; opacity: 0; transition: opacity .12s;
-}
-html.cc-shares-on.cc-on-main #displaybox .cc-info:hover::after,
-html.cc-shares-on.cc-on-main #displaybox .cc-info:focus::after,
-html.cc-shares-on.cc-on-main #displaybox .cc-info:hover::before,
-html.cc-shares-on.cc-on-main #displaybox .cc-info:focus::before { opacity: 1; }
 /* the array-op panel must let the bubble overflow (Tab-Ansicht panels already do; native sub-tabs may clip) */
 html.cc-shares-on.cc-on-main #displaybox section:has(table.array_status) { overflow: visible !important; }
 /* (A5/P9) reads/writes toggle -> CC switch. State mirrors the diskio cookie via the i.toggle class
@@ -928,12 +951,9 @@ html.cc-shares-on.cc-on-main.cc-sections-main #displaybox section[data-cc-card] 
 html.cc-shares-on.cc-on-main.cc-sections-main #displaybox .cc-card-head > span.status { position: absolute; right: 0; top: 5px; }
 /* native-tabs fallback (Tab-Ansicht off): the control stays in nav.tabs -> pin it right */
 html.cc-shares-on.cc-on-main:not(.cc-sections-main) #displaybox nav.tabs > span.status { margin-left: auto; align-self: center; float: right; }
-/* §9 bubble LEFT of the diskio switch (ccDiskioTip prepends it into the relocated span.status).
-   The control sits at the RIGHT viewport edge -> the balloon must be right-anchored (grows LEFT),
-   never centered, so ::after can never overflow the viewport. */
+/* anchor spacing LEFT of the diskio switch (the bubble itself is the floating header.js one now —
+   the old right-anchored ::after/::before edge variant went with the CSS balloon). */
 html.cc-shares-on.cc-on-main #displaybox span.status > .cc-info { margin: 0 10px 0 0; }
-html.cc-shares-on.cc-on-main #displaybox .cc-info.cc-info-edge::after { left: auto; right: -4px; transform: none; }
-html.cc-shares-on.cc-on-main #displaybox .cc-info.cc-info-edge::before { left: auto; right: 1px; transform: none; }
 
 /* ═══ bottom action buttons -> CC action buttons ═══
    Mirror the Docker footer bar (div.js-actions input[type=button]) — accent bg, md
@@ -1169,18 +1189,20 @@ html.cc-shares-on.cc-on-share-detail #displaybox .ui-dropdownchecklist-item .ui-
    tab JS only toggles inline display), so we reveal EVERY panel, hide the tab BUTTONS ONLY (never
    nav.tabs / .tabs-container — the prev/next share arrows .menuNavButtonsTabbed are appended INTO it),
    and dress each section as a settings-style card. shares.js prepends a header per card. */
-/* MERGED GATE: the layout-flatten rules apply on BOTH the share-detail page and the /Main (START) tab,
-   each gated on its per-area Tab-Ansicht toggle — (.cc-on-share-detail.cc-sections-share) OR
-   (.cc-on-main.cc-sections-main). Turning a section toggle off drops the class, so the panels revert to
-   the native Unraid sub-tabs. The two-column split-card rules below stay .cc-on-share-detail-only
-   (/Main has no clone-settings / .cc-split-row). */
-html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox section[role="tabpanel"] {
+/* MERGED GATE: the layout-flatten rules apply on the share-detail page, the /Shares OVERVIEW
+   (Benutzer-/Laufwerks-Freigaben sub-tabs — user: "die tab ansicht lässt sich nicht umstellen in
+   abschnittansicht"; both /Shares pages share the ONE cc.sections.shares toggle) and the /Main
+   (START) tab, each gated on its per-area Tab-Ansicht class — (.cc-on-share-detail.cc-sections-share)
+   OR (.cc-on-shares.cc-sections-share) OR (.cc-on-main.cc-sections-main). Turning a section toggle
+   off drops the class, so the panels revert to the native Unraid sub-tabs. The two-column split-card
+   rules below stay .cc-on-share-detail-only (/Main + the overview have no clone-settings / .cc-split-row). */
+html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-shares.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox section[role="tabpanel"] {
   display: block !important;                 /* beats the inline style.display:none AND .tab-content{display:none} */
   max-width: 960px; margin: 0 auto 28px;     /* PLAIN SECTION, not a card: a badge heading over flowing content, no boxed frame */
   background: none; border-radius: 0; padding: 0; box-shadow: none;
   overflow: visible !important;              /* the open dropdown overlay must NOT grow a card scrollbar */
 }
-html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox section[role="tabpanel"]:last-child { margin-bottom: 0; }
+html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-shares.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox section[role="tabpanel"]:last-child { margin-bottom: 0; }
 /* /Main (START) sections are full-width DATA TABLES, not settings forms: never cap them to the
    960px form-card width (that cap is share-DETAIL geometry that leaked through the merged :is()
    gate above — the "LISTEN ZU SCHMAL" root cause: every /Main panel sat centered in a 960px cage,
@@ -1192,13 +1214,21 @@ html.cc-shares-on.cc-on-main.cc-sections-main #displaybox section[role="tabpanel
   max-width: none;
   margin: 0 0 36px;
 }
-html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox nav.tabs button[role="tab"] { display: none !important; }
-html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox nav.tabs { border: none; min-height: 0; }
+/* the /Shares OVERVIEW sections are full-width DATA TABLES too (Benutzer-/Laufwerks-Freigaben):
+   same full-bleed override as /Main — the 960px cap is share-DETAIL form geometry only. Equal
+   specificity (1,4,2) as the merged rule, later source order wins; the :last-child rule above
+   (1,5,2) still out-specifies (final section keeps margin-bottom 0). */
+html.cc-shares-on.cc-on-shares.cc-sections-share #displaybox section[role="tabpanel"] {
+  max-width: none;
+  margin: 0 0 36px;
+}
+html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-shares.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox nav.tabs button[role="tab"] { display: none !important; }
+html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-shares.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox nav.tabs { border: none; min-height: 0; }
 /* the prev/next arrows stay flowed so nav.tabs keeps a height (share-detail only; /Main has none) */
 html.cc-shares-on.cc-on-share-detail #displaybox .menuNavButtonsTabbed { position: static; margin-left: auto; }
 /* per-card header = a REAL CC badge: SOLID accent fill + contrast text, hugs its text, no line. Text
    from the (now-hidden) tab button via shares.js/cardPanels. Area accent (rainbow-agnostic). */
-html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox .cc-card-head {
+html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-shares.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox .cc-card-head {
   display: inline-flex; align-items: center; gap: 8px;
   min-height: var(--cc-lgb-h, 36px); box-sizing: border-box;   /* head badges ride the 36px control line (lg tier); font/padding tokens unchanged */
   font-weight: 700; text-transform: uppercase; letter-spacing: .6px; font-size: var(--cc-head-fs, 15px); line-height: 1;
@@ -1206,20 +1236,20 @@ html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-main.cc-secti
   border: none; border-radius: var(--cc-b-radius, 999px);
   padding: var(--cc-head-pad, 9px 18px); margin: 0 0 16px;
 }
-html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox .cc-card-head i.title,
-html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox .cc-card-head i,
-html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox .cc-card-head img.icon { color: inherit; margin: 0 8px 0 0; }   /* icon->title gap (user: "icons zu nah am text"); native gap-1 was only ~4px */
+html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-shares.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox .cc-card-head i.title,
+html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-shares.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox .cc-card-head i,
+html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-shares.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox .cc-card-head img.icon { color: inherit; margin: 0 8px 0 0; }   /* icon->title gap (user: "icons zu nah am text"); native gap-1 was only ~4px */
 /* v2.29.0 (user: UD-Abschnitts-Icon "Farbe/Groesse falsch"): the UD head is the one section whose icon
    is a full-colour IMG at natural size (the others are font glyphs that inherit ink + font-size) —
    pin it to glyph size and monochrome it to the badge ink, mirroring the .cc-ud-h img treatment. */
-html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox .cc-card-head img.icon {
+html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-shares.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox .cc-card-head img.icon {
   height: 16px !important; width: 16px !important; object-fit: contain;
   filter: brightness(0) invert(1);
 }
-html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox .cc-card-head.cc-ink-dark img.icon { filter: brightness(0); }
+html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-shares.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox .cc-card-head.cc-ink-dark img.icon { filter: brightness(0); }
 /* SMB "User Access": its native sub-heading is converted into an in-card title badge, so hide the native one. */
-html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox .title.cc-carded { display: none !important; }
-html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox .cc-card-note { color: inherit; opacity: .7; font-size: 12px; font-style: italic; margin: -4px 0 12px; }
+html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-shares.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox .title.cc-carded { display: none !important; }
+html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-shares.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox .cc-card-note { color: inherit; opacity: .7; font-size: 12px; font-style: italic; margin: -4px 0 12px; }
 /* THEME-NEUTRAL ON PURPOSE (v2.16.0): the old boxed card forced a dark #222 fill, so a hardcoded light
    grey (#d5d5d5) label colour was correct there — but now that the card fill is gone (see below), that
    same hardcoded colour would sit on Unraid's OWN page background, which is WHITE on Theme--white/azure.
@@ -1416,18 +1446,16 @@ html.cc-shares-rbneutral.cc-on-main #displaybox .cc-xbtn:not(:disabled) { backgr
 html.cc-shares-rbneutral.cc-on-main #displaybox .cc-xbtn:hover:not(:disabled) {
   background: var(--cc-rb-c, var(--cc-shr-accent, #2f6feb)) !important; color: var(--cc-rb-ct, var(--cc-shr-accent-text, #fff)) !important;
 }
-/* CC hover bubble replaces the native title balloon on our controls (user: bubbles frameless +
-   badge-form). shares.js moves title -> data-cc-tip; the bubble is pure CSS. */
+/* CC hover bubble replaces the native title balloon on our controls: shares.js moves title ->
+   data-cc-tip (ccTipSweep, page-wide on /Main), and header.js renders EVERY [data-cc-tip] as the
+   floating body-level bubble. The old ::after CSS bubble here is GONE — it clipped inside
+   overflow:hidden pills/containers (user screenshots); only the anchor keeps its positioning. */
 html.cc-shares-on #displaybox [data-cc-tip] { position: relative; }
-html.cc-shares-on #displaybox [data-cc-tip]:hover::after {
-  content: attr(data-cc-tip); position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%);
-  z-index: 9999; width: max-content; max-width: 280px;
-  background: #393939; color: #f4f4f4; border: none; border-radius: min(var(--cc-b-radius, 8px), 10px);
-  padding: 9px 12px; font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
-  font-size: 12.5px; font-weight: 400; line-height: 1.45;
-  text-transform: none; letter-spacing: normal; white-space: normal; text-align: left;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .55); pointer-events: none;
-}
+/* a.info anchors whose nested-span CSS balloon was folded into data-cc-tip by ccTipSweep: the
+   native span box must not double-show under the floating bubble. Keyed on [data-cc-tip], so the
+   teardown (attr removed) restores the native balloon without a reload. NO-NATIVE-BALLOON rule —
+   keep, the floating bubble depends on it. */
+html.cc-shares-on.cc-on-main #displaybox :is(table.unraid.disk_status, table.usb_mounts, table.samba_mounts, table.usb_absent) a.info[data-cc-tip] > span { display: none !important; }
 /* the last rainbow gaps (user: "auf der Start-Seite sind nicht alle toggles und badges und buttons
    im rainbowmode"): UD cluster icon tiles, the column-reset icon button and the (Planung)/Wiki
    links join the neutral contract — grey at rest, their stamped palette colour on hover. Toggle

@@ -455,12 +455,14 @@
       ccProfObs.observe(p, { childList: true, subtree: true, characterData: true });
     } catch (e) {}
   }
-  // ── FLOATING hover bubble for the #menu icons (user: "die icons in der hauptmenüleiste haben
-  // kein mouseover text"). The nav tiles carry overflow, which CLIPS any pure-CSS ::after bubble
-  // opening below the 30px icon row (live-proven: it renders but is invisible) — so the menu uses
-  // ONE shared body-mounted div#cc-tipfloat that header.js fills + positions (fixed, under the
-  // hovered icon, viewport-clamped). Delegated listeners on #menu survive every tile rebuild.
-  // Island chips (#cc-island, in the un-clipped #header) keep their pure-CSS bubbles.
+  // ── GLOBAL FLOATING hover bubble (user: "im Start-Tab passen viele Mouseover-Bubbles nicht …
+  // systemweit checken"). Pure-CSS ::after bubbles get CLIPPED by overflow ancestors (nav tiles,
+  // tables) and by the viewport edge — so ONE shared body-mounted div#cc-tipfloat serves EVERY
+  // [data-cc-tip]/[data-tip] anchor DOCUMENT-WIDE (island chips, docker lists, shares tables,
+  // the settings panel …) via delegation on document (survives any rebuild). Positioning: fixed,
+  // centred under the anchor, clamped into the viewport (8px margins, the arrow stays over the
+  // anchor), FLIPPED above the anchor when the bottom edge would clip it (cc-tip-above turns the
+  // arrow downward). Hidden on scroll + pointerdown. Master-theming gated (cc-popups-on mirrors it).
   var ccTipBound = false, ccTipCur = null;
   function ccTipEl() {
     var d = document.getElementById("cc-tipfloat");
@@ -469,48 +471,54 @@
   }
   function ccTipHide() { var d = document.getElementById("cc-tipfloat"); if (d) d.style.display = "none"; ccTipCur = null; }
   function ccTipShow(t) {
-    var tip = t.getAttribute("data-cc-tip"); if (!tip) return;
+    var tip = t.getAttribute("data-cc-tip") || t.getAttribute("data-tip"); if (!tip) return;
     var d = ccTipEl(), r = t.getBoundingClientRect();
     d.textContent = tip;
-    d.style.display = "block";                                     // show first — width only measures while visible
+    d.style.display = "block";                                     // show first — size only measures while visible
     var vw = document.documentElement.clientWidth || window.innerWidth;
-    var w = d.offsetWidth, cx = r.left + r.width / 2;
-    var x = Math.max(8 + w / 2, Math.min(vw - 8 - w / 2, cx));     // clamp INTO the viewport (the icon row ends at the right edge)
+    var vh = document.documentElement.clientHeight || window.innerHeight;
+    var w = d.offsetWidth, h = d.offsetHeight, cx = r.left + r.width / 2;
+    var x = Math.max(8 + w / 2, Math.min(vw - 8 - w / 2, cx));     // clamp INTO the viewport (tables/rows run to both edges)
     d.style.left = x + "px";                                       // left = bubble CENTRE (CSS translateX(-50%))
-    d.style.top = (r.bottom + 8) + "px";
-    d.style.setProperty("--cc-tip-ax", Math.max(10, Math.min(w - 10, cx - (x - w / 2))) + "px");   // arrow stays over the icon even when the bubble clamps
+    // vertical FLIP: a bubble that would clip at the bottom edge opens ABOVE the anchor instead
+    // (only when it actually fits up there); cc-tip-above points the arrow downward
+    var above = r.bottom + 8 + h > vh && r.top - 8 - h >= 0;
+    d.classList.toggle("cc-tip-above", above);
+    d.style.top = (above ? r.top - 8 - h : r.bottom + 8) + "px";
+    d.style.setProperty("--cc-tip-ax", Math.max(10, Math.min(w - 10, cx - (x - w / 2))) + "px");   // arrow stays over the anchor even when the bubble clamps
   }
   function ccWireTips() {
     try {
       if (ccTipBound) return;
-      var m = document.getElementById("menu"); if (!m) return;     // no menu here -> the next apply() retries
       ccTipBound = true;
       function over(e) {
-        if (!document.documentElement.classList.contains("cc-header-on")) return;
-        var t = e.target && e.target.closest ? e.target.closest("[data-cc-tip]") : null;
-        if (!t) return;
+        if (!document.documentElement.classList.contains("cc-popups-on")) return;   // master theming off -> fully native
+        var t = e.target && e.target.closest ? e.target.closest("[data-cc-tip], [data-tip]") : null;
+        if (!t || t === ccTipCur) return;                          // same anchor -> the bubble already stands
         ccTipCur = t; ccTipShow(t);
       }
       function out(e) {
         if (!ccTipCur) return;
         var to = e.relatedTarget;
-        if (to && ccTipCur.contains(to)) return;                   // moved within the same chip
+        if (to && ccTipCur.contains(to)) return;                   // moved within the same anchor
         ccTipHide();
       }
-      m.addEventListener("mouseover", over);
-      m.addEventListener("mouseout", out);
-      m.addEventListener("focusin", over);
-      m.addEventListener("focusout", out);
-      window.addEventListener("scroll", ccTipHide, true);          // any scroll de-anchors the fixed bubble -> hide (capture catches tile scrolls too)
+      document.addEventListener("mouseover", over);
+      document.addEventListener("mouseout", out);
+      document.addEventListener("focusin", over);
+      document.addEventListener("focusout", out);
+      document.addEventListener("pointerdown", ccTipHide, true);   // a press means action, not reading -> hide
+      window.addEventListener("scroll", ccTipHide, true);          // any scroll de-anchors the fixed bubble -> hide (capture catches inner-container scrolls too)
     } catch (e) {}
   }
-  // ── BELL + BURGER DOCK (user call: the two profile triggers join the MENU icon row, freeing the
-  // whole top strip for the island). div#UserProfile lives INSIDE the Connect component, so it is
-  // never MOVED in the DOM (law — auto-mount rebuilds would wipe it); it is PINNED with inline
-  // styles instead: position:fixed, right edge 8px LEFT of the first visible utility icon — the
-  // icons themselves never move, so the Plugins-button pin law (measures the icons' right edge)
-  // is untouched. Diff-written styles are attribute-only mutations, which the childList-only
-  // profile observer ignores -> no loop. Re-measured on apply()/scroll/resize/menu+profile passes.
+  // ── BELL + BURGER DOCK (user call: the two profile triggers join the MENU icon row at its FAR
+  // RIGHT END, freeing the whole top strip for the island). div#UserProfile lives INSIDE the
+  // Connect component, so it is never MOVED in the DOM (law — auto-mount rebuilds would wipe it);
+  // it is PINNED with inline styles instead: position:fixed, left = 8px RIGHT of the row's last
+  // visible item — the .nav-tile.right 84px padding-right (Header.css) reserves the room, and the
+  // Plugins-button pin (plugins.js) includes the docked pair in its right-edge measurement.
+  // Diff-written styles are attribute-only mutations, which the childList-only profile observer
+  // ignores -> no loop. Re-measured on apply()/scroll/resize/menu+profile passes.
   var ccDockProps = ["position", "left", "right", "top", "height", "z-index"];
   var ccDockRaf = 0;
   function ccDockPass() { ccDockRaf = 0; ccDockProfile(); }
@@ -518,18 +526,19 @@
     try {
       if (!document.documentElement.classList.contains("cc-header-on")) { ccUndockProfile(); return; }
       var up = document.getElementById("UserProfile"); if (!up) return;
-      var links = document.querySelectorAll("#menu .nav-item.util > a"), r = null, i, rr;
-      for (i = 0; i < links.length; i++) { rr = links[i].getBoundingClientRect(); if (rr.width > 0 && rr.height > 0) { r = rr; break; } }   // first VISIBLE icon = anchor
+      // anchor = the VISUALLY rightmost row participant (icons + usage meter): the merged drag
+      // zone lets DOM order differ from visual order, so take the max right edge, not the last node
+      var parts = document.querySelectorAll("#menu .nav-item.util > a, #menu .usage-bar"), r = null, i, rr;
+      for (i = 0; i < parts.length; i++) { rr = parts[i].getBoundingClientRect(); if (rr.width > 0 && rr.height > 0 && (!r || rr.right > r.right)) r = rr; }
       if (!r) return;                                              // no icon row (sidebar theme / bare pages) -> leave the native layout alone
       var menuEl = document.getElementById("menu");
       var mz = menuEl ? parseInt(getComputedStyle(menuEl).zIndex, 10) : NaN;
-      var vw = document.documentElement.clientWidth || window.innerWidth;
       function set(p, v) { if (up.style.getPropertyValue(p) !== v) up.style.setProperty(p, v, "important"); }   // "important" beats the Tailwind utilities; diff-write = zero mutations once settled
       set("position", "fixed");
-      set("left", "auto");
-      set("top", Math.round(r.top + (r.height - 26) / 2) + "px");  // centre the 26px chips on the icon line
-      set("right", Math.round(vw - r.left + 8) + "px");            // right edge 8px LEFT of the first icon
-      set("height", "26px");
+      set("right", "auto");
+      set("left", Math.round(r.right + 8) + "px");                 // pair opens 8px right of the last row item = the row's true tail
+      set("top", Math.round(r.top + (r.height - 30) / 2) + "px");  // centre the 30px boxes on the icon line
+      set("height", "30px");
       set("z-index", String(isFinite(mz) ? mz + 1 : 1000));        // above the sticky menu it overlaps
     } catch (e) {}
   }
@@ -564,6 +573,7 @@
       // island is on (its data source; the chip mirrors the text). Island off = native bar back.
       root.classList.toggle("cc-usage-isl", on && ccIslandOn());
       paintPopups(); watchPopups();
+      ccWireTips();     // document-wide floating-bubble delegation (bound once) — on EVERY page: docker/shares/settings anchors ride it even with the header area off
       // paintNav() with cc-header-on now removed => rb=false => it removeProperty's every
       // lingering rainbow inline colour, so a live theming-OFF (even with Rainbow on) fully
       // reverts the menu bar instead of leaving the coloured tabs behind.
@@ -599,8 +609,7 @@
       ccBrand();        // server-name brand, first child of the top strip (header+theming gated, NOT cc.island)
       watchIsland();    // live footer observer so nchan status/temp updates flow into the chips
       watchProfile();   // debounced profile observer so uptime/edition/name rebuilds flow into chips + brand
-      ccWireTips();     // delegated floating-bubble listeners on #menu (bound once; delegation survives tile rebuilds)
-      ccDockProfile();  // glue bell+burger into the menu icon row (re-measured every pass)
+      ccDockProfile();  // glue bell+burger onto the far right end of the menu icon row (re-measured every pass)
     } catch (e) {}
   }
   // gui_search() prepends #guiSearchBoxSpan at the FAR-LEFT of .nav-tile.right, focuses

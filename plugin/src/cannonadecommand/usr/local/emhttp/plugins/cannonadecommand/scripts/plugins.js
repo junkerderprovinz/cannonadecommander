@@ -76,6 +76,16 @@
         var mr2 = mi[m2].getBoundingClientRect().right;
         if (ref == null || mr2 > ref) ref = mr2;
       }
+      // the docked bell/burger (header.js ccDockProfile, header area on) extend the visual row
+      // ~84px past the last icon — include their rects so the button aligns with the TRUE row
+      // end. Guarded: only while docked (cc-header-on) and actually visible.
+      if (document.documentElement.classList.contains("cc-header-on")) {
+        var dk = document.querySelectorAll("#UserProfile > div:nth-child(2) > span");
+        for (var d2 = 0; d2 < dk.length; d2++) {
+          var dr2 = dk[d2].getBoundingClientRect();
+          if (dr2.width > 0 && dr2.height > 0 && (ref == null || dr2.right > ref)) ref = dr2.right;
+        }
+      }
       if (ref == null) { var tbl = document.querySelector("#plugin_table, table.cc-plug"); if (tbl) ref = tbl.getBoundingClientRect().right; }
       var pr = ref != null ? Math.max(0, Math.round(dr.right - ref)) : Math.round(parseFloat(getComputedStyle(db).paddingRight) || 16);
       if ((parseInt(host.style.right, 10) || -1) !== pr) host.style.setProperty("right", pr + "px", "important");

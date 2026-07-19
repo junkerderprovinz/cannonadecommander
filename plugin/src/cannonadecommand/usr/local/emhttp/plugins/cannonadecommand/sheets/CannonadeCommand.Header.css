@@ -102,50 +102,37 @@ html.cc-header-on #menu .nav-tile .nav-item.util img.system {
 }
 
 /* ═══ hover bubbles ═══
-   (a) #menu icons: the nav tiles carry overflow, which CLIPS any pure-CSS ::after bubble opening
-   below the 30px icon row (live-proven: it renders but is invisible) — the menu therefore uses
-   ONE shared FLOATING bubble div#cc-tipfloat, a BODY child header.js fills + positions (fixed,
-   centred under the hovered icon, viewport-clamped) via delegated listeners on #menu.
-   (b) island chips (#cc-island, in the un-clipped #header) keep the pure-CSS ::after bubble.
-   (c) tooltipster + jQuery-UI tooltips (Unraid's own systems) get the same frameless dark look.
+   ONE shared FLOATING bubble div#cc-tipfloat, a BODY child header.js fills + positions for
+   EVERY [data-cc-tip]/[data-tip] anchor DOCUMENT-WIDE (fixed, centred under the anchor,
+   viewport-clamped, FLIPPED above the anchor when the bottom edge would clip it) — pure-CSS
+   ::after bubbles get CLIPPED by overflow ancestors (nav tiles, tables) and by the viewport
+   edge (live-proven), so the island chips and every other area's anchors ride this engine now.
+   Scoped to cc-popups-on (= master theming, set on every page) — the engine's own JS gate.
+   tooltipster + jQuery-UI tooltips (Unraid's own systems) get the same frameless dark look.
    UNIFIED BUBBLE SPEC (identical across all CC sheets — keep in sync). */
-html.cc-header-on #cc-island [data-cc-tip] { position: relative; }
-html.cc-header-on #cc-island [data-cc-tip]:hover::after {
-  content: attr(data-cc-tip); position: absolute; left: 50%; top: calc(100% + 8px); transform: translateX(-50%);
-  z-index: 9999; width: max-content; max-width: 280px;
-  background: #393939; color: #f4f4f4; border: none; border-radius: min(var(--cc-b-radius, 8px), 10px);
-  padding: 9px 12px; font-size: 12.5px; font-weight: 400; line-height: 1.45;
-  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
-  text-transform: none; letter-spacing: normal; white-space: normal; text-align: left;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .55); pointer-events: none;
-}
-/* the arrow: a FILLED triangle (border-trick = fill, not a stroke) bridging chip and bubble */
-html.cc-header-on #cc-island [data-cc-tip]:hover::before {
-  content: ""; position: absolute; left: 50%; top: calc(100% + 2px); transform: translateX(-50%);
-  z-index: 9999; width: 0; height: 0;
-  border-style: solid; border-width: 0 6px 6px 6px;
-  border-color: transparent transparent #393939 transparent;
-  pointer-events: none;
-}
-/* the floating menu bubble — SAME spec. header.js sets display/left/top inline (left = icon
-   centre, the translateX centres the box, clamped into the viewport) */
-html.cc-header-on #cc-tipfloat {
+html.cc-popups-on #cc-tipfloat {
   position: fixed; display: none; transform: translateX(-50%);
   z-index: 9999; width: max-content; max-width: 280px;
   background: #393939; color: #f4f4f4; border: none; border-radius: min(var(--cc-b-radius, 8px), 10px);
   padding: 9px 12px; font-size: 12.5px; font-weight: 400; line-height: 1.45;
   font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
-  text-transform: none; letter-spacing: normal; white-space: normal; text-align: left;
+  text-transform: none; letter-spacing: normal; white-space: pre-line; text-align: left;
   box-shadow: 0 8px 24px rgba(0, 0, 0, .55); pointer-events: none;
 }
-/* its arrow rides --cc-tip-ax (set by header.js) so it stays over the icon even when the
+/* its arrow rides --cc-tip-ax (set by header.js) so it stays over the anchor even when the
    clamped bubble shifts off-centre at the viewport edge */
-html.cc-header-on #cc-tipfloat::before {
+html.cc-popups-on #cc-tipfloat::before {
   content: ""; position: absolute; left: var(--cc-tip-ax, 50%); top: -6px; transform: translateX(-50%);
   width: 0; height: 0;
   border-style: solid; border-width: 0 6px 6px 6px;
   border-color: transparent transparent #393939 transparent;
   pointer-events: none;
+}
+/* flipped ABOVE the anchor (header.js sets the class at the bottom edge): arrow points DOWN */
+html.cc-popups-on #cc-tipfloat.cc-tip-above::before {
+  top: auto; bottom: -6px;
+  border-width: 6px 6px 0 6px;
+  border-color: #393939 transparent transparent transparent;
 }
 html.cc-header-on .tooltipster-base .tooltipster-box,
 html.cc-header-on .ui-tooltip {
@@ -165,17 +152,15 @@ html.cc-header-on .tooltipster-base .tooltipster-arrow { display: none !importan
 html.cc-header-on #header { display: flex; align-items: center; }   /* flex row so margin-left:auto works + everything centres on ONE 91px line */
 html.cc-header-on #cc-island {
   display: inline-flex; align-items: center; gap: 8px; row-gap: 6px;
-  /* bell+burger left the strip (docked into the menu icon row by header.js) — the old 114px
-     reserve is obsolete: the chips run out to the right and WRAP onto right-aligned rows,
-     vertically centred in the 91px strip */
-  flex-wrap: wrap; justify-content: flex-end; max-width: 52vw;
+  /* bell+burger left the strip (docked into the menu icon row by header.js) — the chips stay a
+     COMPACT right cluster: 430px cap breaks them into up to ~3 right-aligned rows instead of
+     stretching to mid-page (user: too wide); align-self keeps the block vertically centred in
+     the 91px strip. Bubbles come from the global #cc-tipfloat engine (viewport-clamped), so no
+     per-chip ::after rules live here any more. */
+  flex-wrap: wrap; justify-content: flex-end; max-width: 430px;
   margin-left: auto; margin-right: 12px; align-self: center;
   order: 2;   /* right cluster: island first, version chip (order 3) after it */
 }
-/* island bubbles anchor RIGHT: the chips sit at the page edge — a centred 280px bubble
-   on the last chip would overflow the viewport */
-html.cc-header-on #cc-island [data-cc-tip]:hover::after,
-html.cc-header-on #cc-island [data-cc-tip]:focus::after { left: auto; right: 0; transform: none; }
 html.cc-header-on #cc-island .cc-isl-chip {
   display: inline-flex; align-items: center; white-space: nowrap;
   padding: 3px 11px;                             /* S tier: 11px text + 3px pads ≈ 21px chip */
@@ -217,10 +202,12 @@ html.cc-header-on #UserProfile > div:nth-child(2) > div:first-child { display: n
 /* the menu usage-bar hides while the island shows its fill-level chip (header.js gate class) */
 html.cc-header-on.cc-usage-isl #menu .usage-bar { display: none !important; }
 
-/* 2) #cc-brand (header.js, first child of #header): server name takes the wordmark's place */
+/* 2) #cc-brand (header.js, first child of #header): server name takes the wordmark's place,
+   its left edge flush with the first menu tab below (the measured shared alignment anchor) */
 html.cc-header-on #cc-brand {
   display: inline-flex; align-items: center; gap: 10px;
   font-size: 22px; font-weight: 600; color: #f4f4f4; letter-spacing: .3px;
+  margin-left: var(--cc-align-left, 15px);
   margin-right: 14px; order: 0;   /* leftmost on the #header flex row (island 2, version chip 3) */
 }
 /* the native version dropdown trigger stays FUNCTIONAL, dressed as an S-tier chip */
@@ -246,37 +233,40 @@ html.cc-header-on unraid-header-os-version span[id^="reka-menu-trigger"]:focus-v
 html.cc-header-on unraid-header-os-version { display: inline-flex; align-items: center; height: 100%; order: 3; margin-left: 8px; }
 html.cc-header-on unraid-header-os-version > div { margin: 0 !important; justify-content: center; height: 100%; }
 
-/* 3) bell + burger: div#UserProfile is DOCKED into the MENU icon row by header.js
-   ccDockProfile() (inline position:fixed + height:26px, measured against the first visible
-   utility icon — no DOM move, auto-mount-safe); after the hides its controls row keeps only
-   the two 26px trigger chips (the old height:100% strip-centring is obsolete) */
+/* 3) bell + burger: div#UserProfile is DOCKED at the FAR RIGHT END of the MENU icon row by
+   header.js ccDockProfile() (inline position:fixed, left = 8px right of the row's last visible
+   item — no DOM move, auto-mount-safe); the .nav-tile.right 84px padding-right (right-edge
+   section below) reserves the room. After the hides the controls row keeps only the two
+   trigger boxes. */
 html.cc-header-on #UserProfile > div:nth-child(2) { align-items: center; gap: 8px; }
-/* bell + burger dress as BADGES (user call): the same grey chip fill as the island chips,
-   badge-form radius, hover = brightness only (law) */
+/* bell + burger dress as UTILITY ICON BOXES (user call): the exact --cc-md-ibox square, grey
+   chip fill, capped radius (same shape family as the util icons), hover = brightness only (law) */
 html.cc-header-on #UserProfile > div:nth-child(2) > span {
   display: inline-flex; align-items: center; justify-content: center;
-  height: 26px; padding: 0 10px;
+  box-sizing: border-box; width: var(--cc-md-ibox, 30px); height: var(--cc-md-ibox, 30px); padding: 0;
   background: rgba(128, 128, 128, .18) !important;
-  border-radius: var(--cc-b-radius, 999px);
+  border-radius: min(var(--cc-b-radius, 8px), 8px);
   color: #cfcfcf; transition: color .12s, filter .12s;
 }
 html.cc-header-on #UserProfile > div:nth-child(2) > span:hover { color: #fff; filter: brightness(1.25); }
-html.cc-header-on #UserProfile > div:nth-child(2) > span svg { width: 18px !important; height: 18px !important; }
+/* glyphs at 16px — the 14px icon token +2px, these two glyphs read better a notch larger */
+html.cc-header-on #UserProfile > div:nth-child(2) > span svg { width: 16px !important; height: 16px !important; }
+/* the burger's SECOND svg is a dropdown chevron — visual noise inside a 30px box */
+html.cc-header-on #UserProfile > div:nth-child(2) > span[id^="reka-menu-trigger"] svg:nth-of-type(2) { display: none !important; }
 /* their Tailwind ring-offset classes may paint focus rings — kill on every focusable (law) */
 html.cc-header-on #UserProfile > div:nth-child(2) :is(span, button, a):focus,
 html.cc-header-on #UserProfile > div:nth-child(2) :is(span, button, a):focus-visible {
   outline: none !important; box-shadow: none !important;
 }
 
-/* ═══ right-edge alignment: line the right group up with the page content ═══
-   Unraid's page body (#displaybox) carries `padding: 1rem 1rem 4rem`, so the content's
-   right edge sits 16px (1rem) in from the viewport. The native right nav group
-   (.nav-tile.right, justify-content:flex-end) has NO right padding, so its last item
-   lands flush with the viewport and overshoots the body by ~13px. Match the body's 1rem
-   right padding and zero the trailing item's right margin so the rightmost icon (or the
-   usage meter, whichever is last) lines up exactly with the content below. Sidebar theme
-   is a vertical menu (and uses padding-left:8rem) — excluded, like the search rules. */
-html.cc-header-on:not(.Theme--sidebar) #menu .nav-tile.right { padding-right: 1rem !important; }
+/* ═══ right-edge room: the docked bell + burger extend the icon row ═══
+   The native right nav group (.nav-tile.right, justify-content:flex-end) would end flush
+   with the viewport — but header.js ccDockProfile() parks the two profile triggers 8px
+   RIGHT of the row's last item, so the tile reserves their footprint: 8px gap + 30px bell
+   + 8px gap + 30px burger + 8px edge margin = 84px. The trailing item's right margin is
+   zeroed so the measured row tail is the icon box itself. Sidebar theme is a vertical
+   menu (and uses padding-left:8rem) — excluded, like the search rules. */
+html.cc-header-on:not(.Theme--sidebar) #menu .nav-tile.right { padding-right: 84px !important; }
 html.cc-header-on:not(.Theme--sidebar) #menu .nav-tile.right > *:last-child { margin-right: 0 !important; }
 html.cc-header-on:not(.Theme--sidebar) #menu .nav-tile.right .nav-item.util:last-child > a { margin-right: 0 !important; }
 
@@ -326,8 +316,10 @@ html.cc-header-on #menu .usage-bar > span {
 }
 
 /* Badge-Form "circle" (v2.18.0): round the SQUARE utility icon boxes to full circles. Only square/
-   near-square objects get this — rectangular text pills stay capsules (--cc-b-radius 999px). */
+   near-square objects get this — rectangular text pills stay capsules (--cc-b-radius 999px).
+   The docked bell/burger are the same square box family, so they follow. */
 html.cc-shape-circle.cc-header-on #menu .nav-tile .nav-item.util > a { border-radius: 50% !important; }
+html.cc-shape-circle.cc-header-on #UserProfile > div:nth-child(2) > span { border-radius: 50%; }
 
 /* ═══ NATIVE POPUP WINDOWS -> CC look (v2.32.0, user: "alle Subfenster/Popupfenster in den CC
    Style — keine Rahmen, Linien, super clean, modern, minimalistisch"). Gated on html.cc-popups-on

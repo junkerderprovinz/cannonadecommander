@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.33.1">
+  <!ENTITY version   "2.33.2">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,20 @@
 </ICON>
 
 <CHANGES>
+### 2.33.2
+- #1 Unassigned Devices: Der Abstand zwischen dem UNASSIGNED-DEVICES-Kopf und dem ersten
+  Sub-Badge ist deutlich kleiner -- die GELEERTE native Titelleiste stand als totes Gerippe
+  (16px + Raender) dazwischen und ist jetzt ausgeblendet.
+- #2 Unassigned Devices: Die Sub-Badges sind jetzt reine TEXT-Badges -- die 16px-PNG-Icons
+  wurden vom Weiss-Filter zu formlosen Kloetzen und sind entfernt.
+- #3 Docker: Der Drittanbieter-Vermerk in der Versionsspalte ist jetzt ein BADGE im Stil des
+  Changelog-Chips darunter.
+- #4 Docker: Das Gruppen-Label (3rd Party) in der Autostart-Spalte ist ebenfalls ein Badge auf
+  EIGENER Zeile -- der Startplan-Chip der ersten Gruppenzeile sass dadurch bisher 75px weiter
+  rechts als alle anderen und fluchtet jetzt exakt.
+- #5 Docker: Der aktive Startplan-Chip verliert seinen Innen-Ring (Null-Rahmen-Gesetz -- der
+  Chip sagt bereits "aktiv").
+
 ### 2.33.1
 - #1 Popup-Fenster: Der Titel-Badge laeuft jetzt ueber die GANZE Breite mit ZENTRIERTEM Text,
   und die Buttons unten sind horizontal ZENTRIERT (vor dem Release live in der WebUI
@@ -1209,7 +1223,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>7e113fc1fd4aae2b25193818582db5c2c91a41981cdff3b2332ccd58dcabefa5</SHA256>
+  <SHA256>76c1f1608de164bd1e298bd352b49339981e06487d413124b909a189339272da</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

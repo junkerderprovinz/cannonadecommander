@@ -619,6 +619,15 @@ html.cc-shares-on.cc-on-main #displaybox .cc-ud-ctrls > * { display: inline-flex
 html.cc-shares-on.cc-on-main #displaybox .cc-ud-ctrls span.switch-button-label { display: none !important; }
 /* UD's loose native text buttons: hidden (shares.js/ccUdLoose marks them — our icons carry the function) */
 html.cc-shares-on.cc-on-main #displaybox .cc-ud-hidden { display: none !important; }
+/* v2.33.2 (user: "abstand zu gross"): the EMPTIED native UD title bar (ccUdCtrlsMove took its
+   children) still occupied 16px + 8/20px margins of dead space between the UNASSIGNED-DEVICES
+   head and the first sub-badge (60px gap, live-measured; 32px = house title rhythm without it).
+   Display-only hide: teardown re-homes the controls and drops the attribute, bar returns. */
+html.cc-shares-on.cc-on-main #displaybox div.title.ud[data-cc-ud-moved] { display: none !important; }
+/* v2.33.2 (user: "die icons auf den subbadges passen nicht"): the split badges carried UD's 16px
+   PNG icons, which the invert filter turns into shapeless white blobs (disk.png = a solid block)
+   — the sub-badges are TEXT-ONLY, like the pill precedent (Badge ohne Statuspunkt). */
+html.cc-shares-on.cc-on-main #displaybox .cc-b.cc-ud-h img.icon { display: none !important; }
 /* the UD section must never show a frame ("zeigt manchmal ein rahmen"), and its control cluster is
    flush-RIGHT — same right edge as the read/write toggle above (user). */
 html.cc-shares-on.cc-on-main #displaybox :is(.show-disks, .show-shares, .show-historical, div.title.ud, [id*="unassigned" i]) { border: none !important; box-shadow: none !important; outline: none !important; }

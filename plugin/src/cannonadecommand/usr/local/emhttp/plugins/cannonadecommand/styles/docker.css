@@ -244,7 +244,19 @@ table:not(.cc-enh) #docker_list tr.sortable td.advanced:has(> .cc-resgroup) span
 /* badges are <a>/<span> chips — never show Unraid's global a:hover underline (the Startplan
    chip must react like the "läuft" badge: colour only, no line). */
 .cc-b, .cc-b:hover, .cc-b:focus, .cc-plan, .cc-plan:hover, .cc-plan:focus { text-decoration: none !important; }
-.cc-plan-on { box-shadow: 0 0 0 2px rgba(255,255,255,.25) inset; }
+.cc-plan-on { box-shadow: none; } /* Null-Rahmen-Gesetz: no inset ring — the chip already says "aktiv" */
+
+/* third-party markers as badges (user): the version column's "Drittanbieter" span (paw icon +
+   text, stamped cc-3p) and the autostart cell's group label ("3rd Party", wrapped cc-grp) —
+   neutral grey, the Changelog-chip look. cc-grp is block-level on its OWN line so the plan
+   holder below aligns with every other row (it sat 75px right of them, live-measured). */
+.cc-enh #docker_list td.updatecolumn span.cc-3p,
+#docker_list span.cc-grp {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px;
+  border-radius: var(--cc-b-radius, 999px); background: rgba(128, 128, 128, .18);
+  color: #cfcfcf; font-weight: 600;
+}
+#docker_list span.cc-grp { display: flex; width: fit-content; margin: 0 0 5px 0; }
 
 /* state badges (semantic solid, start/stop switch) */
 .cc-badge-running    { background: #1f9d55; color: #fff; }

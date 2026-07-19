@@ -760,6 +760,10 @@
             ax.style.setProperty("align-items", "center", "important");
           });
           if (colOn("version") && tagTxt) vh.appendChild(badgeInfo("Tag", tagTxt, "version"));
+          // third-party version status ("Drittanbieter"): the CLASSLESS native span (paw icon +
+          // text) becomes a neutral badge matching the Changelog chip under it (user). Class
+          // stamp only — no DOM moves; clearRowBadges strips the classes again.
+          Array.prototype.slice.call(upCell.querySelectorAll("span > i.fa-docker")).forEach(function (fi) { fi.parentElement.classList.add("cc-b", "cc-3p"); });
         }
         var p = lastRunPill(name); if (p) vh.appendChild(p); // last plan-run outcome = orchestration status — always
         if (vh.children.length) upCell.appendChild(vh);
@@ -801,6 +805,22 @@
           ph.style.setProperty("margin", "5px 0 0 0", "important");
           Array.prototype.slice.call(c9.querySelectorAll("br")).forEach(function (b2) { b2.style.setProperty("display", "none", "important"); });
           c9.appendChild(ph);
+        }
+      }
+
+      // ── GROUP label (autostart cell of a group's FIRST row): "3rd Party" arrives as a BARE
+      // text node + fa-docker icon directly in the td, INLINE before the plan holder — which
+      // pushed that row's Startplan chip 75px right (user screenshot, live-measured 2002 vs
+      // 1938). Wrap icon+text into a block-level badge on its own line. The wrap span carries
+      // NO MARK (the [MARK] sweep would destroy the native nodes inside); clearRowBadges
+      // unwraps it explicitly. ──
+      if (themingOn()) {
+        var c9b = tr.querySelector(":scope > td:nth-child(10)");
+        if (c9b && !c9b.querySelector(":scope > span.cc-grp")) {
+          var gi = c9b.querySelector(":scope > i.fa");
+          var gt = null;
+          for (var gn = 0; gn < c9b.childNodes.length; gn++) { var nd0 = c9b.childNodes[gn]; if (nd0.nodeType === 3 && nd0.textContent.replace(/\s+/g, "")) { gt = nd0; break; } }
+          if (gi && gt) { var gb = el("span", "cc-b cc-grp"); c9b.insertBefore(gb, gi); gb.appendChild(gi); gb.appendChild(gt); }
         }
       }
     } catch (e) { /* one bad row must never break Unraid's page */ }
@@ -1060,6 +1080,9 @@
     Array.prototype.slice.call(root.querySelectorAll("[" + MARK + "]")).forEach(function (n) { n.remove(); });
     Array.prototype.slice.call(root.querySelectorAll("[" + ROWMARK + "]")).forEach(function (n) { n.removeAttribute(ROWMARK); });
     Array.prototype.slice.call(root.querySelectorAll(".cc-hidden")).forEach(function (n) { n.classList.remove("cc-hidden"); });
+    // third-party badges: strip the stamped classes, unwrap the group badge (native icon+text move back)
+    Array.prototype.slice.call(root.querySelectorAll(".cc-3p")).forEach(function (n) { n.classList.remove("cc-b", "cc-3p"); });
+    Array.prototype.slice.call(root.querySelectorAll("span.cc-grp")).forEach(function (n) { while (n.firstChild) n.parentNode.insertBefore(n.firstChild, n); n.remove(); });
   }
   // Revert the per-row COSMETIC inline styles injectRowBadges/centerNameCells wrote onto the
   // NATIVE cells (vertical-centring, the hidden native name-cell state text/spinner, the

@@ -10,7 +10,7 @@
  *   · td[desc] · td[a.vcpu-*] · td[mem] · td[disks] · td[span.vmgraphics=graphics] · td[ip] · td[autostart]
  */
 
-html.cc-vms-on { --cc-sm-fs: 11px; --cc-sm-pad: 3px 11px; --cc-md-fs: 13px; --cc-md-h: 30px; --cc-md-pad: 0 20px; --cc-lg-fs: 11px; --cc-lg-pad: 4px 14px; --cc-density: 9px; }
+html.cc-vms-on { --cc-sm-fs: 11px; --cc-sm-pad: 3px 11px; --cc-md-fs: 13px; --cc-md-h: 30px; --cc-md-pad: 0 20px; --cc-md-btnpad: 0 14px; --cc-head-fs: 15px; --cc-head-pad: 9px 18px; --cc-density: 9px; }
 
 /* ═══ align the VM content with the MAIN MENU BAR (self-measured --cc-align-left; header.js sets it) ═══ */
 html.cc-vms-on.cc-header-on { --cc-align-left: 15px; }
@@ -140,7 +140,7 @@ html.cc-vms-on #kvm_table thead tr .cc-act-th { font-size: 11px; width: 122px; }
 html.cc-vms-on #kvm_list td.cc-actcell { white-space: nowrap; vertical-align: middle; }
 html.cc-vms-on .cc-actbar { display: flex; flex-direction: column; gap: 4px; }
 html.cc-vms-on .cc-actrow { display: flex; gap: 4px; }
-html.cc-vms-on .cc-actbtn { width: 27px; height: 26px; border-radius: var(--cc-b-radius, 6px); background: #2e2e2e; color: #c9c9c9; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 13px; user-select: none; transition: background .12s, color .12s, box-shadow .12s; }
+html.cc-vms-on .cc-actbtn { width: 27px; height: 26px; border-radius: var(--cc-b-radius, 999px); background: #2e2e2e; color: #c9c9c9; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 13px; user-select: none; transition: background .12s, color .12s, box-shadow .12s; }
 html.cc-vms-on .cc-actbtn:hover { background: var(--cc-accent, #2f6feb); color: var(--cc-accent-text, #fff); }
 html.cc-vms-on .cc-actbtn i.fa { font-size: 13px; line-height: 1; color: inherit !important; }
 html.cc-vms-on .cc-actoff { opacity: .35; cursor: default; }
@@ -153,7 +153,7 @@ html.cc-vms-on .cc-act-flash .cc-actbtn { animation: cc-actflash .5s ease 3; }
 /* ═══ bottom action buttons (input[type=button]) -> CC accent pills ═══ */
 html.cc-vms-on #displaybox input[type="button"]:not(.autostart) {
   border: none !important; box-shadow: none !important;
-  height: var(--cc-md-h, 30px) !important; padding: 0 16px !important; min-width: 0 !important; box-sizing: border-box !important;
+  height: var(--cc-md-h, 30px) !important; padding: var(--cc-md-btnpad, 0 14px) !important; min-width: 0 !important; box-sizing: border-box !important;
   border-radius: var(--cc-b-radius, 999px) !important; cursor: pointer;
   font-size: var(--cc-md-fs, 13px) !important; font-weight: 600 !important; text-transform: uppercase !important; letter-spacing: .6px !important;
   background: var(--cc-accent, #2f6feb) !important; color: var(--cc-accent-text, #fff) !important; transition: filter .12s;
@@ -198,8 +198,8 @@ html.cc-vms-on #vmstats tbody td.advanced > span:first-child {
   background: var(--cc-accent, #2f6feb); color: var(--cc-accent-text, #fff);
 }
 /* live usage bar (native .usage-disk.mm) -> accent fill on a subtle rounded track */
-html.cc-vms-on #vmstats td.advanced .usage-disk.mm { background: rgba(128, 128, 128, .20) !important; border-radius: 999px; }
-html.cc-vms-on #vmstats td.advanced .usage-disk.mm > span:first-child { background: var(--cc-accent, #2f6feb) !important; border-radius: 999px; }
+html.cc-vms-on #vmstats td.advanced .usage-disk.mm { background: rgba(128, 128, 128, .20) !important; border-radius: var(--cc-b-radius, 999px); }
+html.cc-vms-on #vmstats td.advanced .usage-disk.mm > span:first-child { background: var(--cc-accent, #2f6feb) !important; border-radius: var(--cc-b-radius, 999px); }
 /* memory / disk IO / network IO cells (cols 4-6) -> monospace numerics */
 html.cc-vms-on #vmstats tbody tr > td:nth-child(n+4) { font-family: Consolas, "SFMono-Regular", monospace; font-size: var(--cc-md-fs, 13px); }
 
@@ -217,9 +217,9 @@ html.cc-vms-on.cc-sections-vms #displaybox nav.tabs button[role="tab"] { display
 html.cc-vms-on.cc-sections-vms #displaybox nav.tabs { border: none; min-height: 0; }
 html.cc-vms-on.cc-sections-vms #displaybox .cc-card-head {
   display: inline-flex; align-items: center; gap: 8px;
-  font-weight: 700; text-transform: uppercase; letter-spacing: .6px; font-size: 15px; line-height: 1;
+  font-weight: 700; text-transform: uppercase; letter-spacing: .6px; font-size: var(--cc-head-fs, 15px); line-height: 1;
   background: var(--cc-accent, #2f6feb) !important; color: var(--cc-accent-text, #fff) !important;
-  border: none; border-radius: var(--cc-b-radius, 999px); padding: 9px 18px; margin: 0 0 16px;
+  border: none; border-radius: var(--cc-b-radius, 999px); padding: var(--cc-head-pad, 9px 18px); margin: 0 0 16px;
 }
 html.cc-vms-on.cc-sections-vms #displaybox .cc-card-head i,
 html.cc-vms-on.cc-sections-vms #displaybox .cc-card-head i.title,
@@ -234,7 +234,7 @@ html.cc-vms-on .cc-seg { display: inline-flex; border: none; border-radius: 999p
 html.cc-vms-on .cc-seg-btn {
   background: #2a2a2a; color: #b5b5b5; border: none; border-radius: 999px;
   height: var(--cc-md-h, 30px); box-sizing: border-box; padding: 0 16px;
-  font-size: 12px; line-height: 1; cursor: pointer;
+  font-size: var(--cc-md-fs, 13px); line-height: 1; cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center;
 }
 html.cc-vms-on .cc-seg-btn:hover { color: #e6e6e6; }

@@ -9,14 +9,15 @@
 
 :root {
   --cc-accent: #2f6feb; --cc-density: 9px;
-  /* ── CC badge size system: three standard tiers, used everywhere for a
+  /* ── CC badge size system: two standard tiers, used everywhere for a
      consistent look. sm = data pills (Docker + Plugin rows) · md = tab badges
-     (menu bar, plugin-page tabs, CC-settings tabs, view toggles) · lg = primary
-     action buttons. The md tokens are mirrored in sheets/CannonadeCommand.Header.css
-     — keep the two copies in sync. */
+     (menu bar, plugin-page tabs, CC-settings tabs, view toggles). The md tokens
+     are mirrored in sheets/CannonadeCommand.Header.css — keep the two copies in
+     sync. --cc-md-btnpad = the 30px BUTTON pad (all md action pills);
+     --cc-head-fs/-pad = the .cc-card-head badge metrics. */
   --cc-sm-fs: 11px; --cc-sm-pad: 3px 11px;
-  --cc-md-fs: 13px; --cc-md-h: 30px; --cc-md-pad: 0 20px;
-  --cc-lg-fs: 11px; --cc-lg-pad: 4px 14px;
+  --cc-md-fs: 13px; --cc-md-h: 30px; --cc-md-pad: 0 20px; --cc-md-btnpad: 0 14px;
+  --cc-head-fs: 15px; --cc-head-pad: 9px 18px;
 }
 
 /* hide Unraid's native "Docker Containers" section-title bar (a div.title emitted by
@@ -166,7 +167,7 @@ a.sl-updall { display: none !important; }
 .cc-b-del {
   display: inline-flex !important; align-items: center; justify-content: center;
   background: #d9433f !important; color: #fff !important; border: none !important; box-shadow: none !important;
-  border-radius: var(--cc-b-radius, 999px) !important; padding: 4px 13px !important;
+  border-radius: var(--cc-b-radius, 999px) !important; padding: var(--cc-bmd-pad, 4px 12px) !important;
   font-size: var(--cc-md-fs, 13px) !important; font-weight: 600 !important; line-height: 1.5;
   text-transform: uppercase; letter-spacing: .6px; cursor: pointer; text-decoration: none;
   vertical-align: middle; transition: filter .12s;
@@ -252,7 +253,7 @@ table:not(.cc-enh) #docker_list tr.sortable td.advanced:has(> .cc-resgroup) span
    holder below aligns with every other row (it sat 75px right of them, live-measured). */
 .cc-enh #docker_list td.updatecolumn span.cc-3p,
 #docker_list span.cc-grp {
-  display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px;
+  display: inline-flex; align-items: center; gap: 6px; padding: var(--cc-sm-pad, 3px 11px);
   border-radius: var(--cc-b-radius, 999px); background: rgba(128, 128, 128, .18);
   color: #cfcfcf; font-weight: 600;
 }
@@ -349,7 +350,7 @@ table:not(.cc-enh) #docker_list tr.sortable td.advanced:has(> .cc-resgroup) span
 }
 .cc-pop input[type="checkbox"] {
   -webkit-appearance: auto; appearance: auto; accent-color: var(--cc-accent, #2f6feb);
-  width: 15px; height: 15px; flex: none; cursor: pointer; margin: 0;
+  width: 16px; height: 16px; flex: none; cursor: pointer; margin: 0;   /* 16px = the systemwide checkbox size (.cc-cb-del) */
 }
 .cc-pop-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: none; }   /* no separator line (user: keine Linien) */
 .cc-pop-ttl { display: inline-flex; align-items: center; gap: 8px; }   /* window title + its ONE info bubble (user: aller Infotext oben neben der Ueberschrift) */
@@ -394,15 +395,15 @@ table:not(.cc-enh) #docker_list tr.sortable td.advanced:has(> .cc-resgroup) span
 .cc-info:hover .cc-tip, .cc-info:focus .cc-tip { display: block; }
 /* apply-status dot behind a field (user): round green check / red cross, the detail text opens
    on hover exactly like the ⓘ bubbles. */
-.cc-stat { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 999px; flex: none; font-size: 10px; font-weight: 700; color: #fff; cursor: help; }
+.cc-statdot { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 999px; flex: none; font-size: 10px; font-weight: 700; color: #fff; cursor: help; }   /* NOT .cc-stat — that is the grid-card stat ROW above */
 .cc-stat-slot { visibility: hidden; }   /* pre-reserved slot: geometry constant, fields never shrink when the result lands */
 .cc-stat-ok { background: #1f9d55; }
 .cc-stat-bad { background: #d9433f; }
 /* the stat windows are sized so field + unit + dot fit WITHOUT squeezing (user) */
 .cc-pop.cc-pop-stat { width: 372px; }
 .cc-pop.cc-pop-wide.cc-pop-stat { width: 462px; }
-.cc-stat > .cc-tip { top: 23px; left: auto; right: 0; }
-.cc-stat:hover > .cc-tip { display: block; }
+.cc-statdot > .cc-tip { top: 23px; left: auto; right: 0; }
+.cc-statdot:hover > .cc-tip { display: block; }
 .cc-tip-row { display: block; margin: 3px 0; }
 .cc-tip-k { color: var(--cc-accent, #6ea0ff); font-weight: 600; margin-right: 6px; }
 /* every editor field the SAME clean box: NO border, just a lighter background */
@@ -410,7 +411,7 @@ table:not(.cc-enh) #docker_list tr.sortable td.advanced:has(> .cc-resgroup) span
 .cc-in:focus { background: #383838; outline: none !important; box-shadow: 0 0 0 1px var(--cc-accent, #2f6feb); }
 /* selects lost their native arrow to appearance:none — give them a caret back */
 select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repeat; background-position: right 8px center; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%238a8a8a' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E"); }
-.cc-port { flex: none; width: 70px; margin-left: 6px; }
+.cc-port { flex: none; width: 80px; margin-left: 6px; }   /* 80px = the inline popup enforcement in docker.js — keep agreeing */
 .cc-unit { flex: none; width: 68px; margin-left: 6px; }
 .cc-pop-act { gap: 8px; padding: 10px 14px 12px; border-top: none; }
 .cc-pop-act .cc-btn { flex: 1; text-align: center; font-size: 11.5px; padding: 7px 6px; white-space: normal; line-height: 1.2; }
@@ -556,7 +557,7 @@ select.cc-in { cursor: pointer; padding-right: 22px; background-repeat: no-repea
    pill (green in rainbow mode) with auto-contrast text, sitting left of the view toggle.
    Colours come from --cc-updall-bg/-text (set on :root by docker.js, so they reach this
    element outside our table). Only applies while CannonadeCommand is installed. */
-.sl-updall { align-items: center !important; line-height: 1.2 !important; padding-top: 4px !important; padding-bottom: 4px !important;
+.sl-updall { align-items: center !important; line-height: 1.2 !important;
   display: inline-flex; align-items: center; height: 24px; padding: 0 13px;
   border-radius: 999px !important; background: var(--cc-updall-bg, #2f6feb) !important;
   color: var(--cc-updall-text, #fff) !important; font-weight: 600; font-size: 12px;
@@ -672,10 +673,10 @@ html.cc-on-plugins.cc-sections-plugins #displaybox nav.tabs button[role="tab"] {
 html.cc-on-plugins.cc-sections-plugins #displaybox nav.tabs { border: none; min-height: 0; }
 html.cc-on-plugins.cc-sections-plugins #displaybox .cc-card-head {
   display: inline-flex; align-items: center; gap: 8px;
-  font-weight: 700; text-transform: uppercase; letter-spacing: .6px; font-size: 15px; line-height: 1;
+  font-weight: 700; text-transform: uppercase; letter-spacing: .6px; font-size: var(--cc-head-fs, 15px); line-height: 1;
   background: var(--cc-accent, #2f6feb) !important; color: var(--cc-accent-text, #fff) !important;
   border: none; border-radius: var(--cc-b-radius, 999px);
-  padding: 9px 18px; margin: 0 0 16px;
+  padding: var(--cc-head-pad, 9px 18px); margin: 0 0 16px;
 }
 html.cc-on-plugins.cc-sections-plugins #displaybox .cc-card-head i,
 html.cc-on-plugins.cc-sections-plugins #displaybox .cc-card-head img.icon { color: inherit; margin: 0; }
@@ -770,7 +771,7 @@ box-shadow: none !important;   /* KEINE Rahmen/Ringe — Nutzer-Gesetz, gilt auc
 .cc-set-spacer { flex: 1; }
 .cc-set-swatches { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin-bottom: 6px; }
 .cc-set-sw { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; flex: none; }
-.cc-set-sw-on { border-color: #fff; box-shadow: 0 0 0 2px rgba(255,255,255,.15); }
+.cc-set-sw-on { transform: scale(1.18); filter: brightness(1.15); }   /* ring-free on-state — KEINE Rahmen/Ringe (Nutzer-Gesetz) */
 /* colour picker: force it VISIBLE as a real swatch. Unraid's global input CSS
    (border:none; border-bottom; transparent bg) otherwise strips it to a thin line
    so the picker looks missing — appearance:none + swatch pseudo-elements fix it.
@@ -788,12 +789,12 @@ box-shadow: none !important;   /* KEINE Rahmen/Ringe — Nutzer-Gesetz, gilt auc
 #cc-settings .cc-set-hexin { flex: none; width: 104px; font-family: ui-monospace, "Cascadia Code", monospace; text-transform: uppercase; letter-spacing: .5px; background: #1e1e1e !important; color: var(--txt); border: 1px solid var(--line2) !important; border-radius: 6px !important; padding: 8px 10px !important; font-size: 13px; box-sizing: border-box; }
 #cc-settings .cc-set-hexin:focus { outline: none; border-color: var(--cc-accent, #2f6feb) !important; }
 .cc-set-prev { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; align-items: center; }
-.cc-set-prev .cc-b-lg { font-size: 14px; font-weight: 700; padding: 5px 15px; letter-spacing: .2px; } /* preview NAME headline badge (lg tier) — bigger than the sm value pill */
+.cc-set-prev .cc-b-lg { font-size: 15px; font-weight: 700; padding: 6px 16px; letter-spacing: .2px; } /* preview NAME headline badge — 15px / 6px 16px = the live Shares lg tier (Shares.css --cc-lg-*) */
 /* Hauptmenueleiste preview: mock of the top nav TABS (idle grey pill + one accent-filled
    active pill, mirroring CannonadeCommand.Header.css). The active tab's colour is set inline
    by settings.js paintPv(); idle tabs keep the grey pill below. */
 .cc-set-navprev { gap: 6px; align-items: center; }
-.cc-navtab { display: inline-flex; align-items: center; justify-content: center; height: 30px; padding: 0 16px; line-height: 1; border-radius: var(--cc-b-radius, 999px); background: rgba(128,128,128,.18); color: #cfcfcf; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; white-space: nowrap; }
+.cc-navtab { display: inline-flex; align-items: center; justify-content: center; height: var(--cc-md-h, 30px); padding: 0 16px; line-height: 1; border-radius: var(--cc-b-radius, 999px); background: rgba(128,128,128,.18); color: #cfcfcf; font-size: var(--cc-md-fs, 13px); font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; white-space: nowrap; }   /* pad stays 0 16px, NOT --cc-md-pad: the preview strip is narrow */
 /* ═══ systemwide INFO ICON ═══ a clean SVG "i" glyph + a hover/focus bubble; hides long explanations
    behind a small icon so the cards stay uncluttered. settings.js infoIcon(tip) emits
    <span class="cc-info" data-tip="…"><svg>…</svg></span>. Neutral colour (var(--dim)), never accent.
@@ -860,7 +861,7 @@ html.cc-shape-circle #cc-settings .cc-set-ibtn { border-radius: 50%; }
 #cc-settings .cc-set-save { margin-top: 12px; padding: 6px 16px; border-radius: 6px; }
 #cc-settings .cc-set-save[disabled] { opacity: .6; cursor: default; }
 /* checkboxes (column matrix, etc.) recolour to the chosen accent */
-#cc-settings input[type="checkbox"] { accent-color: var(--cc-accent, #2f6feb); width: 15px; height: 15px; cursor: pointer; }
+#cc-settings input[type="checkbox"] { accent-color: var(--cc-accent, #2f6feb); width: 16px; height: 16px; cursor: pointer; }   /* 16px = the systemwide checkbox size (.cc-cb-del) */
 /* the accent-colour picker: always-visible field on top, preset swatches below */
 .cc-set-lbl { font-size: 12.5px; color: var(--dim); margin: 2px 0 7px; }
 .cc-set-pickrow { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
@@ -889,7 +890,7 @@ div.js-actions > * { pointer-events: auto; }
   #displaybox { padding-bottom: calc(var(--cc-footer-h, 30px) + var(--cc-actbar-h, 40px) + 12px) !important; }
   #docker_list.js-fill-available-height { padding-bottom: var(--cc-actbar-h, 40px) !important; box-sizing: border-box; }
 }
-div.js-actions input[type=button] { flex: none !important; background: var(--cc-accent, #2f6feb) !important; color: var(--cc-accent-text, #fff) !important; border: none !important; box-shadow: none !important; padding: 0 12px !important; font-size: var(--cc-md-fs, 13px) !important; height: var(--cc-md-h, 30px) !important; box-sizing: border-box !important; font-weight: 600 !important; text-transform: uppercase !important; letter-spacing: 0.6px !important; font-family: inherit !important; cursor: pointer; transition: filter .12s; }
+div.js-actions input[type=button] { flex: none !important; background: var(--cc-accent, #2f6feb) !important; color: var(--cc-accent-text, #fff) !important; border: none !important; box-shadow: none !important; padding: var(--cc-md-btnpad, 0 14px) !important; font-size: var(--cc-md-fs, 13px) !important; height: var(--cc-md-h, 30px) !important; box-sizing: border-box !important; font-weight: 600 !important; text-transform: uppercase !important; letter-spacing: 0.6px !important; font-family: inherit !important; cursor: pointer; transition: filter .12s; }
 div.js-actions .cc-bar-adv { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; flex: none; }
 div.js-actions .cc-bar-adv-lbl { color: #cfcfcf; font-size: var(--cc-md-fs, 13px); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
 div.js-actions input[type=button]:hover { filter: brightness(1.14); }
@@ -942,7 +943,7 @@ html.cc-docker-on.cc-on-addct #canvas input[type="button"],
 html.cc-docker-on.cc-on-addct #canvas button:not([role="tab"]),
 html.cc-docker-on.cc-on-addct .ui-dialog .ui-dialog-buttonpane button {
   border: none !important; box-shadow: none !important;
-  padding: 0 14px !important; height: var(--cc-md-h, 30px) !important; box-sizing: border-box !important;
+  padding: var(--cc-md-btnpad, 0 14px) !important; height: var(--cc-md-h, 30px) !important; box-sizing: border-box !important;
   font-size: var(--cc-md-fs, 13px) !important; font-weight: 600 !important;
   text-transform: uppercase !important; letter-spacing: .6px !important; font-family: inherit !important;
   border-radius: var(--cc-b-radius, 999px) !important; cursor: pointer; transition: filter .12s, opacity .12s;

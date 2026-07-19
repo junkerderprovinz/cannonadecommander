@@ -28,7 +28,7 @@
    SAME size — while docker.css's own list keeps its sm tier. --cc-md-pad (0 20px) is the
    30px tab-pill metric, NOT for table pills. The lg tier is the share/disk-NAME headline
    badge (~15px, taller pill) above the uniform value pills. */
-:root { --cc-sm-fs: 11px; --cc-sm-pad: 3px 11px; --cc-md-fs: 13px; --cc-md-h: 30px; --cc-md-pad: 0 20px; --cc-bmd-pad: 4px 12px; --cc-lg-fs: 15px; --cc-lg-pad: 6px 16px; --cc-lgb-h: 36px; --cc-lgb-fs: 14px; --cc-lgb-minw: 170px; --cc-lgb-w: 200px; --cc-aop-c1: 380px; --cc-aop-c2: 560px; }
+:root { --cc-sm-fs: 11px; --cc-sm-pad: 3px 11px; --cc-md-fs: 13px; --cc-md-h: 30px; --cc-md-pad: 0 20px; --cc-md-btnpad: 0 14px; --cc-bmd-pad: 4px 12px; --cc-lg-fs: 15px; --cc-lg-pad: 6px 16px; --cc-lgb-h: 36px; --cc-lgb-fs: 14px; --cc-lgb-w: 200px; --cc-head-fs: 15px; --cc-head-pad: 9px 18px; --cc-aop-c1: 380px; --cc-aop-c2: 560px; }   /* --cc-md-btnpad = the 30px BUTTON pad (all md action pills); --cc-head-fs/-pad = the .cc-card-head badge metrics */
 
 /* ═══ sub-page tabs -> badges ═══ */
 html.cc-shares-on #displaybox nav.tabs .tabs-container { gap: 6px; }
@@ -446,7 +446,7 @@ html.cc-shares-on.cc-on-main #displaybox input[type="submit"],
 html.cc-shares-on.cc-on-main #displaybox input[type="button"],
 html.cc-shares-on.cc-on-main #displaybox a.button {
   border: none !important; box-shadow: none !important;
-  padding: 0 14px !important; height: var(--cc-md-h, 30px) !important; box-sizing: border-box !important;
+  padding: var(--cc-md-btnpad, 0 14px) !important; height: var(--cc-md-h, 30px) !important; box-sizing: border-box !important;
   min-width: 150px !important; font-size: var(--cc-md-fs, 13px) !important; font-weight: 600 !important;
   text-transform: uppercase !important; letter-spacing: .6px !important; font-family: inherit !important;
   border-radius: var(--cc-b-radius, 999px) !important; cursor: pointer; transition: filter .12s, opacity .12s;
@@ -505,7 +505,7 @@ html.cc-shares-on.cc-on-main #displaybox table.array_status button:disabled:hove
    UD also has small per-device buttons; the ADD labels are long enough to read as pills anyway. */
 html.cc-shares-on.cc-on-main #displaybox button:not([role="tab"]) {
   border: none !important; box-shadow: none !important;
-  padding: 0 16px !important; height: var(--cc-md-h, 30px) !important; box-sizing: border-box !important;
+  padding: var(--cc-md-btnpad, 0 14px) !important; height: var(--cc-md-h, 30px) !important; box-sizing: border-box !important;
   min-width: 0 !important; font-size: var(--cc-md-fs, 13px) !important; font-weight: 600 !important;
   text-transform: uppercase !important; letter-spacing: .6px !important; font-family: inherit !important;
   border-radius: var(--cc-b-radius, 999px) !important; cursor: pointer; transition: filter .12s, opacity .12s;
@@ -677,14 +677,14 @@ html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mount
 /* the per-device settings gear (a.info > i.fa-gears, JS-skipped from badging) -> small CC icon button */
 html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mounts, table.usb_absent) a.info i.fa-gears {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 26px; height: 26px; border-radius: var(--cc-b-radius, 999px);
+  width: 24px; height: 24px; border-radius: var(--cc-b-radius, 999px);   /* 24px = the /Main icon-tile law (same as a.cc-ud-icon) */
   background: var(--cc-shr-accent, #2f6feb); color: var(--cc-shr-accent-text, #fff); transition: filter .12s;
 }
 html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mounts, table.usb_absent) a.info:hover i.fa-gears { filter: brightness(1.14); }
 html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mounts, table.usb_absent) i.fa-gears[disabled],
 html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mounts, table.usb_absent) i.fa-gears.disabled {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 26px; height: 26px; border-radius: var(--cc-b-radius, 999px);
+  width: 24px; height: 24px; border-radius: var(--cc-b-radius, 999px);
   background: #3a3a3a; color: #8a8a8a; opacity: .55;
 }
 /* Schalter in CC: the UD HISTORICAL / FREIGABEN / DISKS toggles are native jQuery switchButtons
@@ -716,7 +716,7 @@ html.cc-shares-on.cc-on-main #displaybox input[type="checkbox"] { accent-color: 
    square, accent border, accent fill + white tick when checked. name/POST untouched. */
 html.cc-shares-on.cc-on-main #displaybox table.array_status input[type="checkbox"] {
   -webkit-appearance: none; appearance: none;
-  width: 18px; height: 18px; box-sizing: border-box; flex: 0 0 auto;
+  width: 16px; height: 16px; box-sizing: border-box; flex: 0 0 auto;   /* 16px = the unified CC checkbox size (same as .cc-cb-del) */
   border: 2px solid var(--cc-shr-accent, #2f6feb); border-radius: 4px;
   background-color: transparent; display: inline-block; vertical-align: middle;
   margin: 0 8px 0 0; cursor: pointer; transition: background-color .12s;
@@ -788,7 +788,7 @@ html.cc-shares-on.cc-on-main #displaybox .cc-aop-rows { display: flex; flex-dire
    exceed the real percentage (the fill width IS the progress); in rainbow mode a colour gradient
    additionally slides through the fill (movement + changing colours in one animation). */
 html.cc-shares-on.cc-on-main #displaybox .cc-aop-pbar {
-  position: relative; height: 22px; margin-top: 12px; overflow: hidden;
+  position: relative; height: 26px; margin-top: 12px; overflow: hidden;   /* 26px = the usage-bar tier — parity track matches the fill bars; fill+label pin top/bottom, so they track the height */
   background: rgba(128, 128, 128, .18); border-radius: var(--cc-b-radius, 999px);
 }
 @keyframes cc-pbar-stripes { from { background-position: 0 0; } to { background-position: 34px 0; } }
@@ -941,7 +941,7 @@ html.cc-shares-on #displaybox #cleanup-button,
 html.cc-shares-on #displaybox form[name="share_form"] input[type="submit"] {
   background: var(--cc-shr-accent, #2f6feb) !important; color: var(--cc-shr-accent-text, #fff) !important;
   border: none !important; box-shadow: none !important;
-  padding: 0 12px !important; font-size: var(--cc-md-fs, 13px) !important;
+  padding: var(--cc-md-btnpad, 0 14px) !important; font-size: var(--cc-md-fs, 13px) !important;
   height: var(--cc-md-h, 30px) !important; box-sizing: border-box !important;
   font-weight: 600 !important; text-transform: uppercase !important; letter-spacing: 0.6px !important;
   font-family: inherit !important; border-radius: var(--cc-b-radius, 999px) !important;
@@ -968,7 +968,7 @@ html.cc-shares-on #displaybox form[name="share_form"] input[type="submit"]:hover
 html.cc-shares-on.cc-on-share-detail #displaybox .menuNavButtonsTabbed a.button {
   background: var(--cc-shr-accent, #2f6feb) !important; color: var(--cc-shr-accent-text, #fff) !important;
   border: none !important; box-shadow: none !important; border-radius: var(--cc-b-radius, 999px) !important;
-  min-width: 0 !important; padding: 0 12px !important; height: var(--cc-md-h, 30px) !important;
+  min-width: 0 !important; padding: var(--cc-md-btnpad, 0 14px) !important; height: var(--cc-md-h, 30px) !important;
   display: inline-flex !important; align-items: center; justify-content: center;
   cursor: pointer; transition: filter .12s;
 }
@@ -984,7 +984,7 @@ html.cc-shares-on.cc-on-share-detail #displaybox .menuNavButtonsTabbed a.button 
 html.cc-shares-on.cc-on-share-detail #displaybox input[type="submit"],
 html.cc-shares-on.cc-on-share-detail #displaybox input[type="button"] {   /* EVERY detail-page button (incl. the NFS Apply/Done) gets the pill shape */
   border: none !important; box-shadow: none !important;
-  padding: 0 14px !important; height: var(--cc-md-h, 30px) !important; box-sizing: border-box !important;
+  padding: var(--cc-md-btnpad, 0 14px) !important; height: var(--cc-md-h, 30px) !important; box-sizing: border-box !important;
   font-size: var(--cc-md-fs, 13px) !important; font-weight: 600 !important;
   text-transform: uppercase !important; letter-spacing: 0.6px !important; font-family: inherit !important;
   border-radius: var(--cc-b-radius, 999px) !important; cursor: pointer; transition: filter .12s, opacity .12s;
@@ -1034,7 +1034,7 @@ html.cc-shares-on.cc-on-share-detail #displaybox div.title.nocontrol span.right 
 }
 html.cc-shares-on.cc-on-share-detail #displaybox div.title.nocontrol span.right i {
   font-style: normal; color: #9a9a9a; background: rgba(255, 255, 255, .06);
-  padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+  padding: 3px 10px; border-radius: var(--cc-b-radius, 999px); white-space: nowrap;   /* follows the global Badge-Form: square in ECKIG mode */
 }
 html.cc-shares-on.cc-on-share-detail #displaybox div.title.nocontrol span.right i strong,
 html.cc-shares-on.cc-on-share-detail #displaybox div.title.nocontrol span.right i b {
@@ -1066,7 +1066,7 @@ html.cc-shares-on.cc-on-share-detail #displaybox select:focus {
 html.cc-shares-on.cc-on-share-detail #displaybox .cc-b-del {
   display: inline-flex !important; align-items: center; justify-content: center;
   background: #d9433f !important; color: #fff !important; border: none !important; box-shadow: none !important;
-  border-radius: var(--cc-b-radius, 999px) !important; padding: 4px 13px !important;
+  border-radius: var(--cc-b-radius, 999px) !important; padding: var(--cc-bmd-pad, 4px 12px) !important;
   font-size: var(--cc-md-fs, 13px) !important; font-weight: 600 !important; line-height: 1.5;
   text-transform: uppercase; letter-spacing: .6px; cursor: pointer; text-decoration: none;
   vertical-align: middle; transition: filter .12s;
@@ -1197,10 +1197,10 @@ html.cc-shares-on.cc-on-share-detail #displaybox .menuNavButtonsTabbed { positio
    from the (now-hidden) tab button via shares.js/cardPanels. Area accent (rainbow-agnostic). */
 html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox .cc-card-head {
   display: inline-flex; align-items: center; gap: 8px;
-  font-weight: 700; text-transform: uppercase; letter-spacing: .6px; font-size: 15px; line-height: 1;
+  font-weight: 700; text-transform: uppercase; letter-spacing: .6px; font-size: var(--cc-head-fs, 15px); line-height: 1;
   background: var(--cc-shr-accent, #2f6feb) !important; color: var(--cc-shr-accent-text, #fff) !important;
   border: none; border-radius: var(--cc-b-radius, 999px);
-  padding: 9px 18px; margin: 0 0 16px;
+  padding: var(--cc-head-pad, 9px 18px); margin: 0 0 16px;
 }
 html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox .cc-card-head i.title,
 html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox .cc-card-head i,
@@ -1505,7 +1505,7 @@ html.cc-shares-on.cc-on-browse #displaybox .title input.dfm_filter {
    i.e. exactly the screenshot: Jobs + Rename greyed, the rest live. See rule 4 re: display. */
 html.cc-shares-on.cc-on-browse #displaybox #buttons input[type="button"] {
   border: none !important; box-shadow: none !important;
-  padding: 0 14px !important; height: var(--cc-md-h, 30px) !important; box-sizing: border-box !important;
+  padding: var(--cc-md-btnpad, 0 14px) !important; height: var(--cc-md-h, 30px) !important; box-sizing: border-box !important;
   min-width: 0 !important;   /* beats the native min-width:86px so the pill hugs its text */
   font-size: var(--cc-md-fs, 13px) !important; font-weight: 600 !important;
   text-transform: uppercase !important; letter-spacing: .6px !important; font-family: inherit !important;
@@ -1546,7 +1546,7 @@ html.cc-shares-on.cc-on-browse #displaybox #buttons input[type="button"]:disable
 html.cc-shares-on.cc-on-browse #displaybox table.indexer span.cc-fmb {
   display: inline-flex; align-items: center; border-radius: var(--cc-b-radius, 999px);
   background: rgba(128, 128, 128, .16); color: inherit;
-  padding: 2px 10px; font-size: var(--cc-sm-fs, 11px); font-weight: 600; line-height: 1.5; white-space: nowrap;
+  padding: var(--cc-sm-pad, 3px 11px); font-size: var(--cc-sm-fs, 11px); font-weight: 600; line-height: 1.5; white-space: nowrap;
 }
 html.cc-shares-on.cc-on-browse #displaybox table.indexer span.cc-fmb.cc-b-perm { font-family: ui-monospace, "Bitstream Vera Sans Mono", monospace; letter-spacing: .3px; }
 html.cc-shares-on.cc-on-browse #displaybox table.indexer span.cc-fmb.cc-b-owner { background: color-mix(in srgb, var(--cc-shr-accent, #2f6feb) 20%, transparent); }
@@ -1589,7 +1589,7 @@ html.cc-shares-on.cc-on-stats #displaybox > span.status select {
 /* the Reset button -> a neutral CC pill (it's an input[type=button]) */
 html.cc-shares-on.cc-on-stats #displaybox > span.status input[type="button"] {
   background: #4a4a4a !important; color: #f0f0f0 !important; border: none !important; box-shadow: none !important;
-  height: var(--cc-md-h, 30px) !important; padding: 0 16px !important; min-width: 0 !important; box-sizing: border-box !important;
+  height: var(--cc-md-h, 30px) !important; padding: var(--cc-md-btnpad, 0 14px) !important; min-width: 0 !important; box-sizing: border-box !important;
   border-radius: var(--cc-b-radius, 999px) !important; cursor: pointer;
   font-size: var(--cc-md-fs, 13px) !important; font-weight: 600 !important; text-transform: uppercase !important; letter-spacing: .6px !important;
   transition: filter .12s;

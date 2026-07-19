@@ -457,7 +457,10 @@
         var mhost8 = document.getElementById("cc-set-monosvg");
         if (!mhost8) { mhost8 = document.createElement("div"); mhost8.id = "cc-set-monosvg"; mhost8.style.cssText = "position:absolute;width:0;height:0;overflow:hidden"; document.body.appendChild(mhost8); }
         mhost8.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg"><filter id="cc-set-mono" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 ' + ir8 + ' 0 0 0 0 ' + ig8 + ' 0 0 0 0 ' + ib8 + ' 0 0 0 1 0" result="ink"/><feFlood flood-color="' + bg8 + '" result="bg"/><feComposite in="ink" in2="bg" operator="over"/></filter></svg>';
-        tprevImgs.forEach(function (im9) { im9.style.filter = "url(#cc-set-mono)"; im9.style.background = ""; im9.style.borderRadius = "8px"; im9.style.padding = "6px"; });
+        // same min-capped tile radius as the glyph preview (badgeshape family, CIRCLE bypasses the 16px cap)
+        var sh8 = get("cc.badgeshape", "pill");
+        var br8 = sh8 === "circle" ? "50%" : "min(" + ({ pill: "999px", rounded: "6px", square: "0px", circle: "999px" }[sh8] || "999px") + ", 16px)";
+        tprevImgs.forEach(function (im9) { im9.style.filter = "url(#cc-set-mono)"; im9.style.background = ""; im9.style.borderRadius = br8; im9.style.padding = "6px"; });
         return;
       }
       var hx9 = /^#?([0-9a-f]{6})$/i.exec(iconcolor || "");
@@ -709,7 +712,10 @@
           var mid8 = fid + "-mono", mhost8 = document.getElementById(mid8 + "-svg");
           if (!mhost8) { mhost8 = document.createElement("div"); mhost8.id = mid8 + "-svg"; mhost8.style.cssText = "position:absolute;width:0;height:0;overflow:hidden"; document.body.appendChild(mhost8); }
           mhost8.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg"><filter id="' + mid8 + '" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 ' + ir8 + ' 0 0 0 0 ' + ig8 + ' 0 0 0 0 ' + ib8 + ' 0 0 0 1 0" result="ink"/><feFlood flood-color="' + bg8 + '" result="bg"/><feComposite in="ink" in2="bg" operator="over"/></filter></svg>';
-          tpImgs.forEach(function (im9) { im9.style.filter = "url(#" + mid8 + ")"; im9.style.background = ""; im9.style.borderRadius = "8px"; im9.style.padding = "6px"; });
+          // same min-capped tile radius as the glyph branch above (badgeshape family, CIRCLE bypasses the 16px cap)
+          var sh8 = get("cc.badgeshape", "pill");
+          var br8 = sh8 === "circle" ? "50%" : "min(" + ({ pill: "999px", rounded: "6px", square: "0px", circle: "999px" }[sh8] || "999px") + ", 16px)";
+          tpImgs.forEach(function (im9) { im9.style.filter = "url(#" + mid8 + ")"; im9.style.background = ""; im9.style.borderRadius = br8; im9.style.padding = "6px"; });
           return;
         }
         var hx9 = /^#?([0-9a-f]{6})$/i.exec(icol || "");

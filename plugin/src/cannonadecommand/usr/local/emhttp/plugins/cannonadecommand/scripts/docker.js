@@ -968,15 +968,6 @@
       var bar = document.querySelector("div.js-actions");
       if (bar) { var bh = Math.round(bar.getBoundingClientRect().height); if (bh > 0 && bh < 200) document.documentElement.style.setProperty("--cc-actbar-h", bh + "px"); }
       colorBarButtons(); // rainbow-tint the native bar buttons (accent handled by CSS)
-      // make the bar start AND end flush with the column-header row ("in einer Flucht")
-      var hr0 = headerRow();
-      if (hr0) {
-        var r0 = hr0.getBoundingClientRect();
-        // right edge: never cover Unraid's fixed red scroll arrows (.back_to_top /
-        // .move_to_end at right:12-40px, ~40px glyphs) -> keep at least 88px clear
-        var bl = Math.max(0, Math.round(r0.left)), br = Math.max(0, Math.round(window.innerWidth - r0.right));
-        if (bl < 800 && br < 1200) { document.documentElement.style.setProperty("--cc-bar-left", bl + "px"); document.documentElement.style.setProperty("--cc-bar-right", br + "px"); }
-      }
     } catch (e) {}
     if (!window.__ccDockResize) {
       window.__ccDockResize = true;
@@ -1753,17 +1744,17 @@
   // replaced in place on every re-check.
   function statDot(row, ok, text) {
     if (!row) return;
-    var d = row.querySelector(":scope > .cc-stat");
-    if (!d) { d = el("span", "cc-stat"); row.appendChild(d); }
-    d.className = "cc-stat " + (ok ? "cc-stat-ok" : "cc-stat-bad");
+    var d = row.querySelector(":scope > .cc-statdot");
+    if (!d) { d = el("span", "cc-statdot"); row.appendChild(d); }
+    d.className = "cc-statdot " + (ok ? "cc-stat-ok" : "cc-stat-bad");
     d.textContent = ok ? "✓" : "✕";
     d.appendChild(el("span", "cc-tip", text || ""));
     return d;
   }
   // reserve the dot's slot from the start (user: "das feld schrumpft wenn er erscheint") — an
   // invisible placeholder keeps the row geometry constant; statDot just makes it visible.
-  function statSlot(row) { if (row && !row.querySelector(":scope > .cc-stat")) row.appendChild(el("span", "cc-stat cc-stat-slot")); }
-  function statClear(row) { var d = row && row.querySelector(":scope > .cc-stat"); if (d) { d.className = "cc-stat cc-stat-slot"; d.textContent = ""; } }
+  function statSlot(row) { if (row && !row.querySelector(":scope > .cc-statdot")) row.appendChild(el("span", "cc-statdot cc-stat-slot")); }
+  function statClear(row) { var d = row && row.querySelector(":scope > .cc-statdot"); if (d) { d.className = "cc-statdot cc-stat-slot"; d.textContent = ""; } }
   // Show the EXACT backend/Docker rejection INSIDE the open popup and keep it there (a
   // 2.6s toast is unreadable) so the user can read back why `docker update` refused — the
   // only way to diagnose a set/remove failure once a stale install is ruled out. Also logs it.

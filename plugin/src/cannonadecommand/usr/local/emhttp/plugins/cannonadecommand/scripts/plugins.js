@@ -151,12 +151,12 @@
   }
   function shapeRadius() { return ({ pill: "999px", rounded: "6px", square: "0px", circle: "999px" })[ls("cc.badgeshape") || "pill"] || "999px"; }
   function pill(node, bg, tx) {
-    node.style.setProperty("font-size", "12px", "important"); // same height as the badges
+    node.style.setProperty("font-size", "11px", "important"); // same metrics as Docker row pills
     node.style.setProperty("vertical-align", "middle", "important");
     node.style.setProperty("background", bg, "important");
     node.style.setProperty("color", tx || idealText(bg), "important");
-    node.style.setProperty("border-radius", shapeRadius(), "important");
-    node.style.setProperty("padding", "3px 12px", "important");
+    node.style.setProperty("border-radius", "var(--cc-b-radius, 999px)", "important"); // shape follows the badge var
+    node.style.setProperty("padding", "3px 11px", "important");
     node.style.setProperty("border", "none", "important");
     node.style.setProperty("box-shadow", "none", "important");
     node.style.setProperty("display", "inline-block", "important");

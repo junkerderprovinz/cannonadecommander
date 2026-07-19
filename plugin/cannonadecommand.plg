@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.33.2">
+  <!ENTITY version   "2.34.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,21 @@
 </ICON>
 
 <CHANGES>
+### 2.34.0
+- #1 Groessen-System konsolidiert: VIER Stufen (S ~21px Zeilen-Chips, M ~26px Wert-Badges,
+  L 30px Bedienelemente, XL 36px Hauptseite/Popups) plus Festwerte (Schalter 44x24,
+  Icon-Kacheln 24, Info-Punkt 15) -- alles per Token verdrahtet, EIN Button-Polster statt
+  drei verschiedener, Popup-Groessen nicht mehr hart codiert.
+- #2 Fehlerbehebung: Eine doppelt vergebene CSS-Klasse quetschte die Statistik-Zeilen der
+  Karten-Ansicht zu 17px-Punkten zusammen.
+- #3 Regel-Treue: Der aktive Farb-Swatch in den Einstellungen verliert seinen weissen Ring
+  (Null-Rahmen-Gesetz), die Zahnrad-Kachel auf der Hauptseite haelt die 24px-Icon-Norm,
+  Form-Ausreisser folgen wieder der gewaehlten Badge-Form.
+- #4 Vereinheitlicht: Paritaets-Fortschrittsbalken auf 26px (wie die Fuellbalken), alle
+  Checkboxen auf 16px, die Pillen der Plugin-Seite exakt wie die Docker-Zeilen-Pillen.
+- #5 Aufgeraeumt: tote Groessen-Token entfernt, doppelte Deklarationen bereinigt, die
+  Einstellungs-Vorschau zeigt jetzt die echten Live-Masse.
+
 ### 2.33.2
 - #1 Unassigned Devices: Der Abstand zwischen dem UNASSIGNED-DEVICES-Kopf und dem ersten
   Sub-Badge ist deutlich kleiner -- die GELEERTE native Titelleiste stand als totes Gerippe
@@ -1223,7 +1238,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>76c1f1608de164bd1e298bd352b49339981e06487d413124b909a189339272da</SHA256>
+  <SHA256>9f3135933617e5ad8fa3ae04269e3876a541565ca1de21e2dafb174a17ca1a12</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

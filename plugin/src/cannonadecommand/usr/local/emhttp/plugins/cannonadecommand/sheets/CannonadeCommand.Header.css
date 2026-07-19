@@ -24,6 +24,9 @@
      height across the whole bar (user: "die drei Gruppen auf dieselbe Höhe bringen"). The icon
      boxes were 26px (deliberately smaller); they are now --cc-md-h too, i.e. square 30×30. */
   --cc-md-fs: 13px; --cc-md-h: 30px; --cc-md-pad: 0 20px; --cc-md-icon: 14px; --cc-md-ibox: var(--cc-md-h, 30px);
+  /* lg tier for popup chrome (title badges + dialog buttons). header.js ccPopIframes()
+     duplicates these as literals (iframes can't read parent vars) — keep in sync. */
+  --cc-lgb-h: 36px; --cc-lgb-fs: 14px;
 }
 
 /* ═══ page tabs -> badges. Selectors are TILE-AGNOSTIC (v2.30.0 merged drag zone: any item may
@@ -75,7 +78,7 @@ html.cc-header-on #menu .nav-item:after, html.cc-header-on #menu .nav-user.show:
 html.cc-header-on #menu .nav-tile .nav-item.util > a {
   display: inline-flex !important; align-items: center; justify-content: center;
   box-sizing: border-box !important; flex: 0 0 auto;
-  width: var(--cc-md-ibox, 26px) !important; height: var(--cc-md-ibox, 26px) !important; padding: 0 !important; margin: 0 3px;
+  width: var(--cc-md-ibox, var(--cc-md-h, 30px)) !important; height: var(--cc-md-ibox, var(--cc-md-h, 30px)) !important; padding: 0 !important; margin: 0 3px;
   /* cap the radius so pill-mode gives a rounded SQUARE (like the mockup), not a full
      circle; rounded(6px)/square(0) stay untouched -> one shape family across modes */
   border-radius: min(var(--cc-b-radius, 8px), 8px) !important;
@@ -86,13 +89,13 @@ html.cc-header-on #menu .nav-tile .nav-item.util > a:hover { filter: brightness(
 html.cc-header-on #menu .nav-tile .nav-item.util > a span { display: none !important; }
 html.cc-header-on #menu .nav-tile .nav-item.util b.system,
 html.cc-header-on #menu .nav-tile .nav-item.util img.system {
-  font-size: var(--cc-md-icon, 15px) !important; line-height: 1 !important;
+  font-size: var(--cc-md-icon, 14px) !important; line-height: 1 !important;
   padding: 0 !important; margin: 0 !important; color: var(--cc-hdr-accent-text, #fff) !important;
 }
 /* raster glyphs (img.system) ignore font-size — pin them to the icon token so they
    scale to the box exactly like the icon-font glyphs, instead of rendering natural size */
 html.cc-header-on #menu .nav-tile .nav-item.util img.system {
-  width: var(--cc-md-icon, 15px) !important; height: var(--cc-md-icon, 15px) !important;
+  width: var(--cc-md-icon, 14px) !important; height: var(--cc-md-icon, 14px) !important;
   object-fit: contain !important;
 }
 
@@ -138,7 +141,7 @@ html.cc-header-on #menu .usage-bar > span {
     width: 22rem !important; max-width: 40vw !important;
     height: var(--cc-md-h, 30px) !important; padding: 0 14px !important;
     border: 1px solid var(--cc-hdr-accent, #2f6feb) !important; border-radius: var(--cc-b-radius, 999px) !important;
-    background: rgba(18, 18, 18, .94) !important; color: #eaeaea !important; font-size: 13px !important;
+    background: rgba(18, 18, 18, .94) !important; color: #eaeaea !important; font-size: var(--cc-md-fs, 13px) !important;
     box-shadow: none !important; outline: none !important;
   }
   /* neutralise the .Theme--black/.Theme--white rule that stretches the span to width:100% */
@@ -180,18 +183,18 @@ html.cc-popups-on .ui-dialog .ui-dialog-titlebar {
 html.cc-popups-on .ui-dialog .ui-dialog-title {
   display: flex !important; align-items: center; justify-content: center !important;
   flex: 1 1 auto; float: none !important; margin: 0 !important; box-sizing: border-box !important;
-  height: 36px; padding: 0 20px; border-radius: var(--cc-b-radius, 999px);   /* lg tier (user: "zu klein") */
+  height: var(--cc-lgb-h, 36px); padding: 0 20px; border-radius: var(--cc-b-radius, 999px);   /* lg tier (user: "zu klein") */
   background: var(--cc-hdr-accent, #2f6feb); color: var(--cc-hdr-accent-text, #fff) !important;
-  font-size: 14px !important; font-weight: 600 !important;
+  font-size: var(--cc-lgb-fs, 14px) !important; font-weight: 600 !important;
   text-transform: uppercase !important; letter-spacing: .8px !important;
 }
 html.cc-popups-on .sweet-alert { text-align: left !important; }
 html.cc-popups-on .sweet-alert h2 {
   display: flex !important; align-items: center; justify-content: center !important; float: none !important;
   width: 100% !important; box-sizing: border-box !important;   /* v2.33.1 (user): full-width badge, centred text */
-  height: 36px; padding: 0 20px !important; border-radius: var(--cc-b-radius, 999px);
+  height: var(--cc-lgb-h, 36px); padding: 0 20px !important; border-radius: var(--cc-b-radius, 999px);
   background: var(--cc-hdr-accent, #2f6feb); color: var(--cc-hdr-accent-text, #fff) !important;
-  font-size: 14px !important; font-weight: 600 !important;
+  font-size: var(--cc-lgb-fs, 14px) !important; font-weight: 600 !important;
   text-transform: uppercase !important; letter-spacing: .8px !important; margin: 0 0 12px 0 !important;
 }
 html.cc-popups-on .ui-dialog .ui-dialog-titlebar-close {
@@ -212,7 +215,7 @@ html.cc-popups-on .ui-dialog .ui-dialog-buttonpane button,
 html.cc-popups-on .ui-dialog .ui-dialog-content button:not([class*="switch"]) {
   border: none !important; border-radius: 6px !important; box-shadow: none !important;
   background: var(--cc-hdr-accent, #2f6feb) !important; color: var(--cc-hdr-accent-text, #fff) !important;
-  height: 36px !important; padding: 0 24px !important; font-size: 14px !important;
+  height: var(--cc-lgb-h, 36px) !important; padding: 0 24px !important; font-size: var(--cc-lgb-fs, 14px) !important;
   font-weight: 600 !important; text-transform: uppercase !important;
   letter-spacing: .6px !important; cursor: pointer; transition: filter .12s;
 }
@@ -241,7 +244,7 @@ html.cc-popups-on .sweet-alert button.cancel,
 html.cc-popups-on .sweet-alert .sa-button-container button {
   border: none !important; border-radius: 6px !important; box-shadow: none !important;
   display: inline-flex !important; align-items: center; float: none !important;
-  height: 36px !important; padding: 0 24px !important; font-size: 14px !important;
+  height: var(--cc-lgb-h, 36px) !important; padding: 0 24px !important; font-size: var(--cc-lgb-fs, 14px) !important;
   font-weight: 600 !important; text-transform: uppercase !important;
   letter-spacing: .6px !important; transition: filter .12s; margin: 0 !important;   /* the flex gap spaces them — a one-sided margin would skew the centring */
 }

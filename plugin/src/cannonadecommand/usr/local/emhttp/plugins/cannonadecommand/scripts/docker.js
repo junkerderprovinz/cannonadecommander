@@ -1072,6 +1072,14 @@
     if (themingOn()) { // centring is cosmetic — native rows keep native alignment when theming off
       requestAnimationFrame(centerNameCells);
       setTimeout(centerNameCells, 800); // late-loading icon images change the row height
+      // TIPIFY: whatever still carries a native title in the list (ShipLog's .sl-chip,
+      // Unraid's wait-seconds inputs, future strays) becomes a CC bubble — the native
+      // balloon look is outlawed. nchan rebuilds rows with the title back, so this runs
+      // per pass; teardown is free (native rows return on their own).
+      try {
+        var tl = document.querySelectorAll("#docker_list [title]");
+        for (var ti = 0; ti < tl.length; ti++) { var tt = tl[ti].getAttribute("title"); if (tt) { tl[ti].removeAttribute("title"); tl[ti].setAttribute("data-tip", tt); } }
+      } catch (e9) {}
     }
   }
   // EVIDENCE-BASED centring: measure where .outer actually sits inside td.ct-name and

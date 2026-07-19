@@ -387,12 +387,14 @@ table:not(.cc-enh) #docker_list tr.sortable td.advanced:has(> .cc-resgroup) span
 .cc-drop-on { color: var(--cc-accent, #6ea0ff); font-weight: 600; }
 .cc-drop-on::after { content: " ✓"; }
 /* ⓘ info bubble beside a dropdown label — hover/focus reveals a small explainer card that
-   lists what each option (health/running/… · abort/continue/degrade) actually does. */
+   lists what each option (health/running/… · abort/continue/degrade) actually does.
+   .cc-info-pop = the POPOVER circle variant (docker.js infoBubble), renamed from .cc-info:
+   the settings SVG variant below owns .cc-info — the two designs collided in this file. */
 .cc-lbl-info { display: inline-flex; align-items: center; gap: 6px; }
-.cc-info { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 999px; background: rgba(255,255,255,.14); color: #cfcfcf; font-size: 10px; font-style: normal; cursor: help; flex: none; }
-.cc-info:hover, .cc-info:focus { background: var(--cc-accent, #2f6feb); color: #fff; outline: none; }
+.cc-info-pop { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 999px; background: rgba(255,255,255,.14); color: #cfcfcf; font-size: 10px; font-style: normal; cursor: help; flex: none; }
+.cc-info-pop:hover, .cc-info-pop:focus { background: var(--cc-accent, #2f6feb); color: #fff; outline: none; }
 .cc-tip { display: none; position: absolute; top: 21px; left: 0; z-index: 100000; width: 235px; max-width: 78vw; background: #0f0f0f; border: none; border-radius: 8px; padding: 8px 10px; box-shadow: 0 12px 30px rgba(0,0,0,.55); color: #d6d6d6; font-size: 11.5px; font-weight: 400; line-height: 1.5; white-space: normal; text-align: left; cursor: default; }
-.cc-info:hover .cc-tip, .cc-info:focus .cc-tip { display: block; }
+.cc-info-pop:hover .cc-tip, .cc-info-pop:focus .cc-tip { display: block; }
 /* apply-status dot behind a field (user): round green check / red cross, the detail text opens
    on hover exactly like the ⓘ bubbles. */
 .cc-statdot { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 999px; flex: none; font-size: 10px; font-weight: 700; color: #fff; cursor: help; }   /* NOT .cc-stat — that is the grid-card stat ROW above */
@@ -929,12 +931,14 @@ html.cc-docker-on.cc-on-addct .ui-dialog select {
   background: rgba(255, 255, 255, .07) !important; border: none !important; box-shadow: none !important;
   border-radius: 6px !important; padding: 6px 10px !important; color: #eaeaea !important;
 }
+/* FOCUS = fill feedback ONLY — an outline is a ring (law); the old accent outline is gone.
+   The dialog-scoped block further down re-targets its fields to the darker #2e2e2e feedback. */
 html.cc-docker-on.cc-on-addct #canvas input:focus,
 html.cc-docker-on.cc-on-addct #canvas textarea:focus,
 html.cc-docker-on.cc-on-addct #canvas select:focus,
 html.cc-docker-on.cc-on-addct .ui-dialog input:focus,
 html.cc-docker-on.cc-on-addct .ui-dialog textarea:focus,
-html.cc-docker-on.cc-on-addct .ui-dialog select:focus { outline: 1px solid var(--cc-accent, #2f6feb) !important; }
+html.cc-docker-on.cc-on-addct .ui-dialog select:focus { outline: none !important; box-shadow: none !important; background: rgba(255, 255, 255, .11) !important; }
 /* buttons: pill shape for all; ANWENDEN (submit) + config-row/dialog buttons = accent; FERTIG
    (input[type=button], onclick=done()) = neutral secondary — the share-detail submit/non-clone
    split, verbatim. */
@@ -955,19 +959,48 @@ html.cc-docker-on.cc-on-addct #canvas input[type="submit"]:hover:not(:disabled),
 html.cc-docker-on.cc-on-addct #canvas input[type="button"]:hover:not(:disabled),
 html.cc-docker-on.cc-on-addct #canvas button:hover:not(:disabled),
 html.cc-docker-on.cc-on-addct .ui-dialog .ui-dialog-buttonpane button:hover { filter: brightness(1.14); }
-/* accent links: "Mehr Einstellungen zeigen", "Docker-Zuweisungen", "+ Weiteren Pfad, Port, ..." */
+/* collapsible-row actions ("Mehr Einstellungen zeigen", "Docker-Zuweisungen", "+ Weiteren Pfad,
+   Port, ..."): muted action pills — accent fill on hover, NO underline, NO rings (feedback =
+   fill only, law). The fa chevron/plus glyphs inherit the pill colour. */
 html.cc-docker-on.cc-on-addct #canvas #readmore_toggle a,
 html.cc-docker-on.cc-on-addct #canvas #allocations_toggle a,
-html.cc-docker-on.cc-on-addct #canvas a[href="javascript:addConfigPopup()"] { color: var(--cc-accent, #2f6feb) !important; font-weight: 600; text-decoration: none; }
-/* switchButtons (Use Tailscale / Privilegierte Rechte / TSadvanced / Advanced-View) — the proven
-   recolour-only pattern from the container-list rules above: track + knob + accent-on. */
+html.cc-docker-on.cc-on-addct #canvas dl > dd > a:has(> i.fa-plus),
+html.cc-docker-on.cc-on-addct #canvas a[href="javascript:addConfigPopup()"] {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: var(--cc-bmd-pad, 4px 12px); border-radius: var(--cc-b-radius, 999px);
+  background: rgba(128, 128, 128, .18); color: #cfcfcf !important;
+  font-size: 13px; font-weight: 600; text-decoration: none !important;
+  transition: background .12s, color .12s;
+}
+html.cc-docker-on.cc-on-addct #canvas #readmore_toggle a:hover,
+html.cc-docker-on.cc-on-addct #canvas #allocations_toggle a:hover,
+html.cc-docker-on.cc-on-addct #canvas dl > dd > a:has(> i.fa-plus):hover,
+html.cc-docker-on.cc-on-addct #canvas a[href="javascript:addConfigPopup()"]:hover {
+  background: var(--cc-accent, #2f6feb); color: var(--cc-accent-text, #fff) !important;
+}
+html.cc-docker-on.cc-on-addct #canvas #readmore_toggle a i.fa,
+html.cc-docker-on.cc-on-addct #canvas #allocations_toggle a i.fa,
+html.cc-docker-on.cc-on-addct #canvas dl > dd > a:has(> i.fa-plus) i.fa,
+html.cc-docker-on.cc-on-addct #canvas a[href="javascript:addConfigPopup()"] i.fa { color: inherit !important; }
+/* switchButtons (Use Tailscale / Privilegierte Rechte / TSadvanced / Erweiterte Ansicht) — the
+   EXACT 44x24 CC toggle recipe (container-list rules above): override the native mini 25x11
+   track's inline geometry with !important (incl. the knob's inline `left`, driven by .checked)
+   — the widget stays Unraid's, only the look changes. Checked accent takes the rainbow stamp
+   first, the Shares fallback chain (--cc-rb-c). */
 html.cc-docker-on.cc-on-addct .switch-button-background {
-  background: #3a3a3a !important; border: none !important; box-shadow: none !important; border-radius: 999px !important;
+  width: 44px !important; height: 24px !important; border-radius: 999px !important;
+  border: none !important; outline: none !important; box-shadow: none !important;
+  background: #3a3a3a !important; transform: none !important; position: relative !important;
+  display: inline-block; vertical-align: middle; margin: 0 12px 0 3px; cursor: pointer;
+  transition: background .15s; box-sizing: border-box;
 }
-html.cc-docker-on.cc-on-addct .switch-button-background.checked { background: var(--cc-accent, #2f6feb) !important; }
+html.cc-docker-on.cc-on-addct .switch-button-background.checked { background: var(--cc-rb-c, var(--cc-accent, #2f6feb)) !important; }
 html.cc-docker-on.cc-on-addct .switch-button-background .switch-button-button {
-  background: #dcdcdc !important; border: none !important; box-shadow: none !important; border-radius: 999px !important;
+  width: 18px !important; height: 18px !important; top: 3px !important; left: 3px !important;
+  border-radius: 50% !important; background: #fff !important; box-shadow: none !important;
+  border: none !important; transition: left .15s;
 }
+html.cc-docker-on.cc-on-addct .switch-button-background.checked .switch-button-button { left: 21px !important; }
 /* CPU-Zuweisung grid (label.checkbox > input#boxN + span.checkmark): accent the checked pin */
 html.cc-docker-on.cc-on-addct #canvas label.checkbox .checkmark { background: rgba(255, 255, 255, .12) !important; border: none !important; border-radius: 4px; }
 html.cc-docker-on.cc-on-addct #canvas label.checkbox input:checked ~ .checkmark { background: var(--cc-accent, #2f6feb) !important; }
@@ -1003,6 +1036,92 @@ html.cc-docker-on.cc-on-addct .cc-dsel-opt.is-selected {
 }
 html.cc-docker-on.cc-on-addct .cc-dsel-opt.is-selected:hover { filter: brightness(1.12); }
 html.cc-docker-on.cc-on-addct .cc-dsel-opt.is-disabled { opacity: .4; pointer-events: none; }
+
+/* ── PAGE TITLE as a CC head badge: docker.js ctTitleWrap wraps the heading's icon + BARE text
+   node ("CONTAINER HINZUFUEGEN") into span.cc-b.cc-pagehead (NATIVE nodes inside — restored by
+   ctTitleUnwrap, never a [MARK] sweep). Head-badge tier metrics; accent fill + contrast text.
+   div.title loses ALL borders here — the divider line under the title bar is illegal. */
+html.cc-docker-on.cc-on-addct div.title { border: none !important; }
+html.cc-docker-on.cc-on-addct div.title .cc-pagehead {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: var(--cc-head-fs, 15px); font-weight: 600; text-transform: uppercase; letter-spacing: .6px;
+  padding: var(--cc-head-pad, 9px 18px); min-height: var(--cc-lgb-h, 36px); box-sizing: border-box;
+  border-radius: var(--cc-b-radius, 999px); line-height: 1;
+  background: var(--cc-accent, #2f6feb); color: var(--cc-accent-text, #fff);
+}
+html.cc-docker-on.cc-on-addct div.title .cc-pagehead i.fa { color: inherit; }
+/* title-bar toggle labels ("ERWEITERTE ANSICHT"): muted uppercase, never link-blue */
+html.cc-docker-on.cc-on-addct div.title span.right,
+html.cc-docker-on.cc-on-addct div.title span.right .switch-button-label { color: #cfcfcf !important; font-size: 13px; font-weight: 600; text-transform: uppercase; }
+
+/* ── CATEGORIES (jquery dropdownchecklist #ddcl-catSelect — #catSelect is [multiple], so it
+   skips the cc-dsel overlay): selector box = the filled .cc-in field; drop panel = elevated
+   dark card (fill + shadow separate, no line); items get accent hover + the 16px CC checkbox
+   (accent fill + tick when checked, no border/ring — law). */
+html.cc-docker-on.cc-on-addct .ui-dropdownchecklist-selector-wrapper { background: transparent !important; border: none !important; box-shadow: none !important; }
+html.cc-docker-on.cc-on-addct .ui-dropdownchecklist-selector {
+  background: #262626 !important; border: none !important; outline: none !important; box-shadow: none !important;
+  border-radius: min(var(--cc-b-radius, 8px), 8px) !important; padding: 5px 12px !important;
+  color: #e6e6e6 !important; cursor: pointer;
+}
+html.cc-docker-on.cc-on-addct .ui-dropdownchecklist-selector .ui-dropdownchecklist-text { color: #e6e6e6 !important; background: transparent !important; }
+html.cc-docker-on.cc-on-addct .ui-dropdownchecklist-dropcontainer-wrapper { background: transparent !important; border: none !important; box-shadow: none !important; }
+html.cc-docker-on.cc-on-addct .ui-dropdownchecklist-dropcontainer {
+  background: #1c1c1c !important; border: none !important; border-radius: 8px !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .5) !important;
+}
+html.cc-docker-on.cc-on-addct .ui-dropdownchecklist-item {
+  display: flex; align-items: center; padding: 5px 11px !important;
+  background: transparent !important; color: #c9c9c9 !important;
+}
+html.cc-docker-on.cc-on-addct .ui-dropdownchecklist-item:hover { background: var(--cc-accent, #2f6feb) !important; color: var(--cc-accent-text, #fff) !important; }
+html.cc-docker-on.cc-on-addct .ui-dropdownchecklist-item label { color: inherit !important; cursor: pointer; }
+html.cc-docker-on.cc-on-addct .ui-dropdownchecklist-item input[type="checkbox"] {
+  -webkit-appearance: none; appearance: none;
+  width: 16px; height: 16px; box-sizing: border-box; flex: 0 0 auto;   /* 16px = the systemwide CC checkbox size (.cc-cb-del) */
+  border: none !important; border-radius: 4px; background-color: rgba(255, 255, 255, .14);
+  display: inline-block; vertical-align: middle; margin: 0 8px 0 0; cursor: pointer;
+  transition: background-color .12s; outline: none !important; box-shadow: none !important;
+}
+html.cc-docker-on.cc-on-addct .ui-dropdownchecklist-item input[type="checkbox"]:checked {
+  background-color: var(--cc-accent, #2f6feb);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M3 8.5l3.2 3.2L13 5' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-position: center; background-size: 12px 12px; background-repeat: no-repeat;
+}
+
+/* ── Config popup ("KONFIGURATION HINZUFUEGEN", jQuery-UI #dialogAddConfig — content is re-set
+   on every open, and the div sits unwrapped in the page DOM before the first open): fields =
+   the .cc-in look; focus = darker-fill feedback ONLY. The native orange focus ring is a law
+   violation. Later than the shared #canvas/.ui-dialog rules above, so these win for the dialog. */
+html.cc-docker-on.cc-on-addct #dialogAddConfig input[type="text"],
+html.cc-docker-on.cc-on-addct #dialogAddConfig input[type="number"],
+html.cc-docker-on.cc-on-addct #dialogAddConfig textarea,
+html.cc-docker-on.cc-on-addct #dialogAddConfig select,
+html.cc-docker-on.cc-on-addct .ui-dialog input[type="text"],
+html.cc-docker-on.cc-on-addct .ui-dialog input[type="number"],
+html.cc-docker-on.cc-on-addct .ui-dialog textarea,
+html.cc-docker-on.cc-on-addct .ui-dialog select {
+  background: #262626 !important; border: none !important; box-shadow: none !important;
+  border-radius: 6px !important; padding: 5px 10px !important; color: #e6e6e6 !important;
+}
+html.cc-docker-on.cc-on-addct #dialogAddConfig input:focus,
+html.cc-docker-on.cc-on-addct #dialogAddConfig textarea:focus,
+html.cc-docker-on.cc-on-addct #dialogAddConfig select:focus,
+html.cc-docker-on.cc-on-addct #dialogAddConfig input:focus-visible,
+html.cc-docker-on.cc-on-addct #dialogAddConfig textarea:focus-visible,
+html.cc-docker-on.cc-on-addct #dialogAddConfig select:focus-visible,
+html.cc-docker-on.cc-on-addct .ui-dialog input:focus,
+html.cc-docker-on.cc-on-addct .ui-dialog textarea:focus,
+html.cc-docker-on.cc-on-addct .ui-dialog select:focus,
+html.cc-docker-on.cc-on-addct .ui-dialog input:focus-visible,
+html.cc-docker-on.cc-on-addct .ui-dialog textarea:focus-visible,
+html.cc-docker-on.cc-on-addct .ui-dialog select:focus-visible { outline: none !important; box-shadow: none !important; background: #2e2e2e !important; }
+
+/* ═══ FOCUS LAW (docker scope): NO focus rings, ever — feedback is brightness/fill only. This
+   sheet only loads on CC-governed pages (Docker list/form, Plugins, CC Settings), so page-level
+   scope is safe; the field rules above already swap mouse-focus rings for fill feedback. ═══ */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
+[tabindex]:focus-visible { outline: none !important; box-shadow: none !important; filter: brightness(1.18); }
 
 /* ___ badge-shape MASTER overrides: these must remain the LAST rules in this
    file, because any later rule with the same !important radius would win

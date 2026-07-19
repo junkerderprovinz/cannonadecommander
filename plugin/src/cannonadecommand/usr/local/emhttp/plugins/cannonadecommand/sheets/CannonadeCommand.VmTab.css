@@ -10,7 +10,7 @@
  *   · td[desc] · td[a.vcpu-*] · td[mem] · td[disks] · td[span.vmgraphics=graphics] · td[ip] · td[autostart]
  */
 
-html.cc-vms-on { --cc-sm-fs: 11px; --cc-sm-pad: 3px 11px; --cc-md-fs: 13px; --cc-md-h: 30px; --cc-md-pad: 0 20px; --cc-md-btnpad: 0 14px; --cc-head-fs: 15px; --cc-head-pad: 9px 18px; --cc-density: 9px; }
+html.cc-vms-on { --cc-sm-fs: 11px; --cc-sm-pad: 3px 11px; --cc-md-fs: 13px; --cc-md-h: 30px; --cc-md-pad: 0 20px; --cc-md-btnpad: 0 14px; --cc-head-fs: 15px; --cc-head-pad: 9px 18px; --cc-lgb-h: 36px; --cc-density: 9px; } /* --cc-lgb-h: per-sheet copy (house rule) */
 
 /* ═══ align the VM content with the MAIN MENU BAR (self-measured --cc-align-left; header.js sets it) ═══ */
 html.cc-vms-on.cc-header-on { --cc-align-left: 15px; }
@@ -217,6 +217,7 @@ html.cc-vms-on.cc-sections-vms #displaybox nav.tabs button[role="tab"] { display
 html.cc-vms-on.cc-sections-vms #displaybox nav.tabs { border: none; min-height: 0; }
 html.cc-vms-on.cc-sections-vms #displaybox .cc-card-head {
   display: inline-flex; align-items: center; gap: 8px;
+  min-height: var(--cc-lgb-h, 36px); box-sizing: border-box;   /* head badges sit on the 36px lg line */
   font-weight: 700; text-transform: uppercase; letter-spacing: .6px; font-size: var(--cc-head-fs, 15px); line-height: 1;
   background: var(--cc-accent, #2f6feb) !important; color: var(--cc-accent-text, #fff) !important;
   border: none; border-radius: var(--cc-b-radius, 999px); padding: var(--cc-head-pad, 9px 18px); margin: 0 0 16px;
@@ -266,6 +267,14 @@ html.cc-vms-on.cc-vm-rainbow #kvm_list .cc-b-cpu { background: var(--cc-rb-cpu, 
 html.cc-vms-on.cc-vm-rainbow #kvm_list .cc-b-ram { background: var(--cc-rb-ram, #2f9d8b); color: var(--cc-rb-ram-t, #fff); }
 html.cc-vms-on.cc-vm-rainbow #kvm_list .cc-b-ip  { background: var(--cc-rb-ip, #2f6feb); color: var(--cc-rb-ip-t, #fff); }
 html.cc-vms-on.cc-vm-rainbow #kvm_list .cc-b-vol { background: var(--cc-rb-vol, #8b5cf6); color: var(--cc-rb-vol-t, #fff); }
+
+/* ═══ FOCUS LAW: keyboard focus draws NO outline/ring/shadow either — feedback is brightness only ═══ */
+html.cc-vms-on #displaybox :is(a, button, input, select, textarea):focus-visible,
+html.cc-vms-on :is(.cc-actbtn, .cc-seg-btn):focus-visible,
+html.cc-vms-on #kvm_list .switch-button-background:focus-visible,
+html.cc-vms-on ul.dropdown-menu.dropdown-context a:focus-visible {
+  outline: none !important; box-shadow: none !important; filter: brightness(1.18);
+}
 
 /* ═══ badge-shape MASTER override (mirrors docker.css:857-872) — MUST remain the LAST rules in this file so
    the chosen --cc-b-radius (cc.badgeshape: pill 999px / rounded 6px / square 0 / circle 999px) wins for every

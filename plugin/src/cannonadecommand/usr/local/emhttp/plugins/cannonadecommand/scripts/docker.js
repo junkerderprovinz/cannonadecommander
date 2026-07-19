@@ -1448,8 +1448,9 @@
   function refreshChip(chip, name) { var node = workingPlan[name]; chip.classList.toggle("cc-plan-on", !!node); var v = chip.querySelector(".cc-b-v"); if (v) v.textContent = depsTxt(node); }
   // A small ⓘ next to a label; hovering (or focusing) it shows a tidy explainer of the
   // dropdown's options, so "Bereit wenn" / "Bei Fehlschlag" no longer need prior knowledge.
+  // Class is cc-info-pop (renamed from cc-info): the settings SVG variant owns .cc-info now.
   function infoBubble(items) {
-    var b = el("span", "cc-info", "ⓘ"); b.setAttribute("tabindex", "0"); b.setAttribute("aria-label", "info");
+    var b = el("span", "cc-info-pop", "ⓘ"); b.setAttribute("tabindex", "0"); b.setAttribute("aria-label", "info");
     // inside a <label> the ⓘ must not toggle the label's checkbox (section-header bubbles)
     b.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); });
     var tip = el("span", "cc-tip");
@@ -2237,14 +2238,39 @@
       }
     } catch (e) {}
   }
+  // ── page-title head badge: the form page's heading div.title is i.fa.fa-th.title + a BARE
+  // text node ("CONTAINER HINZUFUEGEN") before span.right — wrap icon+text into
+  // span.cc-b.cc-pagehead so docker.css can badge them. Idempotent (a wrapped icon no longer
+  // matches div.title > i). The wrapper carries NO MARK — it holds NATIVE nodes (a [MARK]
+  // sweep would destroy them); ctTitleUnwrap restores explicitly, mirroring the cc-grp pattern.
+  function ctTitleWrap() {
+    try {
+      var icons = document.querySelectorAll("div.title > i.fa.title, div.title > i.fa.fa-th");
+      for (var i = 0; i < icons.length; i++) {
+        var ic = icons[i], ti = ic.parentNode;
+        if (ti.querySelector(":scope > span.cc-pagehead")) continue;
+        var tx = null;
+        for (var n = 0; n < ti.childNodes.length; n++) { var nd = ti.childNodes[n]; if (nd.nodeType === 3 && nd.textContent.replace(/\s+/g, "")) { tx = nd; break; } }
+        if (!tx) continue;
+        var w = el("span", "cc-b cc-pagehead"); ti.insertBefore(w, ic); w.appendChild(ic); w.appendChild(tx);
+      }
+    } catch (e) {}
+  }
+  function ctTitleUnwrap() {
+    try {
+      var ws = document.querySelectorAll("div.title > span.cc-pagehead");
+      for (var i = 0; i < ws.length; i++) { var w = ws[i]; while (w.firstChild) w.parentNode.insertBefore(w.firstChild, w); w.parentNode.removeChild(w); }
+    } catch (e) {}
+  }
   function ctApply() {
     try {
       var root = document.documentElement;
       var on2 = localStorage.getItem("cc.enable.docker") !== "0" && themingOn();
       root.classList.toggle("cc-docker-on", on2);
       root.classList.toggle("cc-on-addct", on2 && onCtForm());   // page gate: every docker.css form rule requires BOTH classes
-      if (!on2) { ctSelectsTeardown(); return; }
+      if (!on2) { ctSelectsTeardown(); ctTitleUnwrap(); return; }
       applySettings();                                           // --cc-accent/-text + --cc-b-radius (+ rainbow vars) — same chokepoint as list mode
+      ctTitleWrap();
       var sels = document.querySelectorAll('#canvas select:not([multiple]):not([data-cc-dsel])');
       for (var i = 0; i < sels.length; i++) ctWrapSelect(sels[i]);
       var done = document.querySelectorAll('#canvas select[data-cc-dsel]');

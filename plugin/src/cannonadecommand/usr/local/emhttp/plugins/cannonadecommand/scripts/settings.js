@@ -7,6 +7,17 @@
   "use strict";
   var root = document.getElementById("cc-settings");
   if (!root) return;
+  // tiny page-local style additions (docker.css is owned elsewhere): md-tier buttons for the
+  // backup section (30px line, pad 0 14px, grey fill + hover accent via .cc-btn) + its inline
+  // notice. NO borders/outlines/rings anywhere (house law); lives in <head>, survives render().
+  (function () {
+    if (document.getElementById("cc-set-xtra")) return;
+    var st = document.createElement("style"); st.id = "cc-set-xtra";
+    st.textContent =
+      "#cc-settings .cc-set-xbtn{display:inline-flex;align-items:center;justify-content:center;height:var(--cc-md-h,30px);padding:var(--cc-md-btnpad,0 14px);font-size:var(--cc-md-fs,13px);font-weight:600;border-radius:var(--cc-b-radius,999px);box-sizing:border-box;margin:12px 10px 0 0}" +
+      "#cc-settings .cc-set-xnote{margin-top:10px;font-size:12px;white-space:pre-wrap}";
+    document.head.appendChild(st);
+  })();
   var LANG = (document.documentElement.lang || navigator.language || "en").slice(0, 2).toLowerCase();
   var de = LANG === "de";
   function T(d, e) { return de ? d : e; }
@@ -224,6 +235,7 @@
     var wrapSettings = el("div", "cc-set-wrap");
     var wrapFavorites = el("div", "cc-set-wrap");
     var wrapStart = el("div", "cc-set-wrap");   // Start (/Main) area — its own CC-settings section
+    var wrapBackup = el("div", "cc-set-wrap");  // Sichern & Übertragen: settings export/import
     var wrapMain = el("div", "cc-set-wrap");
     var adoptToggles = {}; // adopt-key → its toggle element (a colour pick flips it live); declared UP here (not further down) because the Docker area's styleToggle now runs early, with the moved global Badges card
     // MASTER THEMING switch (first, prominent). Off = keep ONLY the Docker orchestration
@@ -257,7 +269,8 @@
       { t: T("Plugin-Tab", "Plugins tab"), w: wrapPlugin, key: "cc.enable.plugins" },
       { t: T("VM-Tab", "VMs tab"), w: wrapVms, key: "cc.enable.vms" },
       { t: T("Einstellungen & Werkzeuge", "Settings & Tools"), w: wrapSettings, key: "cc.enable.settings" },
-      { t: T("Favoriten", "Favorites"), w: wrapFavorites, key: "cc.enable.favorites" }
+      { t: T("Favoriten", "Favorites"), w: wrapFavorites, key: "cc.enable.favorites" },
+      { t: T("Sichern & Übertragen", "Backup & transfer"), w: wrapBackup, key: null } // always on (key null), LAST tab
     ];
     var tabBtns = [];
     function areaOn(key) { return !key || localStorage.getItem(key) !== "0"; }
@@ -297,7 +310,7 @@
       tabBtns.push(b); tabRow.appendChild(b);
     });
     root.appendChild(tabRow);
-    root.appendChild(wrapMain); root.appendChild(wrapStart); root.appendChild(wrapHeader); root.appendChild(wrapShares); root.appendChild(wrap); root.appendChild(wrapPlugin); root.appendChild(wrapVms); root.appendChild(wrapSettings); root.appendChild(wrapFavorites);
+    root.appendChild(wrapMain); root.appendChild(wrapStart); root.appendChild(wrapHeader); root.appendChild(wrapShares); root.appendChild(wrap); root.appendChild(wrapPlugin); root.appendChild(wrapVms); root.appendChild(wrapSettings); root.appendChild(wrapFavorites); root.appendChild(wrapBackup);
 
     // ── Badges ──
     var c1 = card(T("Badges", "Badges"), T("Akzentfarbe und Farbmodus der Badges.", "Accent colour and colour mode of the badges."));
@@ -493,7 +506,8 @@
     // ── View + density ──
     var c4 = card(T("Ansicht", "View"), null);
     c4.appendChild(segRow(T("Standard-Ansicht", "Default view"), [["list", T("Liste", "List")], ["grid", T("Raster", "Grid")]], view, function (v) { view = v; set("cc.view", v); }));
-    c4.appendChild(segRow(T("Zeilenhöhe", "Row density"), [["compact", T("kompakt", "compact")], ["normal", "normal"], ["airy", T("luftig", "airy")]], density, function (v) { density = v; set("cc.density", v); }));
+    // cc.density is GLOBAL: Docker + Start + Freigaben all read this one key
+    c4.appendChild(segRow(T("Zeilenhöhe (global: Docker, Start, Freigaben)", "Row density (global: Docker, Start, Shares)"), [["compact", T("kompakt", "compact")], ["normal", "normal"], ["airy", T("luftig", "airy")]], density, function (v) { density = v; set("cc.density", v); }));
     function applyShape() { var m9 = { pill: "999px", rounded: "6px", square: "0px", circle: "999px" }; var sh9 = get("cc.badgeshape", "pill"); var r9 = m9[sh9] || "999px"; root.style.setProperty("--cc-b-radius", r9); document.documentElement.style.setProperty("--cc-b-radius", r9); document.documentElement.classList.toggle("cc-shape-circle", sh9 === "circle"); }
     wrap.appendChild(c4);
     // Badge-Form (shape) is a single GLOBAL control in the Allgemein "Badges" card now — not per
@@ -771,6 +785,56 @@
     buildStyleCards("ccv.", wrapVms, ["/plugins/dynamix.vm.manager/templates/images/linux.png", "/plugins/dynamix.vm.manager/templates/images/windows.png", "/plugins/cannonadecommand/images/cannonadecommand.png"]);
     buildStyleCards("ccf.", wrapFavorites, ["fa-star", "fa-heart", "fa-cog"], false); // Favoriten: tiles use FA glyphs -> preview shows sample glyphs coloured via CSS (like the Settings card)
     buildStyleCards("ccm.", wrapStart, [], true); // Start (/Main): disk_status value + name badges, no per-row logos -> badges only, no logo card
+    // ── Sichern & Übertragen: export/import of every cc-family localStorage setting ──
+    (function () {
+      var cX = card(T("Sichern & Übertragen", "Backup & transfer"), T("Exportiert alle CC-Einstellungen (cc.*-Schlüssel) als JSON-Datei. Der Import schreibt sie zurück und lädt die Seite neu.", "Exports every CC setting (cc.* keys) as a JSON file. Import writes them back and reloads the page."));
+      var note = el("div", "cc-set-xnote"); // inline notice — this page has no toast mechanism
+      function say(msg, bad) { note.textContent = msg || ""; note.style.color = bad ? "#d9433f" : ""; }
+      var ex = el("span", "cc-btn cc-set-xbtn", T("Exportieren", "Export")); // grey fill + hover accent, md tier, no rings
+      ex.addEventListener("click", function () {
+        try {
+          // collectUISettings = every cc-family key except cc.stateCache (same set the engine mirrors)
+          var blob = new Blob([JSON.stringify(collectUISettings(), null, 2)], { type: "application/json" });
+          var a = el("a"); a.href = URL.createObjectURL(blob); a.download = "cannonadecommand-settings.json";
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+          say("");
+        } catch (e) { say(T("Export fehlgeschlagen: ", "Export failed: ") + ((e && e.message) || e), true); }
+      });
+      var im = el("span", "cc-btn cc-set-xbtn", T("Importieren", "Import"));
+      var fin = el("input"); fin.type = "file"; fin.accept = ".json,application/json"; fin.style.display = "none";
+      fin.addEventListener("change", function () {
+        var f = fin.files && fin.files[0]; fin.value = ""; if (!f) return;
+        var rd = new FileReader();
+        rd.onload = function () {
+          var o = null;
+          try { o = JSON.parse(String(rd.result)); } catch (e) { say(T("Keine gültige JSON-Datei.", "Not a valid JSON file."), true); return; }
+          // must be a FLAT object of cc-family string keys (never cc.stateCache)
+          var ks = o && typeof o === "object" && !Array.isArray(o) ? Object.keys(o) : [];
+          var bad = ks.filter(function (k) { return !/^cc[a-z]*\./.test(k) || k === "cc.stateCache" || typeof o[k] !== "string"; });
+          if (!ks.length || bad.length) { say(T("Ungültiges Format: erwartet wird ein flaches Objekt mit cc.*-Textwerten.", "Invalid format: expected a flat object of cc.* string values."), true); return; }
+          var w = window.__ccLS || localStorage.setItem.bind(localStorage); // raw write, no 800ms mirror debounce
+          ks.forEach(function (k) { try { w(k, o[k]); } catch (e) {} });
+          // push into the engine mirror BEFORE reloading — the reloaded page re-adopts
+          // ui_settings from the engine, which would revert an unmirrored import.
+          withConfigLock(function () {
+            return api("GET", "config").then(function (c) {
+              if (!c || typeof c !== "object") return;
+              var u = c.ui_settings || {};
+              ks.forEach(function (k) { u[k] = o[k]; });
+              c.ui_settings = u;
+              return api("PUT", "config", c);
+            });
+          }).then(function () { location.reload(); }, function () { location.reload(); });
+        };
+        rd.onerror = function () { say(T("Datei konnte nicht gelesen werden.", "Could not read the file."), true); };
+        rd.readAsText(f);
+      });
+      im.addEventListener("click", function () { fin.click(); });
+      var brow = el("div", "cc-set-row"); brow.appendChild(ex); brow.appendChild(im);
+      cX.appendChild(brow); cX.appendChild(fin); cX.appendChild(note);
+      wrapBackup.appendChild(cX);
+    })();
     refreshTabs();
     showSec(parseInt(localStorage.getItem("cc.settab") || "0", 10) || 0);
     paintPrev();

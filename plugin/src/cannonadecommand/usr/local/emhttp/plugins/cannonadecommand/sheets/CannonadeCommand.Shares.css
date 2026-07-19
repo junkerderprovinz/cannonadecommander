@@ -534,6 +534,7 @@ html.cc-shares-on.cc-on-main #displaybox .show-historical > div.title.shift {
 html.cc-shares-on.cc-on-main #displaybox div.title :is(span.left, div.left) { display: inline-flex; align-items: center; gap: 8px; letter-spacing: .3px; }
 html.cc-shares-on.cc-on-main #displaybox div.title :is(span.left, div.left) .cc-b {
   display: inline-flex; align-items: center; gap: 6px; border: none;
+  min-height: var(--cc-lgb-h, 36px); box-sizing: border-box;   /* heading badges ride the 36px control line; font/padding tokens unchanged */
   border-radius: var(--cc-b-radius, 999px); padding: var(--cc-bmd-pad, 4px 12px);
   font-size: var(--cc-md-fs, 13px); font-weight: 600; line-height: 1.35; white-space: nowrap;
   background: var(--cc-shr-accent, #2f6feb); color: var(--cc-shr-accent-text, #fff);
@@ -730,7 +731,6 @@ html.cc-shares-on.cc-on-main #displaybox table.array_status input[type="checkbox
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M3 8.5l3.2 3.2L13 5' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/></svg>");
   background-position: center; background-size: 12px 12px; background-repeat: no-repeat;
 }
-html.cc-shares-on.cc-on-main #displaybox table.array_status input[type="checkbox"]:focus-visible { outline: 2px solid var(--cc-shr-accent, #2f6feb); outline-offset: 2px; }
 html.cc-shares-on.cc-on-main #displaybox table.array_status label,
 html.cc-shares-on.cc-on-main #displaybox table.array_status input[type="checkbox"] + small,
 html.cc-shares-on.cc-on-main #displaybox table.array_status input[type="checkbox"] ~ small { font-size: var(--cc-md-fs, 13px); font-weight: 600; letter-spacing: .2px; vertical-align: middle; }
@@ -863,7 +863,6 @@ html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-aop-toggle input
 html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-aop-toggle input[type="checkbox"]:checked {
   background-color: var(--cc-shr-accent, #2f6feb); background-position: 23px center;
 }
-html.cc-shares-on.cc-on-main #displaybox table.array_status .cc-aop-toggle input[type="checkbox"]:focus-visible { outline: 2px solid var(--cc-shr-accent, #2f6feb); outline-offset: 2px; }
 /* Array-state + parity status -> two LARGE status pills (user: "zwei grosse badges ... in der farbe nach
    status"). Colours = the CC docker state palette (running #1f9d55, warn #e0912a, stopped #3c3c3c). The
    native orb icon + its a.info tooltip live INSIDE the pill; the icon follows the pill's text colour so it
@@ -1046,8 +1045,8 @@ html.cc-shares-on.cc-on-share-detail #displaybox div.title.nocontrol span.right 
 }
 
 /* input fields as filled light boxes (user: "keine Linien sondern einen hellen Hintergrund") — swap
-   Unraid's underline text inputs + selects for a subtle filled box, rounded, no border; accent ring
-   on focus. */
+   Unraid's underline text inputs + selects for a subtle filled box, rounded, no border; focus =
+   stronger fill (FOCUS LAW: no ring, ever). */
 html.cc-shares-on.cc-on-share-detail #displaybox input[type="text"],
 html.cc-shares-on.cc-on-share-detail #displaybox input[type="number"],
 html.cc-shares-on.cc-on-share-detail #displaybox input[type="password"],
@@ -1059,7 +1058,7 @@ html.cc-shares-on.cc-on-share-detail #displaybox input[type="text"]:focus,
 html.cc-shares-on.cc-on-share-detail #displaybox input[type="number"]:focus,
 html.cc-shares-on.cc-on-share-detail #displaybox input[type="password"]:focus,
 html.cc-shares-on.cc-on-share-detail #displaybox select:focus {
-  outline: 1px solid var(--cc-shr-accent, #2f6feb) !important;
+  outline: none !important; background: rgba(255, 255, 255, .12) !important;   /* FOCUS LAW: no ring — feedback = a stronger fill */
 }
 
 /* ═══ canonical DELETE control (standardized systemwide: shares detail + plugin list). Badge hugs
@@ -1201,6 +1200,7 @@ html.cc-shares-on.cc-on-share-detail #displaybox .menuNavButtonsTabbed { positio
    from the (now-hidden) tab button via shares.js/cardPanels. Area accent (rainbow-agnostic). */
 html.cc-shares-on:is(.cc-on-share-detail.cc-sections-share, .cc-on-main.cc-sections-main) #displaybox .cc-card-head {
   display: inline-flex; align-items: center; gap: 8px;
+  min-height: var(--cc-lgb-h, 36px); box-sizing: border-box;   /* head badges ride the 36px control line (lg tier); font/padding tokens unchanged */
   font-weight: 700; text-transform: uppercase; letter-spacing: .6px; font-size: var(--cc-head-fs, 15px); line-height: 1;
   background: var(--cc-shr-accent, #2f6feb) !important; color: var(--cc-shr-accent-text, #fff) !important;
   border: none; border-radius: var(--cc-b-radius, 999px);
@@ -1616,3 +1616,47 @@ html.cc-shares-on.cc-on-stats #displaybox > span.status input[type="button"] {
   transition: filter .12s;
 }
 html.cc-shares-on.cc-on-stats #displaybox > span.status input[type="button"]:hover { filter: brightness(1.14); }
+
+/* ═══ EMPTY-STATE notices -> muted pills. shares.js/ccMutedEmpties wraps the bare text of
+   td.empty placeholder rows (/Shares + /Main) and the UD single-cell "no ... configured"
+   notices (e.g. the remote-SMB one) in span.cc-muted — the detail-page muted-note recipe at
+   list size: fill + radius only, NO border (house law). */
+html.cc-shares-on #displaybox .cc-muted {
+  display: inline-flex; align-items: center;
+  padding: var(--cc-bmd-pad, 4px 12px); border-radius: var(--cc-b-radius, 999px);
+  background: rgba(128, 128, 128, .14); color: #9a9a9a;
+}
+
+/* ═══ GLOBAL ROW DENSITY (cc.density) — the SAME key + class pair docker.css already uses
+   (.cc-dens-compact / .cc-dens-airy); shares.js/ccDensity stamps them onto every enhanced
+   table, the cc.* storage listener syncs a change live. NO class ("normal") = today's rhythm,
+   byte-identical. Page-gated like the base padding rules (/Device //Disk disk_status native). */
+/* /Shares list (base: 7px vertical) — compact ~30% down, airy ~30% up */
+html.cc-shares-on #displaybox table.unraid.share_status.cc-dens-compact tbody td { padding-top: 5px; padding-bottom: 5px; }
+html.cc-shares-on #displaybox table.unraid.share_status.cc-dens-compact thead td,
+html.cc-shares-on #displaybox table.unraid.share_status.cc-dens-compact thead th { padding-top: 5px; padding-bottom: 5px; }
+html.cc-shares-on #displaybox table.unraid.share_status.cc-dens-airy tbody td { padding-top: 9px; padding-bottom: 9px; }
+html.cc-shares-on #displaybox table.unraid.share_status.cc-dens-airy thead td,
+html.cc-shares-on #displaybox table.unraid.share_status.cc-dens-airy thead th { padding-top: 10px; padding-bottom: 10px; }
+/* /Main device + UD tables (base: tbody 9px 14px, thead 8px 14px) — value-badge cells 5px 10px
+   compact / 12px 16px airy; the divider theads' padding:0 !important keeps winning */
+html.cc-shares-on.cc-on-main #displaybox :is(table.unraid.disk_status, table.usb_mounts, table.samba_mounts, table.usb_absent).cc-dens-compact tbody td { padding: 5px 10px; }
+html.cc-shares-on.cc-on-main #displaybox :is(table.unraid.disk_status, table.usb_mounts, table.samba_mounts, table.usb_absent).cc-dens-compact thead td,
+html.cc-shares-on.cc-on-main #displaybox :is(table.unraid.disk_status, table.usb_mounts, table.samba_mounts, table.usb_absent).cc-dens-compact thead th { padding: 6px 10px; }
+html.cc-shares-on.cc-on-main #displaybox :is(table.unraid.disk_status, table.usb_mounts, table.samba_mounts, table.usb_absent).cc-dens-airy tbody td { padding: 12px 16px; }
+html.cc-shares-on.cc-on-main #displaybox :is(table.unraid.disk_status, table.usb_mounts, table.samba_mounts, table.usb_absent).cc-dens-airy thead td,
+html.cc-shares-on.cc-on-main #displaybox :is(table.unraid.disk_status, table.usb_mounts, table.samba_mounts, table.usb_absent).cc-dens-airy thead th { padding: 10px 16px; }
+/* Array-Vorgang grid rows: VERTICAL rhythm only — the flush-left law (padding-left 0 on the c1/c2
+   cells) and the 10px horizontal stay untouched; !important matches the base grid padding's
+   importance, extra class + later source order wins. :not(:nth-child(1)) keeps the status cell's
+   deliberate zero padding (pill-stack alignment). */
+html.cc-shares-on.cc-on-main #displaybox table.array_status.cc-dens-compact td:not(:nth-child(1)) { padding-top: 6px !important; padding-bottom: 6px !important; }
+html.cc-shares-on.cc-on-main #displaybox table.array_status.cc-dens-airy td:not(:nth-child(1)) { padding-top: 10px !important; padding-bottom: 10px !important; }
+
+/* ═══ FOCUS LAW (house rule: NO borders/outlines/rings — hover AND focus; feedback = brightness/
+   fill only). Kills the UA/theme focus ring on every interactive element while the area is on.
+   The old accent-outline checkbox :focus-visible rules are gone — this law replaces them.
+   Non-!important filter: :hover and :disabled filters keep outranking it where they apply. */
+html.cc-shares-on :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: none !important; box-shadow: none !important; filter: brightness(1.18);
+}

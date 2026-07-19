@@ -18,7 +18,7 @@
  * from --cc-accent / --cc-accent-text (set by settingsgrid.js; rainbow mode paints each
  * badge per-tile inline). The native .Panels grid layout is left intact. */
 
-:root { --cc-sg-size: 64px; --cc-sg-glyph: 32px; --cc-sg-rmax: 16px; }
+:root { --cc-sg-size: 64px; --cc-sg-glyph: 32px; --cc-sg-rmax: 16px; --cc-lgb-h: 36px; } /* --cc-lgb-h: per-sheet copy (house rule) */
 
 /* ═══ align the Settings/Tools content with the MAIN MENU BAR (v2.16.0) ═══
    --cc-align-left is the geometry token every other CC area wires — but each globally-injected sheet
@@ -118,6 +118,7 @@ html.cc-settingsgrid-heads-on #displaybox div.title > span.right { flex: 0 0 aut
 /* span.left (glyph + label) -> the filled accent badge; same recipe as Shares' .cc-card-head */
 html.cc-settingsgrid-heads-on #displaybox div.title > span.left {
   display: inline-flex !important; align-items: center; gap: 8px !important;   /* native .gap-1 is .25rem -> match the card badge */
+  min-height: var(--cc-lgb-h, 36px); box-sizing: border-box;   /* head badges sit on the 36px lg line */
   font-weight: 700; text-transform: uppercase; letter-spacing: .6px; font-size: 15px; line-height: 1;
   background: var(--cc-accent, #2f6feb) !important; color: var(--cc-accent-text, #fff) !important;
   border: none !important; border-radius: var(--cc-b-radius, 999px) !important;
@@ -152,6 +153,12 @@ html.cc-settingsgrid-heads-on.cc-settingsgrid-headsneutral #displaybox div.title
   background: var(--cc-rb-c, var(--cc-accent, #2f6feb)) !important;
   color: var(--cc-rb-ct, var(--cc-accent-text, #fff)) !important;
   filter: none !important;
+}
+
+/* ═══ FOCUS LAW: keyboard focus draws NO outline/ring/shadow either — feedback is brightness only ═══ */
+html.cc-settingsgrid-on #displaybox .Panel > a:focus-visible,
+html.cc-settingsgrid-heads-on #displaybox div.title a:focus-visible {
+  outline: none !important; box-shadow: none !important; filter: brightness(1.18);
 }
 
 /* Badge-Form "circle": the square category-tile badges become circles. */

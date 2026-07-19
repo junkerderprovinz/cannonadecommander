@@ -274,3 +274,11 @@ html.cc-header-on #menu .cc-nav-wiggle {
 @media (prefers-reduced-motion: reduce) {
   html.cc-header-on #menu .cc-nav-wiggle { animation: none; outline: 2px dashed var(--cc-hdr-accent, #70b8ff); outline-offset: 2px; }
 }
+
+/* ═══ FOCUS LAW: keyboard focus draws NO outline/ring/shadow either — feedback is brightness only ═══ */
+html.cc-header-on #menu :is(a, button, input):focus-visible,
+html.cc-header-on #guiSearchBox:focus-visible,
+html.cc-popups-on .ui-dialog :is(a, button, input, .ui-dialog-titlebar-close):focus-visible,
+html.cc-popups-on .sweet-alert :is(a, button):focus-visible {
+  outline: none !important; box-shadow: none !important; filter: brightness(1.18);
+}

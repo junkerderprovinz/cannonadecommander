@@ -292,6 +292,7 @@
         var rows = tb.children;
         for (var r = 0; r < rows.length; r++) if (rows[r].tagName === "TR") enhanceRow(rows[r]);
       }
+      ccMutedEmpties();   // td.empty placeholder -> muted pill (AFTER the row pass: colspan already widened)
     } catch (e) {}
   }
   // Rainbow PER ROW: when rainbow is on, paint EACH row's name + value badges (.cc-b) a
@@ -1210,6 +1211,7 @@
       enhanceUD();   // AFTER ccLocalizeMain: the heading split consumes the already-translated text; ccTr guards on data-cc-i18n and no-ops once the span holds badges
       ccUdLoose();   // hide UD's loose native text buttons (our gear/refresh icons carry those functions)
       ccUdTitles();   // hover names on toggles + icons in BOTH homes, every pass
+      ccMutedEmpties();   // td.empty + the UD "no ... configured" notices -> muted pills (after the badge passes)
     } catch (e) {}
   }
   // ── /Main "Array-Vorgang" (ArrayOperation.page: table.ArrayOperation-Table.array_status). Each control
@@ -1696,6 +1698,57 @@
       for (var m2 = 0; m2 < mk.length; m2++) mk[m2].removeAttribute("data-cc-ud");
     } catch (e) {}
   }
+  // ── EMPTY-STATE placeholders -> muted pills (house look: even "nothing here" is a pill).
+  // Wraps the bare text of td.empty rows (/Shares no-shares, /Main structural empties) and the
+  // UD single-cell "no ... configured" notices (e.g. the remote-SMB one) in span.cc-muted
+  // (grey pill, CSS). TEXT-ONLY cells only — a cell holding any element is never a bare
+  // placeholder. Idempotent (the injected span trips the child guard); UD's 3s refill
+  // recreates the rows fresh, the observer's enhanceMain pass re-wraps. Callers gate area+page
+  // (enhanceShares/enhanceMain); reversed by ccMutedTeardown (unwrap keeps the native text nodes).
+  function ccMutedWrap(td) {
+    if (!td || td.querySelector("*")) return;                // text-only; also the idempotency guard (the wrap IS a child)
+    var txt = (td.textContent || "").trim(); if (!txt) return;
+    var s = el("span", "cc-muted");
+    while (td.firstChild) s.appendChild(td.firstChild);
+    td.appendChild(s);
+  }
+  function ccMutedEmpties() {
+    try {
+      var es = document.querySelectorAll("#displaybox table td.empty");
+      for (var i = 0; i < es.length; i++) ccMutedWrap(es[i]);
+      // UD notice rows: a lone spanning <td> of bare text in the three UD tbodies
+      var tbs = document.querySelectorAll("#displaybox #disk-table-body, #displaybox #remotes-table-body, #displaybox #historical-table-body");
+      for (var t2 = 0; t2 < tbs.length; t2++) {
+        var rows = tbs[t2].children;
+        for (var r = 0; r < rows.length; r++) {
+          var tr = rows[r];
+          if (tr.tagName === "TR" && tr.children.length === 1 && tr.children[0].tagName === "TD") ccMutedWrap(tr.children[0]);
+        }
+      }
+    } catch (e) {}
+  }
+  function ccMutedTeardown() {
+    try {
+      var ms = document.querySelectorAll("#displaybox .cc-muted");
+      for (var i = 0; i < ms.length; i++) ccUnwrap(ms[i]);
+    } catch (e) {}
+  }
+  // ── GLOBAL row density (cc.density — the SAME key docker.js reads): stamp docker.css's class
+  // pair onto every enhanced table so /Main + /Shares follow the one global setting. "normal"
+  // (default) stamps neither class -> today's rhythm untouched. cc.density matches the cc.*
+  // storage listener, so another tab's pick re-runs apply() -> this, live. Classes ride the
+  // static <table> elements, so nchan tbody refills never wipe them; off-page stamps are inert
+  // (the density CSS is page-gated).
+  function ccDensity(on2) {
+    try {
+      var dens = g("cc.density", "normal");
+      var tbs = document.querySelectorAll("#displaybox table.unraid.share_status, #displaybox table.unraid.disk_status, #displaybox table.array_status, #displaybox table.usb_mounts, #displaybox table.samba_mounts, #displaybox table.usb_absent");
+      for (var i = 0; i < tbs.length; i++) {
+        tbs[i].classList.toggle("cc-dens-compact", !!on2 && dens === "compact");
+        tbs[i].classList.toggle("cc-dens-airy", !!on2 && dens === "airy");
+      }
+    } catch (e) {}
+  }
   // ── /Main UI-LANGUAGE localisation (user: ALLES in der eingestellten Sprache). Three foreign sources
   // ship English on a non-English UI: (1) dynamix.s3.sleep — Sleep.php renders <input type="button"
   // value="Sleep" onclick="sleepS3()"> with the value NOT _()-wrapped (verified bergware/dynamix source),
@@ -1912,6 +1965,8 @@
           ccColTeardown();   // drag-resize: grips + colgroups + cc-colfix + inline widths out (cc.main.colpx storage kept for a re-enable)
           aopTeardown();   // Array-Vorgang: pull (i) info-bubbles, un-hide description cells, drop markers
           udTeardown();   // UD: restore the joined heading text + unwrap the UD table badges — MUST run BEFORE ccI18nTeardown so its text-node-matching restore finds the (restored) translated text nodes
+          ccMutedTeardown();   // empty-state pills -> bare native text back
+          ccDensity(false);    // density classes off (the tables are native again)
           ccI18nTeardown();   // restore the original English strings (sleep value + UD/native text nodes)
         } catch (e) {}
         return;
@@ -1940,6 +1995,7 @@
       paintCards();         // rainbow (or accent) on the detail-page card title badges
       enhanceMain();        // /Main (START): stacked sections + disk_status row badges + Browse column
       paintMain();          // /Main rainbow: per-row palette AFTER the badges exist (re-applies live on the cc.rainbow storage event)
+      ccDensity(true);      // global cc.density -> cc-dens-* classes on every enhanced table (storage listener re-enters here on a change)
       if (onStats()) moveStatsControls(); // /Stats: keep the control group relocated below the graphs (span.status can arrive late)
       if (onBrowse()) enhanceBrowse();    // Browse: (re-)badge the owner/perm/size cells (tbody is AJAX-replaced on navigation)
     } catch (e) {}

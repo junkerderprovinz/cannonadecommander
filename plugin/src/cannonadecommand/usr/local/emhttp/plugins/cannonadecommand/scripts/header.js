@@ -519,7 +519,7 @@
   // Plugins-button pin (plugins.js) includes the docked pair in its right-edge measurement.
   // Diff-written styles are attribute-only mutations, which the childList-only profile observer
   // ignores -> no loop. Re-measured on apply()/scroll/resize/menu+profile passes.
-  var ccDockProps = ["position", "left", "right", "top", "height", "z-index"];
+  var ccDockProps = ["position", "left", "right", "top", "height", "width", "z-index"];
   var ccDockRaf = 0;
   function ccDockPass() { ccDockRaf = 0; ccDockProfile(); }
   function ccDockProfile() {
@@ -534,18 +534,40 @@
       var menuEl = document.getElementById("menu");
       var mz = menuEl ? parseInt(getComputedStyle(menuEl).zIndex, 10) : NaN;
       function set(p, v) { if (up.style.getPropertyValue(p) !== v) up.style.setProperty(p, v, "important"); }   // "important" beats the Tailwind utilities; diff-write = zero mutations once settled
+      // the triggers carry Tailwind MIN-width/height (36px) that beat even sheet !important
+      // height rules (live-proven) — enforce the 30px icon box INLINE per span
+      var sp = up.querySelectorAll(":scope > div:nth-child(2) > span");
+      for (i = 0; i < sp.length; i++) {
+        var ss = sp[i].style;
+        if (ss.getPropertyValue("min-height") !== "30px") { ss.setProperty("width", "30px", "important"); ss.setProperty("height", "30px", "important"); ss.setProperty("min-width", "30px", "important"); ss.setProperty("min-height", "30px", "important"); }
+      }
+      var vw = document.documentElement.clientWidth;
+      var target = Math.min(Math.round(r.right + 8), vw - 84);     // 8px right of the row tail, clamped into the viewport
       set("position", "fixed");
       set("right", "auto");
-      set("left", Math.round(r.right + 8) + "px");                 // pair opens 8px right of the last row item = the row's true tail
+      set("width", "76px");                                        // container = content: its native 236px width parked the flex-end row 160px right of `left` (live-proven off-screen boxes)
       set("top", Math.round(r.top + (r.height - 30) / 2) + "px");  // centre the 30px boxes on the icon line
       set("height", "30px");
       set("z-index", String(isFinite(mz) ? mz + 1 : 1000));        // above the sticky menu it overlaps
+      set("left", target + "px");
+      // MEASURED correction (v2.31.9 idiom): margins/justify inside the component can offset
+      // the visible row from the container edge — measure where it landed, shift by the delta.
+      var row = up.querySelector(":scope > div:nth-child(2)");
+      if (row) {
+        var rwr = row.getBoundingClientRect();
+        if (rwr.width > 0) {
+          var delta = target - Math.round(rwr.left);
+          if (delta) set("left", (parseInt(up.style.getPropertyValue("left"), 10) + delta) + "px");
+        }
+      }
     } catch (e) {}
   }
   function ccUndockProfile() {                                     // OFF branch: remove exactly the props we set -> fully native again
     try {
       var up = document.getElementById("UserProfile"); if (!up) return;
       for (var i = 0; i < ccDockProps.length; i++) up.style.removeProperty(ccDockProps[i]);
+      var sp = up.querySelectorAll(":scope > div:nth-child(2) > span");
+      for (i = 0; i < sp.length; i++) { ["width", "height", "min-width", "min-height"].forEach(function (p) { sp[i].style.removeProperty(p); }); }
     } catch (e) {}
   }
   function apply() {
@@ -610,6 +632,10 @@
       watchIsland();    // live footer observer so nchan status/temp updates flow into the chips
       watchProfile();   // debounced profile observer so uptime/edition/name rebuilds flow into chips + brand
       ccDockProfile();  // glue bell+burger onto the far right end of the menu icon row (re-measured every pass)
+      // late passes against STALE geometry (live-proven: the first pass measured the icon row
+      // 160px right of its settled position and nothing re-triggered) — the row settles as
+      // late-loading icons/styles arrive, so re-pin twice after the dust
+      setTimeout(ccDockProfile, 300); setTimeout(ccDockProfile, 1200);
     } catch (e) {}
   }
   // gui_search() prepends #guiSearchBoxSpan at the FAR-LEFT of .nav-tile.right, focuses

@@ -207,7 +207,9 @@ html.cc-header-on.cc-usage-isl #menu .usage-bar { display: none !important; }
 html.cc-header-on #cc-brand {
   display: inline-flex; align-items: center; gap: 10px;
   font-size: 22px; font-weight: 600; color: #f4f4f4; letter-spacing: .3px;
-  margin-left: var(--cc-align-left, 15px);
+  /* -8px: #header's own left offset (the wordmark sat at x=8) — without the correction
+     the brand landed at 23 instead of the tabs' 15 (live-measured) */
+  margin-left: calc(var(--cc-align-left, 15px) - 8px);
   margin-right: 14px; order: 0;   /* leftmost on the #header flex row (island 2, version chip 3) */
 }
 /* the native version dropdown trigger stays FUNCTIONAL, dressed as an S-tier chip */

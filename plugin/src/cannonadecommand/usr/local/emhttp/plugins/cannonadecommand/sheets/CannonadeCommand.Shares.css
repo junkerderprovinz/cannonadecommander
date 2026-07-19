@@ -363,8 +363,11 @@ html.cc-shares-on.cc-on-main #displaybox .usage-disk:not(.sys):not(.mm) > span:l
    hover/drag. touch-action:none so touch pointers drag instead of scrolling. */
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status thead td { position: relative; }
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status thead td > .cc-colgrip {
-  position: absolute; top: 0; bottom: 0; right: -4px; width: 8px;
-  cursor: col-resize; touch-action: none; user-select: none; z-index: 3;
+  /* right:0 (INSIDE the cell), never -4px: the overhang into the NEXT positioned head cell
+     painted the grip UNDER it — elementFromPoint returned the td, no pointer ever reached
+     the grip (live-proven; right:0 + z-index 30 restored the drag). */
+  position: absolute; top: 0; bottom: 0; right: 0; width: 8px;
+  cursor: col-resize; touch-action: none; user-select: none; z-index: 30;
 }
 html.cc-shares-on.cc-on-main #displaybox table.unraid.disk_status thead td > .cc-colgrip::after {
   content: ""; position: absolute; top: 15%; bottom: 15%; left: 3px; width: 2px;
@@ -445,8 +448,9 @@ html.cc-shares-on.cc-on-main #displaybox .TableContainer::-webkit-scrollbar-thum
    recipe mirrors the /Main block above 1:1, only the table family + page gate differ. ═══ */
 html.cc-shares-on.cc-on-shares #displaybox table.unraid.share_status thead td { position: relative; }
 html.cc-shares-on.cc-on-shares #displaybox table.unraid.share_status thead td > .cc-colgrip {
-  position: absolute; top: 0; bottom: 0; right: -4px; width: 8px;
-  cursor: col-resize; touch-action: none; user-select: none; z-index: 3;
+  /* right:0 + z-index 30 — same overdraw fix as the /Main grips above */
+  position: absolute; top: 0; bottom: 0; right: 0; width: 8px;
+  cursor: col-resize; touch-action: none; user-select: none; z-index: 30;
 }
 html.cc-shares-on.cc-on-shares #displaybox table.unraid.share_status thead td > .cc-colgrip::after {
   content: ""; position: absolute; top: 15%; bottom: 15%; left: 3px; width: 2px;

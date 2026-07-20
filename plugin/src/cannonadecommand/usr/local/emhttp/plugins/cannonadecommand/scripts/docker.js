@@ -2327,15 +2327,72 @@
       for (var i = 0; i < ws.length; i++) { var w = ws[i]; while (w.firstChild) w.parentNode.insertBefore(w.firstChild, w); w.parentNode.removeChild(w); }
     } catch (e) {}
   }
+  // VARIABLE LABELS AS BADGES (user: alle Variablen wie "Max Expiry" in ein Badge, ohne den
+  // Doppelpunkt). Each config row is <dl><dt><span>Label:</span></dt><dd>field</dd>. We class the
+  // label span (docker.css badges it) and strip the trailing ":" from its last text node, stashing
+  // the original in data-cc-lab for a clean teardown. Idempotent via the class guard.
+  function ctVarLabels() {
+    try {
+      var dts = document.querySelectorAll("#canvas dl > dt > span, .ui-dialog dl > dt > span");
+      for (var i = 0; i < dts.length; i++) {
+        var sp = dts[i];
+        if (sp.classList.contains("cc-varlab")) continue;
+        // strip the trailing colon on the LAST non-empty text node (keeps the leading icon)
+        for (var n = sp.childNodes.length - 1; n >= 0; n--) {
+          var nd = sp.childNodes[n];
+          if (nd.nodeType === 3 && nd.textContent.replace(/\s+/g, "")) {
+            if (!sp.getAttribute("data-cc-lab")) sp.setAttribute("data-cc-lab", nd.textContent);
+            nd.textContent = nd.textContent.replace(/\s*:\s*$/, "");
+            break;
+          }
+        }
+        sp.classList.add("cc-varlab");
+      }
+    } catch (e) {}
+  }
+  function ctVarLabelsTeardown() {
+    try {
+      var sps = document.querySelectorAll("#canvas dl > dt > span.cc-varlab, .ui-dialog dl > dt > span.cc-varlab");
+      for (var i = 0; i < sps.length; i++) {
+        var sp = sps[i], orig = sp.getAttribute("data-cc-lab");
+        if (orig) { for (var n = sp.childNodes.length - 1; n >= 0; n--) { var nd = sp.childNodes[n]; if (nd.nodeType === 3 && nd.textContent.replace(/\s+/g, "")) { nd.textContent = orig; break; } } }
+        sp.classList.remove("cc-varlab"); sp.removeAttribute("data-cc-lab");
+      }
+    } catch (e) {}
+  }
+  // COLOUR-PICKER for colour variables (user: bei Farb-Variablen ein Farbwählfeld wie in den CC
+  // Einstellungen). A config row whose LABEL/description mentions a colour (colour/color/hex/farbe)
+  // and holds a text input gets a swatch (a native <input type=color> styled as a CC dot) placed
+  // before the field, two-way synced. Empty text keeps the swatch at a neutral default (no write).
+  function ctColorFields() {
+    try {
+      var dls = document.querySelectorAll("#canvas dl, .ui-dialog dl");
+      for (var i = 0; i < dls.length; i++) {
+        var dl = dls[i], txt = (dl.textContent || "");
+        if (!/colou?r|\bhex\b|farbe/i.test(txt)) continue;
+        var inp = dl.querySelector('dd input[type="text"]');
+        if (!inp || inp.parentNode.querySelector(":scope > .cc-colorvar")) continue;
+        var sw = document.createElement("input"); sw.type = "color"; sw.className = "cc-colorvar";
+        sw.setAttribute(MARK, "1");
+        var hexOf = function (v) { v = String(v || "").trim(); return /^#?[0-9a-f]{6}$/i.test(v) ? (v[0] === "#" ? v : "#" + v) : ""; };
+        var seed = hexOf(inp.value); if (seed) sw.value = seed;
+        sw.addEventListener("input", function (e) { inp.value = e.target.value; try { inp.dispatchEvent(new Event("change", { bubbles: true })); } catch (e2) {} });
+        inp.addEventListener("input", function () { var h = hexOf(inp.value); if (h) sw.value = h; });
+        inp.parentNode.insertBefore(sw, inp);
+      }
+    } catch (e) {}
+  }
   function ctApply() {
     try {
       var root = document.documentElement;
       var on2 = localStorage.getItem("cc.enable.docker") !== "0" && themingOn();
       root.classList.toggle("cc-docker-on", on2);
       root.classList.toggle("cc-on-addct", on2 && onCtForm());   // page gate: every docker.css form rule requires BOTH classes
-      if (!on2) { ctSelectsTeardown(); ctTitleUnwrap(); return; }
+      if (!on2) { ctSelectsTeardown(); ctTitleUnwrap(); ctVarLabelsTeardown(); return; }
       applySettings();                                           // --cc-accent/-text + --cc-b-radius (+ rainbow vars) — same chokepoint as list mode
       ctTitleWrap();
+      ctVarLabels();                                             // every variable label -> a colon-free badge
+      ctColorFields();                                           // colour variables get a picker swatch
       // jQuery-UI dialogs (Konfiguration hinzufuegen) append to BODY, outside #canvas — their
       // selects rendered native (user screenshot). The body-childList observer re-enters here
       // when the dialog fills, so wrapping them in the same pass is enough.

@@ -111,7 +111,10 @@
 /* ACTIONS column: icon buttons, name as tooltip; "…" opens the native menu */
 .cc-actcell { white-space: nowrap; }
 .cc-act-th { font-size: 11px; }
-.cc-actbar { display: flex; flex-direction: column; gap: 4px; }
+/* MAX 4 icons per row (user call): a 4-column grid + the rows as display:contents flattens
+   every action button into one grid, so it wraps to a new row after the 4th regardless of how
+   many the "…" expander harvested. */
+.cc-actbar { display: grid; grid-template-columns: repeat(4, max-content); gap: 4px; justify-content: start; }
 /* the ACTIONS column only needs its two icon rows — 4×27px + gaps */
 .cc-enh thead tr:last-child th:nth-child(2) { width: 122px; }
 .cc-enh #docker_list tr.sortable > td:nth-child(2) { max-width: 122px; }
@@ -126,7 +129,7 @@ nav.tabs .tabs-container .cc-hgear-home:hover { background: #3a3a3a !important; 
 /* ShipLog's update-all pill is redundant here — Unraid's own Update-All button
    sits below the table. Hidden only while CannonadeCommand is installed. */
 a.sl-updall { display: none !important; }
-.cc-actrow { display: flex; gap: 4px; } /* row 1: webui/console/edit — row 2: restart/pause/stop/more */
+.cc-actrow { display: contents; } /* flatten the two semantic rows into the 4-col grid above */
 .cc-actoff { opacity: .35; cursor: default; }
 .cc-actoff:hover { background: #2e2e2e; color: #c9c9c9; }
 /* copyable IP badges react on hover like the plan chip */
@@ -993,6 +996,12 @@ html.cc-docker-on.cc-on-addct #canvas dl > dd > a:has(> i.fa-plus):hover,
 html.cc-docker-on.cc-on-addct #canvas a[href="javascript:addConfigPopup()"]:hover {
   background: var(--cc-rb-c, var(--cc-accent, #2f6feb)); color: var(--cc-rb-ct, var(--cc-accent-text, #fff)) !important;   /* rainbow: hover takes the stamped palette colour */
 }
+/* the "Weiteren Pfad …" add link is a DIRECT dd child that native CSS makes display:flex ->
+   it stretched to the full 1342px column (user: "viel zu breit"). Force content-width so it
+   matches the two collapsibles above it. */
+html.cc-docker-on.cc-on-addct #canvas dl > dd > a[href="javascript:addConfigPopup()"] {
+  display: inline-flex !important; width: fit-content !important; align-self: flex-start;
+}
 html.cc-docker-on.cc-on-addct #canvas #readmore_toggle a i.fa,
 html.cc-docker-on.cc-on-addct #canvas #allocations_toggle a i.fa,
 html.cc-docker-on.cc-on-addct #canvas dl > dd > a:has(> i.fa-plus) i.fa,
@@ -1025,8 +1034,16 @@ html.cc-docker-on.cc-on-addct #canvas .boxed span.orange-text { color: #9a9a9a !
    look (chips in a floating elevated panel, accent selected + hover), --cc-accent flavoured. */
 html.cc-docker-on.cc-on-addct .cc-dsel { position: relative; display: inline-block; }
 html.cc-docker-on.cc-on-addct .cc-dsel-trigger {
-  display: inline-flex; align-items: center; min-width: 220px;
-  background: rgba(255, 255, 255, .07); border-radius: 6px; padding: 6px 10px; color: #eaeaea; cursor: pointer;
+  /* MATCH the sibling text inputs (400x32 live-measured): the trigger was 240x29 and read as a
+     cramped bar, not a dropdown (user: "ein Feld wird zu klein angezeigt" — affects EVERY select
+     variable, this one rule fixes all). Fill the field width, 32px tall, and show a caret. */
+  display: inline-flex; align-items: center; justify-content: space-between; gap: 8px;
+  min-width: 260px; min-height: 32px; box-sizing: border-box;
+  background: rgba(255, 255, 255, .07); border-radius: 6px; padding: 4px 10px; color: #eaeaea; cursor: pointer;
+}
+html.cc-docker-on.cc-on-addct .cc-dsel-trigger::after {
+  content: ""; flex: 0 0 auto; width: 0; height: 0; margin-left: 4px;
+  border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid #cfcfcf;   /* dropdown caret */
 }
 html.cc-docker-on.cc-on-addct .cc-dsel-panel {
   display: none; position: absolute; z-index: 20; margin-top: 4px; flex-direction: column; gap: 6px;
@@ -1056,6 +1073,24 @@ html.cc-docker-on.cc-on-addct .cc-dsel-opt.is-disabled { opacity: .4; pointer-ev
    (live-diagnosed — NOT a bare text node, so the ctTitleWrap path never fires there; it stays
    as the fallback for builds that DO render bare text). Style span.left directly as the badge.
    div.title loses ALL borders here — the divider line under the title bar is illegal. */
+/* VARIABLE LABELS as badges (docker.js ctVarLabels adds .cc-varlab + strips the colon): the
+   dt label becomes an S/M grey badge, the leading fa icon rides inside it. */
+html.cc-docker-on.cc-on-addct #canvas dl > dt > span.cc-varlab,
+html.cc-docker-on.cc-on-addct .ui-dialog dl > dt > span.cc-varlab {
+  display: inline-flex !important; align-items: center; gap: 6px;
+  padding: var(--cc-bmd-pad, 4px 12px); border-radius: var(--cc-b-radius, 999px);
+  background: rgba(128, 128, 128, .18); color: #dcdcdc; font-weight: 600; line-height: 1.3;
+}
+html.cc-docker-on.cc-on-addct #canvas dl > dt > span.cc-varlab i.fa,
+html.cc-docker-on.cc-on-addct .ui-dialog dl > dt > span.cc-varlab i.fa { color: inherit !important; margin: 0 !important; }
+/* colour-variable swatch (docker.js ctColorFields): a native colour input dressed as a CC dot */
+html.cc-docker-on.cc-on-addct .cc-colorvar {
+  -webkit-appearance: none; appearance: none; width: 30px; height: 30px; padding: 0;
+  border: none !important; border-radius: min(var(--cc-b-radius, 8px), 8px); background: none; cursor: pointer;
+  flex: 0 0 auto; margin-right: 8px; vertical-align: middle;
+}
+html.cc-docker-on.cc-on-addct .cc-colorvar::-webkit-color-swatch { border: none; border-radius: min(var(--cc-b-radius, 8px), 8px); }
+html.cc-docker-on.cc-on-addct .cc-colorvar::-webkit-color-swatch-wrapper { padding: 0; }
 html.cc-docker-on.cc-on-addct div.title { border: none !important; padding-left: 0; }
 /* the form page joins the house left edge: #displaybox aligns with the main menu bar
    (--cc-align-left, set by header.js) — the badge sat 10px vs the menu's 15px (user). */

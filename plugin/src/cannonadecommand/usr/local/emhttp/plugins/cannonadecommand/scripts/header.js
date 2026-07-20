@@ -561,18 +561,16 @@
       set("height", "30px");
       set("z-index", String(isFinite(mz) ? mz + 1 : 1000));        // above the sticky menu it overlaps
       set("left", target + "px");
-      // MEASURED correction (v2.31.9 idiom): margins/justify inside the component can offset
-      // the visible row from the container edge — measure where it landed, shift by the delta.
-      // BOTH axes: the row also sat 4px below the icon line (inner margins, live-measured).
-      var targetTop = Math.round(r.top + (r.height - 30) / 2);
-      var row = up.querySelector(":scope > div:nth-child(2)");
-      if (row) {
-        var rwr = row.getBoundingClientRect();
-        if (rwr.width > 0) {
-          var delta = target - Math.round(rwr.left);
-          if (delta) set("left", (parseInt(up.style.getPropertyValue("left"), 10) + delta) + "px");
-          var deltaY = targetTop - Math.round(rwr.top);
-          if (deltaY) set("top", (parseInt(up.style.getPropertyValue("top"), 10) + deltaY) + "px");
+      // MEASURED correction against the VISIBLE BELL BOX (not the container/row — inner margins
+      // offset both from it, live-proven ±4px): align the first trigger's box exactly to the
+      // icon line on both axes. v2.31.9 idiom — measure where it landed, shift by the delta.
+      if (sp.length) {
+        var sr = sp[0].getBoundingClientRect();
+        if (sr.width > 0) {
+          var dx = target - Math.round(sr.left);
+          if (dx) set("left", (parseInt(up.style.getPropertyValue("left"), 10) + dx) + "px");
+          var dy = Math.round(r.top) - Math.round(sr.top);   // r = the icon rect; align box top to icon top
+          if (dy) set("top", (parseInt(up.style.getPropertyValue("top"), 10) + dy) + "px");
         }
       }
     } catch (e) {}

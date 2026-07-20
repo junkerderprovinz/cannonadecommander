@@ -117,10 +117,31 @@
       }
     } catch (e) {}
   }
+  // Connect popover (bell/burger menu) has no backdrop -> it floats over the page unclearly
+  // (user #13). Inject a dim+blur overlay BEHIND it while it's open; clicking it closes the menu
+  // (Escape, which reka honours). Runs from the same body-childList observer as the dialogs.
+  function ccPopoverDim() {
+    try {
+      if (!document.documentElement.classList.contains("cc-popups-on")) { var d0 = document.getElementById("cc-pop-dim"); if (d0) d0.style.display = "none"; return; }
+      var pop = document.querySelector(".bg-popover");
+      var dim = document.getElementById("cc-pop-dim");
+      if (!pop) { if (dim) dim.style.display = "none"; return; }
+      if (!dim) {
+        dim = document.createElement("div"); dim.id = "cc-pop-dim";
+        dim.addEventListener("pointerdown", function () { document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); });
+        document.body.appendChild(dim);
+      }
+      // sit just under the popover's stacking context so the menu stays crisp above the blur
+      var wrap = pop.closest("[data-reka-popper-content-wrapper]") || pop;
+      var pz = parseInt(getComputedStyle(wrap).zIndex, 10); if (!isFinite(pz)) pz = 50;
+      dim.style.zIndex = String(Math.max(1, pz - 1));
+      dim.style.display = "block";
+    } catch (e) {}
+  }
   var ccPopObs = null;
   function watchPopups() {
     try {
-      if (ccPopObs) return; ccPopObs = new MutationObserver(function () { paintPopups(); ccPopIframes(); });
+      if (ccPopObs) return; ccPopObs = new MutationObserver(function () { paintPopups(); ccPopIframes(); ccPopoverDim(); });
       ccPopObs.observe(document.body, { childList: true });   // dialogs/sweetalerts append as direct body children — cheap, no subtree
     } catch (e) {}
   }
@@ -556,7 +577,7 @@
   // Plugins-button pin (plugins.js) includes the docked pair in its right-edge measurement.
   // Diff-written styles are attribute-only mutations, which the childList-only profile observer
   // ignores -> no loop. Re-measured on apply()/scroll/resize/menu+profile passes.
-  var ccDockProps = ["position", "left", "right", "top", "height", "width", "z-index"];
+  var ccDockProps = ["position", "left", "right", "top", "height", "width", "z-index", "padding", "min-width"];
   var ccDockRaf = 0;
   function ccDockPass() { ccDockRaf = 0; ccDockProfile(); }
   function ccDockProfile() {
@@ -586,6 +607,11 @@
       var target = Math.min(Math.round(r.right + 8), vw - 84);     // 8px right of the row tail, clamped into the viewport
       set("position", "fixed");
       set("right", "auto");
+      // KILL the Tailwind pl-[160px]/pl-[30%]: with border-box that padding forced the box ≥160px
+      // wide, so its transparent left region OVERLAPPED the last two menu icons (syslog + help) and
+      // ate their clicks/hovers (user #10, live-proven: box left 1944 covered LogButton at 1967).
+      set("padding", "0");
+      set("min-width", "0");
       set("width", "76px");                                        // container = content: its native 236px width parked the flex-end row 160px right of `left` (live-proven off-screen boxes)
       set("top", Math.round(r.top + (r.height - 30) / 2) + "px");  // centre the 30px boxes on the icon line
       set("height", "30px");

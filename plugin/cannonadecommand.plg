@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.45.0">
+  <!ENTITY version   "2.46.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,14 @@
 </ICON>
 
 <CHANGES>
+### 2.46.0
+- #1 FIX (Menueleiste): Das Syslog- und das Fragezeichen-Icon liessen sich nicht anklicken und
+  zeigten keinen Hovertext -- die gedockte Glocke/Menue-Box hatte ein unsichtbares 160px-Polster,
+  das die beiden letzten Icons ueberdeckte und deren Klicks abfing. Polster genullt, Icons frei.
+- #2 Das Hamburger-Menue bekommt jetzt einen abgedunkelten, geblurrten Hintergrund (wie die
+  anderen CC-Fenster); aktive/ausgewaehlte Eintraege sind im CC-Akzent statt im nativen Orange,
+  und die "API offline"-Warnung ist dezent statt als greller Balken.
+
 ### 2.45.0
 - #1 Menueleisten-Icons/Tabs verschieben: Das Drag-and-Drop funktioniert jetzt beim ersten
   Mal. Bisher musste man oft 2-3x lange klicken, weil der native Browser-Drag erst beim
@@ -1498,7 +1506,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>5adf7819f8f1b892650e28e16960b60ace9a09ecdf8041073f180b22b21ce7e1</SHA256>
+  <SHA256>e4fd89710844ed7b5b3b2cc97456b617bc8c195aa2a23ac831da2ce7be048dd4</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

@@ -13,4 +13,27 @@ Link="cc-hdr-hook"
    gated behind html.cc-header-on, which the enhancer only sets when the user
    enables the "Hauptmenueleiste" area in CC settings. */
 ?>
+<!-- P19 FOUC-Killer: the header enhancer loads `defer`, so its class-stamping runs only AFTER the
+     body is parsed — the page paints NATIVE first, then snaps to the CC look (flash of unstyled
+     content). This tiny SYNCHRONOUS inline script (in <head>, before the deferred sheet paints
+     since same-<head> CSS is render-blocking) stamps the SAME global gating classes header.js
+     apply() sets, read straight from localStorage, so the already-loaded CC CSS applies from the
+     FIRST paint. It ONLY adds classes (never hides content), so a failure degrades to the old FOUC,
+     never a blank page. apply() re-stamps them idempotently and does the JS-DOM work as before. -->
+<script>
+(function () {
+  try {
+    var r = document.documentElement;
+    function g(k, d) { try { var v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; } }
+    var theming = g("cc.theming", "1") !== "0";
+    var on = g("cc.enable.header", "0") !== "0" && theming;
+    r.classList.toggle("cc-header-on", on);
+    r.classList.toggle("cc-shape-circle", g("cc.badgeshape", "pill") === "circle");
+    r.classList.toggle("cc-popups-on", theming);
+    r.classList.toggle("cc-footer-off", g("cc.footer", "1") === "1" && theming);
+    r.classList.toggle("cc-hide-favtab", g("cc.hidefavtab", "0") === "1" && theming);
+    r.classList.toggle("cc-usage-isl", on && g("cc.island", "1") !== "0");
+  } catch (e) {}
+})();
+</script>
 <script defer src="<?autov('/plugins/cannonadecommand/scripts/header.js')?>"></script>

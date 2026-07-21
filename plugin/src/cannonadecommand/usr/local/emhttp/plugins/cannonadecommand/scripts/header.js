@@ -701,6 +701,10 @@
       // copyright). DEFAULT HIDDEN — cc.footer="0" (settings toggle) brings it back. Same
       // master-gating idiom as cc-popups-on; the storage listener re-runs apply() live.
       root.classList.toggle("cc-footer-off", g("cc.footer", "1") === "1" && g("cc.theming", "1") !== "0");
+      // hide the native Favorites menu tab (user: "Favoriten ausblenden" — Unraid's own favorites=no
+      // does NOT hide the tab, and CC's own `#menu .nav-item{display:inline-flex!important}` even
+      // forces it visible; the sheet rule beats that on cc-hide-favtab). Master-gated only (chrome).
+      root.classList.toggle("cc-hide-favtab", g("cc.hidefavtab", "0") === "1" && g("cc.theming", "1") !== "0");
       // array-usage chip lives in the island now — hide the native menu usage-bar while the
       // island is on (its data source; the chip mirrors the text). Island off = native bar back.
       root.classList.toggle("cc-usage-isl", on && ccIslandOn());

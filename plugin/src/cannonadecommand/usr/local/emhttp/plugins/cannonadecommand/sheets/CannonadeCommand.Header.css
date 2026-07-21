@@ -41,6 +41,12 @@ html.cc-header-on:not(.Theme--sidebar) #menu .nav-tile > .nav-item {
   display: inline-flex !important; align-items: center !important; align-self: center !important;
   float: none !important; margin-top: 0 !important; margin-bottom: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important;
 }
+/* HIDE the Favorites menu tab on demand (settings toggle cc.hidefavtab -> html.cc-hide-favtab).
+   Unraid's own favorites=no does NOT hide the tab, and the rule right above force-shows every
+   nav-item (inline-flex !important) — so this needs a higher specificity than (1,4,1) to win.
+   The .nav-tile>.nav-item variant covers header-off too (beats Unraid's non-important flex). */
+html.cc-hide-favtab.cc-header-on #menu .nav-item:has(> a[href="/Favorites"]),
+html.cc-hide-favtab #menu .nav-tile > .nav-item:has(> a[href="/Favorites"]) { display: none !important; }
 html.cc-header-on #menu .nav-tile .nav-item:not(.util):not(.gui_search) > a {
   display: inline-flex !important; align-items: center; justify-content: center;
   line-height: 1; height: var(--cc-md-h, 30px) !important; padding: var(--cc-md-pad, 0 20px) !important; margin: 0 3px; /* same metrics as the CC settings tabs */

@@ -294,6 +294,10 @@
           } catch (e9) {}
         }).catch(function () {});
       }
+      // Favoriten-Tab ausblenden (user: Unraids favorites=no blendet den Menü-Tab NICHT aus, und CC
+      // erzwingt ihn sogar sichtbar) — CC-eigener Schalter, blendet den /Favorites-Menü-Tab per Klasse
+      // (html.cc-hide-favtab, header.js) sofort aus. Kein Reload nötig.
+      tc.appendChild(toggleRow(T("Favoriten-Tab ausblenden", "Hide Favorites tab"), get("cc.hidefavtab", "0") === "1", function (v) { set("cc.hidefavtab", v ? "1" : "0"); syncHeaderBar(); }));
       themingCard = tc;
       wrapMain.appendChild(tc);
     })();

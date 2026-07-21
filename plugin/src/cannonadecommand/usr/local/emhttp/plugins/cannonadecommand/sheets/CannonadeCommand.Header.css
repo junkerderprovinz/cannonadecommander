@@ -158,9 +158,9 @@ html.cc-header-on #cc-island {
      the 91px strip. Bubbles come from the global #cc-tipfloat engine (viewport-clamped), so no
      per-chip ::after rules live here any more. */
   flex-wrap: wrap; justify-content: flex-end; max-width: 430px;
-  /* 96px right reserve: the version chip sits ABSOLUTE in the strip's top-right corner and
-     visually completes the island's FIRST row (user call) */
-  margin-left: auto; margin-right: 96px; align-self: center;
+  /* N10: the version-number chip now lives INSIDE the island (header.js), so no floating chip to
+     reserve room for — the whole set aligns right in 2-3 rows against the strip's right edge. */
+  margin-left: auto; margin-right: 16px; align-self: center;
   order: 2;
 }
 html.cc-header-on #cc-island .cc-isl-chip {
@@ -229,18 +229,17 @@ html.cc-header-on unraid-header-os-version span[id^="reka-menu-trigger"]:focus,
 html.cc-header-on unraid-header-os-version span[id^="reka-menu-trigger"]:focus-visible {
   outline: none !important; box-shadow: none !important; text-decoration: none !important;
 }
-/* the COMPONENT sits ABSOLUTE in the strip's TOP-RIGHT corner (user call: the version chip
-   belongs to the island's FIRST line): the island keeps a matching right reserve below, so
-   the chip visually completes row one of the chip block. CSS-only, no DOM moves — law. */
-html.cc-header-on unraid-header-os-version { display: inline-flex; align-items: flex-start; position: absolute; top: 10px; right: 12px; height: auto; }
-html.cc-header-on unraid-header-os-version > div { margin: 0 !important; }
+/* N10: the native floating version component is HIDDEN — its version number now renders as a
+   proper island chip (header.js cc-isl-ver), so every chip aligns right in 2-3 rows instead of
+   one chip floating apart in the corner. CSS-only, no DOM moves — law. */
+html.cc-header-on unraid-header-os-version { display: none !important; }
 
 /* 3) bell + burger: div#UserProfile is DOCKED at the FAR RIGHT END of the MENU icon row by
    header.js ccDockProfile() (inline position:fixed, left = 8px right of the row's last visible
    item — no DOM move, auto-mount-safe); the .nav-tile.right 84px padding-right (right-edge
    section below) reserves the room. After the hides the controls row keeps only the two
    trigger boxes. */
-html.cc-header-on #UserProfile > div:nth-child(2) { align-items: center; gap: 8px; }
+html.cc-header-on #UserProfile > div:nth-child(2) { align-items: center; gap: 6px; }   /* bell<->burger = the 6px util-icon gap (N5) */
 /* bell + burger dress EXACTLY like the utility icon boxes beside them (user call): accent
    fill + contrast glyph in normal mode, grey fill + grey glyph in the reactive sub-mode —
    the native glyph STATE colours (yellow bell, red warning) are overridden for consistency */
@@ -274,19 +273,41 @@ html.cc-popups-on .bg-popover {
 }
 /* dim + blur backdrop behind the bell/burger menu (header.js ccPopoverDim injects #cc-pop-dim) */
 #cc-pop-dim { position: fixed; inset: 0; background: rgba(0, 0, 0, .5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
-/* highlighted/active menu items -> CC accent (kills the native orange gradient); hover = accent */
+/* highlighted/active menu items -> CC accent SOLID (kills the native orange gradient). The gradient
+   can sit on the item OR a child, and reka-ui marks the active item several ways, so cover them all
+   (N6: the old rule missed data-state / the child gradient node). */
 html.cc-popups-on .bg-popover :is(button, a, [role="menuitem"], li):hover,
 html.cc-popups-on .bg-popover [data-highlighted],
+html.cc-popups-on .bg-popover [data-state="active"],
+html.cc-popups-on .bg-popover [data-state="open"],
+html.cc-popups-on .bg-popover [data-active],
 html.cc-popups-on .bg-popover [aria-selected="true"],
+html.cc-popups-on .bg-popover [aria-current],
 html.cc-popups-on .bg-popover .active {
   background: var(--cc-hdr-accent, #2f6feb) !important; background-image: none !important; color: var(--cc-hdr-accent-text, #fff) !important; border-radius: min(var(--cc-b-radius, 8px), 10px);
 }
-/* the "API offline" warning row -> calm CC warning (rötlich getönt, kein Alarm-Balken) */
-html.cc-popups-on .bg-popover li:first-child:has(> div) {
-  background: rgba(217, 67, 63, .16) !important; border-radius: min(var(--cc-b-radius, 8px), 10px); padding: 8px 10px !important;
+/* strip any residual gradient/background-image from the active item's CHILDREN and every
+   gradient-classed node inside the popover (the orange fill is a Tailwind gradient utility) */
+html.cc-popups-on .bg-popover [data-highlighted] *,
+html.cc-popups-on .bg-popover [data-state="open"] *,
+html.cc-popups-on .bg-popover [aria-selected="true"] *,
+html.cc-popups-on .bg-popover [class*="gradient"] {
+  background-image: none !important;
 }
-html.cc-popups-on .bg-popover li:first-child :is(.bg-red-500, [class*="bg-red"], [class*="bg-orange"]) {
-  background: transparent !important; background-image: none !important; color: #e0655f !important; font-weight: 600;
+/* the "API offline" warning row -> calm CC warning (rötlich getönt, kein Alarm-Balken), NO frame/
+   border/ring (law). Cover the first-child box AND any red/orange bordered/alert node. */
+html.cc-popups-on .bg-popover li:first-child:has(> div),
+html.cc-popups-on .bg-popover [role="alert"],
+html.cc-popups-on .bg-popover [class*="border-red"],
+html.cc-popups-on .bg-popover [class*="border-orange"],
+html.cc-popups-on .bg-popover [class*="ring-red"] {
+  background: rgba(217, 67, 63, .16) !important; background-image: none !important;
+  border: none !important; box-shadow: none !important; outline: none !important; --tw-ring-shadow: 0 0 #0000 !important;
+  border-radius: min(var(--cc-b-radius, 8px), 10px); padding: 8px 10px !important;
+}
+html.cc-popups-on .bg-popover li:first-child :is(.bg-red-500, [class*="bg-red"], [class*="bg-orange"]),
+html.cc-popups-on .bg-popover [role="alert"] :is([class*="bg-red"], [class*="bg-orange"]) {
+  background: transparent !important; background-image: none !important; color: #e0655f !important; font-weight: 600; border: none !important; box-shadow: none !important;
 }
 
 /* ═══ right-edge room: the docked bell + burger extend the icon row ═══
@@ -390,6 +411,29 @@ html.cc-popups-on .sweet-alert h2 {
   font-size: var(--cc-lgb-fs, 14px) !important; font-weight: 600 !important;
   text-transform: uppercase !important; letter-spacing: .6px !important; margin: 4px auto 14px !important;
 }
+/* N1 — PLUGIN changelog / install / update windows (they stream output into a <pre>): the TOP title
+   badge spans the FULL WIDTH and is bigger (user: "viel größer und über die ganze Breite"). The
+   small confirmations (favourites etc., no <pre>) keep the compact centred badge above. */
+html.cc-popups-on .sweet-alert:has(pre) h2 {
+  display: flex !important; width: 100% !important; max-width: none !important; box-sizing: border-box !important;
+  margin: 6px 0 18px !important; height: 46px !important; padding: 0 24px !important;
+  font-size: 17px !important; letter-spacing: 1px !important;
+}
+/* the changelog body inside the <pre>: render the parsed markdown as blocks, turn each version
+   heading into a small CC version badge, and lay the items out as a clean list (CC badge language). */
+html.cc-popups-on .sweet-alert pre {
+  white-space: normal !important; background: transparent !important; border: none !important;
+  box-shadow: none !important; text-align: left !important; font-family: inherit !important;
+  max-height: 60vh; overflow-y: auto;
+}
+html.cc-popups-on .sweet-alert pre h3 {
+  display: inline-flex !important; align-items: center;
+  background: var(--cc-hdr-accent, #2f6feb) !important; color: var(--cc-hdr-accent-text, #fff) !important;
+  padding: 3px 12px !important; border-radius: var(--cc-b-radius, 999px) !important;
+  font-size: 13px !important; font-weight: 700 !important; margin: 16px 0 8px !important; letter-spacing: .5px;
+}
+html.cc-popups-on .sweet-alert pre ul { margin: 0 0 6px !important; padding-left: 20px !important; }
+html.cc-popups-on .sweet-alert pre li { color: #d6d6d6 !important; margin: 3px 0 !important; line-height: 1.5; }
 /* the native success/error/warning icon rings sit calmer on the dark surface */
 html.cc-popups-on .sweet-alert .sa-icon { margin-top: 6px !important; }
 html.cc-popups-on .ui-dialog .ui-dialog-titlebar-close {
@@ -446,6 +490,47 @@ html.cc-popups-on .sweet-alert .sa-button-container button {
 html.cc-popups-on .sweet-alert button.confirm { background: var(--cc-hdr-accent, #2f6feb) !important; color: var(--cc-hdr-accent-text, #fff) !important; }
 html.cc-popups-on .sweet-alert button.cancel { background: #2e2e2e !important; color: #e6e6e6 !important; }
 html.cc-popups-on .sweet-alert .sa-button-container button:hover { filter: brightness(1.14); }
+
+/* ═══ t4t5 SweetAlert (.swal-modal / .swal-overlay) -> CC look ═══
+   The Unassigned Devices plugin bundles a SECOND sweetalert (t4t5 v2, .swal-* classes) for its
+   "remove saved configuration" confirm — CC's .sweet-alert rules above never reached it, so it stayed
+   native WHITE with orange-outlined buttons (user). Same dark carbon surface + CC pill buttons; the
+   .swal-modal prefix beats the plugin's own themed button rules. Live-verified on the UD remove dialog. */
+html.cc-popups-on .swal-overlay { background: rgba(0, 0, 0, .6) !important; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+html.cc-popups-on .swal-modal { background: #161616 !important; border: none !important; border-radius: 12px !important; box-shadow: 0 18px 50px rgba(0, 0, 0, .6) !important; }
+html.cc-popups-on .swal-modal .swal-title { color: #f2f2f2 !important; font-weight: 600 !important; }
+html.cc-popups-on .swal-modal .swal-text { color: #bdbdbd !important; text-align: center !important; }
+html.cc-popups-on .swal-modal .swal-footer { text-align: center !important; }
+html.cc-popups-on .swal-modal .swal-button {
+  border: none !important; box-shadow: none !important; border-radius: var(--cc-b-radius, 999px) !important;
+  height: var(--cc-lgb-h, 36px); padding: 0 24px !important; font-size: var(--cc-lgb-fs, 14px) !important;
+  font-weight: 600 !important; text-transform: uppercase !important; letter-spacing: .6px !important;
+  cursor: pointer; transition: filter .12s;
+  background: var(--cc-hdr-accent, #2f6feb) !important; background-image: none !important; color: var(--cc-hdr-accent-text, #fff) !important;
+}
+html.cc-popups-on .swal-modal .swal-button--cancel { background: #2e2e2e !important; color: #e6e6e6 !important; }
+html.cc-popups-on .swal-modal .swal-button:hover { filter: brightness(1.14) !important; }
+html.cc-popups-on .swal-modal .swal-button:focus { box-shadow: none !important; outline: none !important; }
+
+/* ═══ NOTIFICATION CENTRE (Connect bell) -> floating CC window (P14) ═══
+   The bell opens a full-height right-edge Sheet (reka-ui, div.fixed.z-50.bg-background inside the
+   .unapi host, LIGHT DOM so outside CSS reaches it). User: make it a FLOATING window in CC style.
+   Detach it from the edges into a rounded top-right card with the CC surface + shadow, no border-line
+   (law). Fragile Tailwind-class hook — if Connect renames these utilities the rule fails SOFT (the
+   native full-height sheet returns). Live-verified: floats top-right, content reflows in-bounds. */
+html.cc-popups-on .unapi div.fixed.z-50.bg-background {
+  inset: 74px 16px auto auto !important;
+  height: auto !important; max-height: 78vh !important; min-height: 0 !important;
+  width: 420px !important; max-width: calc(100vw - 32px) !important;
+  border: none !important; border-radius: 14px !important;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .6) !important;
+  background-color: #161616 !important;
+  overflow: hidden !important;
+}
+/* the injected "Alle löschen" button (header.js ccNotifDelBtn) clones the native "Alle archivieren"
+   chrome; tint it red so it reads as a DELETE (P14). Clears everything via GraphQL, count drops live. */
+html.cc-popups-on .cc-notif-del { color: #ff6b6b !important; }
+html.cc-popups-on .cc-notif-del:hover { color: #ff8a8a !important; filter: brightness(1.05); }
 
 /* Drag-and-drop menu-tab ordering (v2.24.1): the cursor stays the NORMAL link pointer on hover — no grab
    hand. Draggability is armed by a press-and-HOLD (~450ms, in header.js): the bar enters reorder mode and

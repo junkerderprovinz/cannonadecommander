@@ -135,8 +135,10 @@ a.sl-updall { display: none !important; }
 /* copyable IP badges react on hover like the plan chip */
 .cc-b-copy { cursor: pointer; transition: filter .12s, transform .12s; }
 .cc-b-copy:hover { filter: brightness(1.18); transform: translateY(-1px); }
-.cc-actmore { display: none; margin-top: 4px; }
-.cc-actmore.cc-open { display: flex; flex-wrap: wrap; }
+/* `more` is a grid row inside .cc-actbar: hidden when closed, flows into the SAME
+   4-column grid (display:contents) when open so expander icons align + gap-match. */
+.cc-actmore { display: none; }
+.cc-actmore.cc-open { display: contents; }
 .cc-act-flash .cc-actbtn { animation: cc-actflash .5s ease 3; }
 @keyframes cc-actflash { 0%, 100% { box-shadow: none; } 50% { box-shadow: 0 0 0 3px var(--cc-btn-accent, var(--cc-accent, #2f6feb)); } }
 .cc-actbtn { width: 27px; height: 26px; border-radius: 6px; background: #2e2e2e; color: #c9c9c9; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 13px; user-select: none; transition: background .12s, color .12s; }
@@ -800,6 +802,10 @@ html.cc-plugins-iconbg .cc-plugico {
 /* hex text field beside the colour picker (override Unraid's input underline) */
 #cc-settings .cc-set-hexin { flex: none; width: 104px; font-family: ui-monospace, "Cascadia Code", monospace; text-transform: uppercase; letter-spacing: .5px; background: #1e1e1e !important; color: var(--txt); border: 1px solid var(--line2) !important; border-radius: 6px !important; padding: 8px 10px !important; font-size: 13px; box-sizing: border-box; }
 #cc-settings .cc-set-hexin:focus { outline: none; border-color: var(--cc-accent, #2f6feb) !important; }
+/* native <select> styled as a borderless CC control (Servername size/weight/italic/font pickers) */
+#cc-settings .cc-set-sel { flex: 1; min-width: 0; -webkit-appearance: none; -moz-appearance: none; appearance: none; background-color: #232323 !important; color: var(--txt); border: 0 !important; border-radius: 8px !important; padding: 8px 34px 8px 12px !important; font-size: 13px; cursor: pointer; box-sizing: border-box; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" fill="none" stroke="%23888" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>') !important; background-repeat: no-repeat !important; background-position: right 12px center !important; }
+#cc-settings .cc-set-sel:focus { outline: none; }
+#cc-settings .cc-set-sel option { background: #1e1e1e; color: #f4f4f4; }
 .cc-set-prev { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; align-items: center; }
 .cc-set-prev .cc-b-lg { font-size: 15px; font-weight: 700; padding: 6px 16px; letter-spacing: .2px; } /* preview NAME headline badge — 15px / 6px 16px = the live Shares lg tier (Shares.css --cc-lg-*) */
 /* Hauptmenueleiste preview: mock of the top nav TABS (idle grey pill + one accent-filled
@@ -977,6 +983,17 @@ html.cc-docker-on.cc-on-addct #canvas input[type="submit"]:hover:not(:disabled),
 html.cc-docker-on.cc-on-addct #canvas input[type="button"]:hover:not(:disabled),
 html.cc-docker-on.cc-on-addct #canvas button:hover:not(:disabled),
 html.cc-docker-on.cc-on-addct .ui-dialog .ui-dialog-buttonpane button:hover { filter: brightness(1.14); }
+/* P8 — container install/update PROGRESS: after "Anwenden" Unraid streams the docker pull/run
+   output into a raw <pre> on this same page. Give it the CC dark console surface (the Anwenden/
+   Fertig buttons above are already CC pills). Scoped to the addct page so no other <pre> is hit. */
+html.cc-docker-on.cc-on-addct #canvas pre,
+html.cc-docker-on.cc-on-addct #template-editor pre,
+html.cc-docker-on.cc-on-addct pre.text {
+  background: #0e0e0e !important; border: none !important; border-radius: 10px !important;
+  color: #d6d6d6 !important; padding: 14px 16px !important; box-shadow: none !important;
+  line-height: 1.5 !important; margin: 12px 0 !important;
+  font-family: ui-monospace, "Cascadia Code", "Consolas", monospace !important;
+}
 /* collapsible-row actions ("Mehr Einstellungen zeigen", "Docker-Zuweisungen", "+ Weiteren Pfad,
    Port, ..."): muted action pills — accent fill on hover, NO underline, NO rings (feedback =
    fill only, law). The fa chevron/plus glyphs inherit the pill colour. */
@@ -1073,16 +1090,30 @@ html.cc-docker-on.cc-on-addct .cc-dsel-opt.is-disabled { opacity: .4; pointer-ev
    (live-diagnosed — NOT a bare text node, so the ctTitleWrap path never fires there; it stays
    as the fallback for builds that DO render bare text). Style span.left directly as the badge.
    div.title loses ALL borders here — the divider line under the title bar is illegal. */
-/* VARIABLE LABELS as badges (docker.js ctVarLabels adds .cc-varlab + strips the colon): the
-   dt label becomes an S/M grey badge, the leading fa icon rides inside it. */
+/* FIELD LABELS as badges — docker.js ctVarLabels adds .cc-varlab (ENV var <span>) OR .cc-dtlab
+   (top-level bare <dt>) and strips the trailing colon. The tint FOLLOWS the colour mode: the
+   accent normally, the rainbow-primary (--cc-btn-accent) in rainbow mode. Required fields get a
+   red dot (.cc-req::after) — it reads in both modes, where a red fill would drown in rainbow. */
 html.cc-docker-on.cc-on-addct #canvas dl > dt > span.cc-varlab,
-html.cc-docker-on.cc-on-addct .ui-dialog dl > dt > span.cc-varlab {
-  display: inline-flex !important; align-items: center; gap: 6px;
+html.cc-docker-on.cc-on-addct .ui-dialog dl > dt > span.cc-varlab,
+html.cc-docker-on.cc-on-addct #canvas dl > dt.cc-dtlab,
+html.cc-docker-on.cc-on-addct .ui-dialog dl > dt.cc-dtlab {
+  display: inline-flex !important; align-items: center; gap: 6px; justify-self: start; width: fit-content; max-width: 100%;
   padding: var(--cc-bmd-pad, 4px 12px); border-radius: var(--cc-b-radius, 999px);
-  background: rgba(128, 128, 128, .18); color: #dcdcdc; font-weight: 600; line-height: 1.3;
+  background: rgba(128, 128, 128, .18); /* fallback if color-mix is unsupported */
+  background: color-mix(in srgb, var(--cc-btn-accent, var(--cc-accent, #2f6feb)) 20%, #262626);
+  color: #ececec; font-weight: 600; line-height: 1.3;
 }
 html.cc-docker-on.cc-on-addct #canvas dl > dt > span.cc-varlab i.fa,
-html.cc-docker-on.cc-on-addct .ui-dialog dl > dt > span.cc-varlab i.fa { color: inherit !important; margin: 0 !important; }
+html.cc-docker-on.cc-on-addct .ui-dialog dl > dt > span.cc-varlab i.fa,
+html.cc-docker-on.cc-on-addct #canvas dl > dt.cc-dtlab i.fa,
+html.cc-docker-on.cc-on-addct .ui-dialog dl > dt.cc-dtlab i.fa { color: inherit !important; margin: 0 !important; }
+html.cc-docker-on.cc-on-addct #canvas dl > dt > span.cc-varlab.cc-req::after,
+html.cc-docker-on.cc-on-addct .ui-dialog dl > dt > span.cc-varlab.cc-req::after,
+html.cc-docker-on.cc-on-addct #canvas dl > dt.cc-dtlab.cc-req::after,
+html.cc-docker-on.cc-on-addct .ui-dialog dl > dt.cc-dtlab.cc-req::after {
+  content: ""; flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: #ff5b57;
+}
 /* colour-variable swatch (docker.js ctColorFields): a native colour input dressed as a CC dot */
 html.cc-docker-on.cc-on-addct .cc-colorvar {
   -webkit-appearance: none; appearance: none; width: 30px; height: 30px; padding: 0;
@@ -1290,6 +1321,14 @@ html.cc-actbar-hot.cc-shares-rbneutral.cc-docker-on #docker_list tr.sortable:hov
    cc-plugins-iconbg is only ever stamped on /Plugins, so nothing can leak elsewhere. */
 html.cc-shares-rbneutral.cc-plugins-iconbg .cc-plugico { background: rgba(128, 128, 128, .18) !important; }
 html.cc-shares-rbneutral.cc-plugins-iconbg #plugin_list tr:hover .cc-plugico { background: var(--cc-iconbg-color, var(--cc-accent, #2f6feb)) !important; }
+/* N2 — reactive rainbow on the WHOLE plugin row (not just the logo): CC badges rest grey
+   (plugins.js restBg) and take the row's stamped palette colour (--cc-rb-c) on hover, like the
+   Docker rows. Semantic status/update pills keep their own colour and are excluded. */
+html.cc-shares-rbneutral.cc-on-plugins #plugin_list tr:hover .cc-b:not(.cc-b-del),
+html.cc-shares-rbneutral.cc-on-plugins #plugin_list tr:hover .cc-plugsup {
+  background: var(--cc-rb-c, var(--cc-accent, #2f6feb)) !important; color: var(--cc-rb-ct, var(--cc-accent-text, #fff)) !important;
+}
+html.cc-shares-rbneutral.cc-on-plugins #plugin_list tr:hover .cc-plugico { background: var(--cc-rb-c, var(--cc-accent, #2f6feb)) !important; }
 /* CC-SETTINGS tab strip (companion to the settings.js --cc-rb-c stamping): idle tabs already
    rest on their grey base rule and take the stamped palette colour on hover; the ACTIVE tab is
    excluded so its painted colour (inline, settings.js) can never lose to this !important. */

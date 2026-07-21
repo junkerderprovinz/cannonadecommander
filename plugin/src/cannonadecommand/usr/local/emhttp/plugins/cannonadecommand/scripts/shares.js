@@ -1816,7 +1816,10 @@
   function ccUdBadgeCell(td) {
     if (!td || td.classList.contains("cc-bcell")) return;
     if (td.hasAttribute("colspan") || td.classList.contains("mount")) return;
-    if (td.querySelector(".usage-disk, button, select, input, i.fa-gears")) return;
+    // action cells (settings gear + REMOVE/delete X) are icon buttons, not text badges — the CSS
+    // dresses them (gear=accent, remove=red with a WHITE glyph). Wrapping the red remove X in a red
+    // badge made it invisible (user), so skip it here just like the gear.
+    if (td.querySelector(".usage-disk, button, select, input, i.fa-gears, i.fa-remove, i.fa-times, i.fa-trash, i.fa-trash-o, i.fa-ban")) return;
     if (td.querySelector("a.cc-b-name")) return;
     var txt = (td.textContent || "").trim(); if (txt === "" || txt === "-" || txt === "*") return;
     var b = el("span", "cc-b"), v = el("span", "cc-b-v");
@@ -1838,9 +1841,10 @@
         for (var r = 0; r < rows.length; r++) {
           var tr = rows[r]; if (tr.tagName !== "TR" || tr.getAttribute("data-cc-ud")) continue;
           tr.setAttribute("data-cc-ud", "1");   // set-and-bail: rows are re-created fresh on every 3s refill
+          var tds = tr.children;
           var nl = tr.querySelector('td:first-child a[href^="/Main/"]');   // /Main/Device?name= or /Main/New?name=
           if (nl && !nl.classList.contains("cc-b-name")) { nl.classList.add("cc-b"); nl.classList.add("cc-b-name"); }
-          var tds = tr.children;
+          else if (!nl && tds[0]) ccUdBadgeCell(tds[0]);   // HISTORICAL rows: the device name (e.g. "dev1") is plain TEXT (removed device -> no /Main link), so badge col 0 too (user)
           for (var c = 1; c < tds.length; c++) ccUdBadgeCell(tds[c]);
         }
       }

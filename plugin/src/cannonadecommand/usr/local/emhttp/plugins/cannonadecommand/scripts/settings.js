@@ -209,7 +209,7 @@
     var head = el("div", "cc-set-head");
     var hero = el("div", "cc-set-hero");
     var hleft = el("div", "cc-set-heroleft");
-    var lg = el("img", "cc-set-logo"); lg.src = "/plugins/cannonadecommand/images/logo.svg"; lg.alt = "";
+    var lg = el("img", "cc-set-logo"); lg.src = "/plugins/cannonadecommand/images/cannonadecommand-unraid.svg"; lg.alt = "";   // theme-safe double-ring variant (reads on every Unraid theme)
     hleft.appendChild(lg);
     var htx = el("div", null);
     var brand = el("div", "cc-set-brand"); brand.appendChild(el("b", null, "Cannonade")); brand.appendChild(el("span", null, "Command"));
@@ -483,6 +483,13 @@
     prev.appendChild(pvName); prev.appendChild(pvVal); prev.appendChild(pvTab);
     prev.id = "cc-set-prev"; c1.appendChild(prev);
     wrapMain.appendChild(c1); // GLOBAL badge colour + rainbow -> the "Allgemein" tab (was the Docker tab)
+    // ── Dichte (GLOBAL): cc.density is ONE key that every list (Docker, Start, Freigaben) reads,
+    // so it belongs in Allgemein with the other global controls — not buried in the Docker tab.
+    (function () {
+      var cD = card(T("Dichte", "Density"), T("Zeilenhöhe für alle Listen (Docker, Start, Freigaben) auf einmal.", "Row height for every list (Docker, Start, Shares) at once."));
+      cD.appendChild(segRow(T("Dichte (global)", "Density (global)"), [["compact", T("Kompakt", "Compact")], ["normal", "Normal"], ["airy", T("Luftig", "Airy")]], density, function (v) { density = v; set("cc.density", v); }));
+      wrapMain.appendChild(cD);
+    })();
     // ── Logos & Icons (GLOBAL): edits the shared cc.iconbg / cc.iconcolor / cc.iconstrength
     // keys every adopting tab resolves through eff('icon…'). Same control set as the per-area
     // Logos cards, minus the preview (this card is the source, not a consumer).
@@ -618,13 +625,11 @@
     c3.appendChild(tbl);
     wrap.appendChild(c3);
 
-    // ── View + density ──
+    // ── View ──
+    // (Dichte is ONE GLOBAL key and lives in the Allgemein tab now — see the global density
+    //  card added to wrapMain below, so the user finds it with the other global controls.)
     var c4 = card(T("Ansicht", "View"), null);
     c4.appendChild(segRow(T("Standard-Ansicht", "Default view"), [["list", T("Liste", "List")], ["grid", T("Raster", "Grid")]], view, function (v) { view = v; set("cc.view", v); }));
-    // cc.density is ONE GLOBAL key — Docker + Start + Freigaben all read it (user: "einfach global")
-    var dRow = segRow(T("Dichte (global)", "Density (global)"), [["compact", T("Kompakt", "Compact")], ["normal", "Normal"], ["airy", T("Luftig", "Airy")]], density, function (v) { density = v; set("cc.density", v); });
-    dRow.insertBefore(infoIcon(T("Zeilenhöhe für alle Listen (Docker, Start, Freigaben) auf einmal.", "Row height for every list (Docker, Start, Shares) at once.")), dRow.lastChild);
-    c4.appendChild(dRow);
     function applyShape() { var m9 = { pill: "999px", rounded: "6px", square: "0px", circle: "999px" }; var sh9 = get("cc.badgeshape", "pill"); var r9 = m9[sh9] || "999px"; root.style.setProperty("--cc-b-radius", r9); document.documentElement.style.setProperty("--cc-b-radius", r9); document.documentElement.classList.toggle("cc-shape-circle", sh9 === "circle"); var d9 = { pill: "50%", rounded: "3px", square: "0px", circle: "50%" }[sh9] || "50%"; document.documentElement.style.setProperty("--cc-dot-r", d9); /* dot token: the preset swatches follow the badge form too (user call) */ }
     wrap.appendChild(c4);
     // Badge-Form (shape) is a single GLOBAL control in the Allgemein "Badges" card now — not per
@@ -950,45 +955,54 @@
       // per-element checklist (user: an/abhaken welche Chips die Insel zeigt); header.js renders
       // them in a FIXED order and reads cc.isl.<key> live. Default all on.
       cI.appendChild(el("div", "cc-set-lbl", T("Angezeigte Elemente", "Shown elements")));
-      [["uptime", T("Betriebszeit", "Uptime")], ["os", T("Unraid-Edition", "Unraid edition")], ["array", T("Array-Zustand", "Array state")], ["fill", T("Array-Füllstand", "Array usage")], ["temps", T("Temperaturen", "Temperatures")]].forEach(function (it) {
+      [["uptime", T("Betriebszeit", "Uptime")], ["os", T("Unraid-Edition", "Unraid edition")], ["version", T("Unraid-Version", "Unraid version")], ["array", T("Array-Zustand", "Array state")], ["fill", T("Array-Füllstand", "Array usage")], ["temps", T("Temperaturen", "Temperatures")]].forEach(function (it) {
         cI.appendChild(toggleRow(it[1], get("cc.isl." + it[0], "1") !== "0", function (v) { set("cc.isl." + it[0], v ? "1" : "0"); syncHeaderBar(); }));
       });
       cI.appendChild(segRow(T("Temperatur-Warnschwelle", "Temperature warning threshold"), [["50", "50 °C"], ["60", "60 °C"], ["70", "70 °C"]], get("cc.tempwarn", "60"), function (v) { set("cc.tempwarn", v); syncHeaderBar(); }));
       wrapHeader.appendChild(cI);
     })();
     // ── SERVERNAME card (user: size/weight/italic/font/colour customisable). header.js reads the
-    // cc.brand.* keys live and inlines them on span.cc-brand-name; a live preview mirrors it here.
+    // cc.brand.* keys live and inlines them on span.cc-brand-name — the REAL header is the preview
+    // (no card preview). Controls are all dropdowns (stringent, no lone slider/toggle); colour
+    // stays a picker like every other CC colour control.
     (function () {
-      var cB = card(T("Servername", "Server name"), T("Aussehen des Servernamens oben links.", "Look of the server name at the top left."));
-      var prev = el("div", "cc-set-prev"); var pv = el("span", null, (document.title.split("/")[0] || "Server").trim());
-      prev.appendChild(pv);
-      function paintPv() {
-        var sz = get("cc.brand.size", "30"); pv.style.fontSize = (/^\d{1,3}$/.test(sz) ? sz : "30") + "px";
-        pv.style.fontWeight = get("cc.brand.weight", "650");
-        pv.style.fontStyle = get("cc.brand.italic", "0") === "1" ? "italic" : "normal";
-        var fn = get("cc.brand.font", ""); pv.style.fontFamily = fn || "inherit";
-        var col = get("cc.brand.color", ""); pv.style.color = /^#[0-9a-f]{6}$/i.test(col) ? col : "#f4f4f4";
-      }
-      // size slider 16..64
-      var szRow = el("div", "cc-set-row"); szRow.appendChild(el("span", "cc-set-rl", T("Größe", "Size")));
-      var sz = el("input"); sz.type = "range"; sz.min = "16"; sz.max = "64"; sz.value = get("cc.brand.size", "30"); sz.style.flex = "1";
-      sz.addEventListener("input", function () { set("cc.brand.size", sz.value); paintPv(); syncHeaderBar(); });
-      szRow.appendChild(sz); cB.appendChild(szRow);
+      var cB = card(T("Servername", "Server name"), T("Aussehen des Servernamens oben links. Änderungen erscheinen live im Kopfbereich.", "Look of the server name at the top left. Changes appear live in the header."));
+      // size (preset dropdown — replaces the lone slider)
+      var SZ = ["16", "18", "20", "22", "24", "26", "28", "30", "32", "36", "40", "44", "48", "56", "64"].map(function (s) { return [s, s + " px"]; });
+      cB.appendChild(dropRow(T("Größe", "Size"), SZ, get("cc.brand.size", "30"), function (v) { set("cc.brand.size", v); syncHeaderBar(); }));
       // weight
-      cB.appendChild(segRow(T("Stärke", "Weight"), [["300", T("Dünn", "Thin")], ["400", T("Normal", "Normal")], ["650", T("Halbfett", "Semibold")], ["800", T("Fett", "Bold")]], get("cc.brand.weight", "650"), function (v) { set("cc.brand.weight", v); paintPv(); syncHeaderBar(); }));
-      // italic
-      cB.appendChild(toggleRow(T("Kursiv", "Italic"), get("cc.brand.italic", "0") === "1", function (v) { set("cc.brand.italic", v ? "1" : "0"); paintPv(); syncHeaderBar(); }));
-      // font family (web-safe / system stacks)
-      cB.appendChild(segRow(T("Schriftart", "Font"), [["", T("Standard", "Default")], ['Georgia,"Times New Roman",serif', T("Serif", "Serif")], ['"Courier New",monospace', "Mono"], ['"Segoe UI",system-ui,sans-serif', "Sans"]], get("cc.brand.font", ""), function (v) { set("cc.brand.font", v); paintPv(); syncHeaderBar(); }));
+      cB.appendChild(dropRow(T("Stärke", "Weight"), [["300", T("Dünn", "Thin")], ["400", "Normal"], ["500", "Medium"], ["650", T("Halbfett", "Semibold")], ["800", T("Fett", "Bold")]], get("cc.brand.weight", "650"), function (v) { set("cc.brand.weight", v); syncHeaderBar(); }));
+      // italic (dropdown, not a lone toggle — keep the control set uniform)
+      cB.appendChild(dropRow(T("Kursiv", "Italic"), [["0", T("Normal", "Normal")], ["1", T("Kursiv", "Italic")]], get("cc.brand.italic", "0"), function (v) { set("cc.brand.italic", v); syncHeaderBar(); }));
+      // font family (system / web-safe stacks — each option renders in its own face)
+      var FONTS = [
+        ["", T("Standard", "Default")],
+        ['system-ui,-apple-system,"Segoe UI",sans-serif', "System"],
+        ['Arial,Helvetica,sans-serif', "Arial"],
+        ['"Segoe UI",system-ui,sans-serif', "Segoe UI"],
+        ['Verdana,Geneva,sans-serif', "Verdana"],
+        ['Tahoma,Geneva,sans-serif', "Tahoma"],
+        ['"Trebuchet MS",Helvetica,sans-serif', "Trebuchet MS"],
+        ['"Century Gothic","Apple Gothic",sans-serif', "Century Gothic"],
+        ['Impact,Charcoal,sans-serif', "Impact"],
+        ['Georgia,"Times New Roman",serif', "Georgia"],
+        ['"Times New Roman",Times,serif', "Times New Roman"],
+        ['"Palatino Linotype","Book Antiqua",Palatino,serif', "Palatino"],
+        ['Garamond,"Times New Roman",serif', "Garamond"],
+        ['"Courier New",Courier,monospace', "Courier New"],
+        ['Consolas,"Lucida Console",monospace', "Consolas"],
+        ['"Lucida Console",Monaco,monospace', "Lucida Console"],
+        ['"Comic Sans MS","Comic Sans",cursive', "Comic Sans"]
+      ].map(function (f) { return [f[0], f[1], f[0]]; }); // o[2] = self-preview face
+      cB.appendChild(dropRow(T("Schriftart", "Font"), FONTS, get("cc.brand.font", ""), function (v) { set("cc.brand.font", v); syncHeaderBar(); }));
       // colour picker + hex (empty = default light)
       var col = get("cc.brand.color", "");
+      cB.appendChild(el("div", "cc-set-lbl", T("Farbe", "Colour")));
       var pr = el("div", "cc-set-pickrow");
       var hx = el("input", "cc-set-hexin"); hx.type = "text"; hx.value = col || ""; hx.placeholder = "#f4f4f4"; hx.maxLength = 7; hx.spellcheck = false;
-      var pk = inlinePicker(/^#[0-9a-f]{6}$/i.test(col) ? col : "#f4f4f4", function (v) { hx.value = v; set("cc.brand.color", v); paintPv(); syncHeaderBar(); });
-      hx.addEventListener("input", function () { var v = normHex(hx.value); if (v) { pk._set(v); set("cc.brand.color", v); paintPv(); syncHeaderBar(); } else if (!hx.value) { del("cc.brand.color"); paintPv(); syncHeaderBar(); } });
+      var pk = inlinePicker(/^#[0-9a-f]{6}$/i.test(col) ? col : "#f4f4f4", function (v) { hx.value = v; set("cc.brand.color", v); syncHeaderBar(); });
+      hx.addEventListener("input", function () { var v = normHex(hx.value); if (v) { pk._set(v); set("cc.brand.color", v); syncHeaderBar(); } else if (!hx.value) { del("cc.brand.color"); syncHeaderBar(); } });
       pr.appendChild(pk); pr.appendChild(hx); cB.appendChild(pr);
-      cB.appendChild(el("div", "cc-set-lbl", T("Vorschau", "Preview")));
-      paintPv(); cB.appendChild(prev);
       wrapHeader.appendChild(cB);
     })();
     buildStyleCards("ccsh.", wrapShares, [], true); // Freigaben: tab pills use FA glyphs -> badges only, no logo card
@@ -1106,6 +1120,15 @@
       seg.appendChild(b);
     });
     row.appendChild(seg); return row;
+  }
+  // Native <select> styled as a CC control (no orange Unraid border). opts = [value, label, face?];
+  // when a third element is given the option renders in that font-family (used by the font picker).
+  function dropRow(labelText, opts, cur, onChange) {
+    var row = el("div", "cc-set-row"); row.appendChild(el("span", "cc-set-rl", labelText));
+    var sel = el("select", "cc-set-sel");
+    opts.forEach(function (o) { var op = document.createElement("option"); op.value = o[0]; op.textContent = o[1]; if (o[0] === cur) op.selected = true; if (o[2]) op.style.fontFamily = o[2]; sel.appendChild(op); });
+    sel.addEventListener("change", function () { onChange(sel.value); });
+    row.appendChild(sel); return row;
   }
   // indent the WHOLE panel (logo/hero, tab strip AND cards) so it starts at the first
   // main-menu tab: --cc-align-left is stamped by header.js (fallback 15px). Padding the

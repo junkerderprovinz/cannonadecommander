@@ -141,8 +141,39 @@
   var ccPopObs = null;
   function watchPopups() {
     try {
-      if (ccPopObs) return; ccPopObs = new MutationObserver(function () { paintPopups(); ccPopIframes(); ccPopoverDim(); });
+      if (ccPopObs) return; ccPopObs = new MutationObserver(function () { paintPopups(); ccPopIframes(); ccPopoverDim(); ccNotifDelBtn(); });
       ccPopObs.observe(document.body, { childList: true });   // dialogs/sweetalerts append as direct body children — cheap, no subtree
+    } catch (e) {}
+  }
+  // ── NOTIFICATION CENTRE "Alle löschen" (P14): the Connect bell only offers "Alle archivieren"
+  // (user: archived notifications pile up with no way to delete). We add a delete-all button next to
+  // it that clears everything via the same-origin Unraid GraphQL API — archiveAll (sweep unread into
+  // the archive) then deleteArchivedNotifications. Mutations need the x-csrf-token header; the bell
+  // re-fetches on the mutation, so the count drops live (verified). Idempotent per sheet open.
+  function ccClearNotifs() {
+    try {
+      var h = { "Content-Type": "application/json", "x-csrf-token": (window.csrf_token || "") };
+      function m(q) { return fetch("/graphql", { method: "POST", headers: h, body: JSON.stringify({ query: q }) }); }
+      m("mutation { archiveAll { archive { total } } }")
+        .then(function () { return m("mutation { deleteArchivedNotifications { archive { total } unread { total } } }"); })
+        .catch(function () {});
+    } catch (e) {}
+  }
+  function ccNotifDelBtn() {
+    try {
+      if (g("cc.theming", "1") === "0") return;                                    // master-gated (chrome)
+      var host = document.querySelector(".unapi div.fixed.z-50.bg-background");     // the Connect notification Sheet (light DOM)
+      if (!host || host.querySelector(".cc-notif-del")) return;                     // no sheet, or already injected
+      var arch = null, sp = host.querySelectorAll("span, button, a");
+      for (var i = 0; i < sp.length; i++) { if (/^\s*(Alle archivieren|Archive all)\s*$/i.test(sp[i].textContent || "")) { arch = sp[i]; break; } }
+      if (!arch || !arch.parentElement) return;                                     // native archive-all button not present (empty state) -> nothing to add beside
+      var del = document.createElement(arch.tagName.toLowerCase());
+      del.className = arch.className + " cc-notif-del";                             // clone the native look; .cc-notif-del tints it as a delete
+      del.textContent = T("Alle löschen", "Delete all");
+      del.setAttribute("role", "button"); del.tabIndex = 0; del.style.cursor = "pointer";
+      del.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); ccClearNotifs(); });
+      del.addEventListener("keydown", function (e) { if (e.key === " " || e.key === "Enter") { e.preventDefault(); ccClearNotifs(); } });
+      arch.parentElement.insertBefore(del, arch.nextSibling);                       // sit right after "Alle archivieren"
     } catch (e) {}
   }
   // ── SELF-MEASURING alignment anchor (v2.17.0). Every CC area lines its left edge up with the main
@@ -372,11 +403,14 @@
       // per-element visibility (user: an/abhaken welche Chips die Insel zeigt) — cc.isl.<key>,
       // default ON; a fixed render order gives the island a deterministic, tidy layout
       function iOn(k) { return g("cc.isl." + k, "1") !== "0"; }
-      var items = "u" + (iOn("uptime") ? 1 : 0) + "o" + (iOn("os") ? 1 : 0) + "a" + (iOn("array") ? 1 : 0) + "f" + (iOn("fill") ? 1 : 0) + "t" + (iOn("temps") ? 1 : 0);
+      var verNum = "";
+      var verElN = document.querySelector('unraid-header-os-version span[id^="reka-menu-trigger"]');
+      if (verElN) verNum = ((verElN.textContent) || "").replace(/\s+/g, " ").replace(/^\s|\s$/g, "");
+      var items = "u" + (iOn("uptime") ? 1 : 0) + "o" + (iOn("os") ? 1 : 0) + "v" + (iOn("version") ? 1 : 0) + "a" + (iOn("array") ? 1 : 0) + "f" + (iOn("fill") ? 1 : 0) + "t" + (iOn("temps") ? 1 : 0);
       // idempotence guard: nchan rewrites the footer every few seconds with UNCHANGED text most
       // of the time — compare the source signature and skip the DOM rebuild when nothing moved
       // (bar width/colour + the item toggles included so a change always redraws)
-      var sig = upTxt + "|" + upTitle + "|" + osLabel + "|" + raw + "|" + temps.join(",") + "|" + warn + "|" + usage + "|" + uw + uc + "|" + (par ? par[0] : "") + "|" + items;
+      var sig = upTxt + "|" + upTitle + "|" + osLabel + "|" + verNum + "|" + raw + "|" + temps.join(",") + "|" + warn + "|" + usage + "|" + uw + uc + "|" + (par ? par[0] : "") + "|" + items;
       if (isle && sig === ccIslandSig) return;
       ccIslandSig = sig;
       if (!isle) {
@@ -404,9 +438,13 @@
       }
       // 2) OS EDITION — bubble names the running version (the native 7.3.2 dropdown stays in place)
       if (iOn("os")) {
-        var verEl = document.querySelector('unraid-header-os-version span[id^="reka-menu-trigger"]');
-        var verTxt = ((verEl && verEl.textContent) || "").replace(/\s+/g, " ").replace(/^\s|\s$/g, "");
-        chip(osLabel, "#8d8d8d", T("Version ", "Version ") + (verTxt || "?"), "cc-isl-os");
+        chip(osLabel, "#8d8d8d", T("Version ", "Version ") + (verNum || "?"), "cc-isl-os");
+      }
+      // 2b) VERSION NUMBER — the native floating version chip is hidden by the sheet and its number
+      // (e.g. "7.3.2") joins the island so ALL chips align right in 2-3 rows (N10). Display chip; the
+      // OS-update dropdown stays reachable via Tools -> Update OS.
+      if (iOn("version") && verNum) {
+        chip(verNum, "#8d8d8d", T("Unraid-Version ", "Unraid version ") + verNum, "cc-isl-ver");
       }
       // 3) ARRAY STATE — bubble adds the parity/progress line when one is running
       if (iOn("array") && arrSeg) {
@@ -604,7 +642,10 @@
         if (sp[i].getAttribute("title")) sp[i].removeAttribute("title");
       }
       var vw = document.documentElement.clientWidth;
-      var target = Math.min(Math.round(r.right + 8), vw - 84);     // 8px right of the row tail, clamped into the viewport
+      // 6px right of the row tail so the bell sits EXACTLY one icon-gap from the last util icon —
+      // the native util icons carry 3px+3px a-margins (=6px visual gap), so 6px makes the whole
+      // menu-icon row evenly spaced (N5). Bell<->burger gap is 6px too (Header.css).
+      var target = Math.min(Math.round(r.right + 6), vw - 84);
       set("position", "fixed");
       set("right", "auto");
       // KILL the Tailwind pl-[160px]/pl-[30%]: with border-box that padding forced the box ≥160px
@@ -803,6 +844,14 @@
     // ccp./ccv.) from another origin/tab — re-apply on any of them. NB: "cch.accent" does NOT
     // contain the substring "cc." so the old indexOf("cc.")===0 check silently missed it.
     try { window.addEventListener("storage", function (e) { if (e && e.key && e.key !== "cc.stateCache" && /^cc[a-z]*\./.test(e.key)) apply(); }); } catch (e) {} // cc.stateCache EXCLUDED: docker.js rewrites it every 9s, which would repaint this area on a 9s loop in every other open tab
+    // the notification Sheet mounts INSIDE .unapi (not a body child), so the body popup-observer
+    // can miss it — poll ccNotifDelBtn a few times after a click on the docked bell/profile so our
+    // "Alle löschen" button lands as soon as the sheet appears. Idempotent, cheap (only after clicks).
+    try {
+      document.addEventListener("click", function (e) {
+        try { if (e.target && e.target.closest && e.target.closest("#UserProfile")) { var n = 0, t = setInterval(function () { ccNotifDelBtn(); if (++n >= 8) clearInterval(t); }, 180); } } catch (err) {}
+      }, true);
+    } catch (e) {}
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
 })();

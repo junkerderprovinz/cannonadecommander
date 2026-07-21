@@ -123,6 +123,11 @@
     var off = ls("cc.rainbowrot") === "0" ? 0 : RB_OFFSET;
     return pal()[(i + off) % pal().length];
   }
+  // reactive rainbow sub-mode (cc.rbmode==="active"): row chrome RESTS grey and takes the row's
+  // palette colour only on hover — so the WHOLE plugin row reacts, not just the logo (N2). restBg
+  // returns grey at rest in that mode; otherwise the normal accent/rainbow colour.
+  function reactive() { return ls("cc.rainbow") === "1" && ls("cc.rbmode") === "active"; }
+  function restBg(i) { return reactive() ? "#2e2e2e" : colorFor(i); }
   // ONE global tile-size key (cc.sgsize, GLOBAL like cc.rainbow — not eff-gated):
   // s 48/62 · m 62/78 · l 76/94 [img, box]. Docker's applySettings stamps the same
   // vars there; stamp them HERE too (docker.js doesn't run on this page) so the
@@ -185,7 +190,7 @@
   }
   function badge(label, value, i) {
     var b = el("span", "cc-b cc-b-info"); b.setAttribute(MARK, "1");
-    var bg = colorFor(i);
+    var bg = restBg(i);
     b.style.setProperty("background", bg, "important");
     b.style.setProperty("color", idealText(bg), "important");
     if (label) b.appendChild(el("span", "cc-b-k", label));
@@ -248,6 +253,9 @@
   function paintRow(tr, idx) {
     var tds = tr.children;
     if (!tds || tds.length < 6) return;
+    // stamp the row's palette colour so the reactive hover rules (docker.css) can colour the whole
+    // row on hover; harmless at rest (the CSS only reads it under :hover in reactive mode).
+    try { var rc = colorFor(idx); tr.style.setProperty("--cc-rb-c", rc); tr.style.setProperty("--cc-rb-ct", idealText(rc)); } catch (e0) {}
     for (var i = 0; i < tds.length; i++) tds[i].style.setProperty("vertical-align", "middle", "important");
     // ── col 1 becomes the PLUGIN cell, Docker-ct-name style: logo at container
     // size + the name in the container font, support-thread badge underneath.
@@ -268,7 +276,7 @@
       if (sup) {
         var sb = el("a", "cc-b cc-plugsup", LANG === "de" ? "Support-Thread" : "Support thread");
         sb.href = sup.href; sb.target = "_blank"; sb.setAttribute(MARK, "1");
-        var sbg = colorFor(idx + 9);
+        var sbg = restBg(idx + 9);
         sb.style.setProperty("background", sbg, "important");
         sb.style.setProperty("color", idealText(sbg), "important");
         sb.style.setProperty("text-decoration", "none", "important");
@@ -347,7 +355,7 @@
         icon.style.setProperty("display", "none", "important");
         var ib = el("span", "cc-b"); ib.setAttribute(MARK, "1");
         ib.appendChild(el("span", "cc-b-v", "Changelog"));
-        var bg2 = colorFor(idx + 6);
+        var bg2 = restBg(idx + 6);
         ib.style.setProperty("background", bg2, "important");
         ib.style.setProperty("color", idealText(bg2), "important");
         ib.style.setProperty("cursor", "pointer", "important");
@@ -511,6 +519,8 @@
       // logo-background badge: scope the docker.css .cc-plugico box on/off from the
       // adopt-aware key (honours "Adopt Docker style" via eff()), same as the Docker tab
       document.documentElement.classList.toggle("cc-plugins-iconbg", eff("iconbg") === "1");
+      // reactive rainbow: rows rest grey and colour on hover (docker.css hover rules gated here)
+      document.documentElement.classList.toggle("cc-shares-rbneutral", reactive());
       var pIcon = eff("iconcolor");
       if (eff("iconbg") === "1" && pIcon && /^#?[0-9a-f]{6}$/i.test(pIcon)) document.documentElement.style.setProperty("--cc-iconbg-color", pIcon);
       else document.documentElement.style.removeProperty("--cc-iconbg-color");

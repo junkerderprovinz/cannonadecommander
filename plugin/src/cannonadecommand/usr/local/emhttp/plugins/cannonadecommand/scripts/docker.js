@@ -955,7 +955,9 @@
     cx.links.forEach(function (l2) { more.appendChild(actBtn(l2.glyph, l2.tip, function () { window.open(l2.url, "_blank"); })); });
     r2.appendChild(more.children.length ? actBtn("fa-ellipsis-h", LANG === "de" ? "Mehr" : "More", function () { more.classList.toggle("cc-open"); tintAct(more); })
       : actBtnOff("fa-ellipsis-h", LANG === "de" ? "keine weiteren Links" : "no more links"));
-    bar.appendChild(r1); bar.appendChild(r2);
+    // `more` lives INSIDE the grid now (display:contents when open) so the expander-loaded
+    // icons flow into the SAME 4-column grid with the same gap — no more stray flex row.
+    bar.appendChild(r1); bar.appendChild(r2); bar.appendChild(more);
     tintAct(bar);
     return { bar: bar, more: more, sig: cx.webui + "|" + cx.xml + "|" + cx.tswebui + "|" + cx.links.length };
   }
@@ -968,7 +970,7 @@
       if (old2) { if (old2.dataset.ccSig === ab.sig) return; old2.remove(); } // rebuild when the data changed
       var tda = el("td", "cc-actcell"); tda.setAttribute(MARK, "1"); tda.dataset.ccSig = ab.sig;
       tda.style.setProperty("vertical-align", "middle", "important");
-      tda.appendChild(ab.bar); tda.appendChild(ab.more);
+      tda.appendChild(ab.bar); // ab.more is inside ab.bar now (flows into the grid on expand)
       tr.insertBefore(tda, tr.children[1] || null); // BETWEEN the name and the version column
     } catch (e) {}
   }
@@ -2331,32 +2333,58 @@
   // Doppelpunkt). Each config row is <dl><dt><span>Label:</span></dt><dd>field</dd>. We class the
   // label span (docker.css badges it) and strip the trailing ":" from its last text node, stashing
   // the original in data-cc-lab for a clean teardown. Idempotent via the class guard.
+  // strip the trailing colon on the LAST non-empty text node (keeps a leading fa icon), stashing
+  // the original text in data-cc-lab so the teardown restores it verbatim.
+  function ctStripColon(host) {
+    for (var n = host.childNodes.length - 1; n >= 0; n--) {
+      var nd = host.childNodes[n];
+      if (nd.nodeType === 3 && nd.textContent.replace(/\s+/g, "")) {
+        if (!host.getAttribute("data-cc-lab")) host.setAttribute("data-cc-lab", nd.textContent);
+        nd.textContent = nd.textContent.replace(/\s*:\s*$/, "");
+        return;
+      }
+    }
+  }
+  // required = the field in the matching <dd> carries [required] (Unraid marks mandatory inputs).
+  // A red DOT on the badge (CSS .cc-req::after) reads in accent AND rainbow, unlike a red fill.
+  function ctMarkReq(badge, dt) {
+    try {
+      var dd = dt && dt.nextElementSibling;
+      while (dd && dd.tagName !== "DD") dd = dd.nextElementSibling;
+      badge.classList.toggle("cc-req", !!(dd && dd.querySelector("input[required],select[required],textarea[required]")));
+    } catch (e) {}
+  }
   function ctVarLabels() {
     try {
-      var dts = document.querySelectorAll("#canvas dl > dt > span, .ui-dialog dl > dt > span");
-      for (var i = 0; i < dts.length; i++) {
-        var sp = dts[i];
-        if (sp.classList.contains("cc-varlab")) continue;
-        // strip the trailing colon on the LAST non-empty text node (keeps the leading icon)
-        for (var n = sp.childNodes.length - 1; n >= 0; n--) {
-          var nd = sp.childNodes[n];
-          if (nd.nodeType === 3 && nd.textContent.replace(/\s+/g, "")) {
-            if (!sp.getAttribute("data-cc-lab")) sp.setAttribute("data-cc-lab", nd.textContent);
-            nd.textContent = nd.textContent.replace(/\s*:\s*$/, "");
-            break;
-          }
-        }
-        sp.classList.add("cc-varlab");
+      // (A) ENV variable labels: <dt><span>Label:</span></dt> — badge the inner span.
+      var sps = document.querySelectorAll("#canvas dl > dt > span, .ui-dialog dl > dt > span");
+      for (var i = 0; i < sps.length; i++) {
+        var sp = sps[i];
+        if (!sp.classList.contains("cc-varlab")) { ctStripColon(sp); sp.classList.add("cc-varlab"); }
+        ctMarkReq(sp, sp.parentNode);
+      }
+      // (B) top-level field labels: bare <dt>Name:</dt> with NO child span — badge the dt itself.
+      // (#canvas dl is a single-column grid: dt sits on its own row above dd, so an inline-flex
+      //  badge with justify-self:start becomes a left-aligned pill without breaking any layout.)
+      var dts = document.querySelectorAll("#canvas dl > dt, .ui-dialog dl > dt");
+      for (var j = 0; j < dts.length; j++) {
+        var dt = dts[j];
+        if (dt.querySelector(":scope > span")) continue; // span-labelled -> handled by (A)
+        var hasText = false;
+        for (var k = 0; k < dt.childNodes.length; k++) { var c = dt.childNodes[k]; if (c.nodeType === 3 && c.textContent.replace(/\s+/g, "")) { hasText = true; break; } }
+        if (!hasText) continue; // pure-layout / empty dt — leave it
+        if (!dt.classList.contains("cc-dtlab")) { ctStripColon(dt); dt.classList.add("cc-dtlab"); }
+        ctMarkReq(dt, dt);
       }
     } catch (e) {}
   }
   function ctVarLabelsTeardown() {
     try {
-      var sps = document.querySelectorAll("#canvas dl > dt > span.cc-varlab, .ui-dialog dl > dt > span.cc-varlab");
-      for (var i = 0; i < sps.length; i++) {
-        var sp = sps[i], orig = sp.getAttribute("data-cc-lab");
-        if (orig) { for (var n = sp.childNodes.length - 1; n >= 0; n--) { var nd = sp.childNodes[n]; if (nd.nodeType === 3 && nd.textContent.replace(/\s+/g, "")) { nd.textContent = orig; break; } } }
-        sp.classList.remove("cc-varlab"); sp.removeAttribute("data-cc-lab");
+      var hosts = document.querySelectorAll("#canvas dl > dt > span.cc-varlab, .ui-dialog dl > dt > span.cc-varlab, #canvas dl > dt.cc-dtlab, .ui-dialog dl > dt.cc-dtlab");
+      for (var i = 0; i < hosts.length; i++) {
+        var h = hosts[i], orig = h.getAttribute("data-cc-lab");
+        if (orig) { for (var n = h.childNodes.length - 1; n >= 0; n--) { var nd = h.childNodes[n]; if (nd.nodeType === 3 && nd.textContent.replace(/\s+/g, "")) { nd.textContent = orig; break; } } }
+        h.classList.remove("cc-varlab"); h.classList.remove("cc-dtlab"); h.classList.remove("cc-req"); h.removeAttribute("data-cc-lab");
       }
     } catch (e) {}
   }

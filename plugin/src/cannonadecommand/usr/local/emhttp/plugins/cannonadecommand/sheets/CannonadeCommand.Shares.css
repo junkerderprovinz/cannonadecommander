@@ -739,6 +739,16 @@ html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mount
   width: 24px; height: 24px; border-radius: var(--cc-b-radius, 999px);
   background: #3a3a3a; color: #8a8a8a; opacity: .55;
 }
+/* the REMOVE / delete control (ENTFERNEN column, e.g. UD historical devices): a red CC icon button
+   with a WHITE glyph — the native red X on a red badge was invisible (user). Same 24px icon-tile as
+   the gear, red for delete; color forced white to beat the native inline red on the <i>. */
+html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mounts, table.usb_absent) :is(i.fa-remove, i.fa-times, i.fa-trash, i.fa-trash-o, i.fa-ban) {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: var(--cc-b-radius, 999px);
+  background: #d9433f !important; color: #fff !important; transition: filter .12s; cursor: pointer;
+}
+html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mounts, table.usb_absent) a:hover > :is(i.fa-remove, i.fa-times, i.fa-trash, i.fa-trash-o, i.fa-ban),
+html.cc-shares-on.cc-on-main #displaybox :is(table.usb_mounts, table.samba_mounts, table.usb_absent) :is(i.fa-remove, i.fa-times, i.fa-trash, i.fa-trash-o, i.fa-ban):hover { filter: brightness(1.14); }
 /* Schalter in CC: the UD HISTORICAL / FREIGABEN / DISKS toggles are native jQuery switchButtons
    ($('.historical-switch').switchButton(...) -> .switch-button-background track (.checked = ON) +
    .switch-button-button knob; the source checkbox is hidden). Recolour/round ONLY, never the JS-driven
@@ -958,7 +968,13 @@ html.cc-shares-on.cc-on-main #displaybox span.status a.tooltip_diskio i.toggle.f
 /* placement: far right of the FIRST section-badge row (sections mode; ccDiskioMove parked span.status
    inside the first .cc-card-head; absolute vs the position:relative section = the head's row, full width) */
 html.cc-shares-on.cc-on-main.cc-sections-main #displaybox section[data-cc-card] { position: relative; }
-html.cc-shares-on.cc-on-main.cc-sections-main #displaybox .cc-card-head > span.status { position: absolute; right: 0; top: 5px; }
+/* N7: the width-reset ↺ and the reads/writes toggle sit SIDE BY SIDE (a nowrap flex row with an
+   even gap), never stacked — a narrow section or an nchan refill must not wrap them. */
+html.cc-shares-on.cc-on-main.cc-sections-main #displaybox .cc-card-head > span.status {
+  position: absolute; right: 0; top: 5px;
+  display: inline-flex !important; flex-flow: row nowrap !important; align-items: center; gap: 8px;
+}
+html.cc-shares-on.cc-on-main.cc-sections-main #displaybox .cc-card-head > span.status a.cc-colreset { margin: 0 !important; }
 /* native-tabs fallback (Tab-Ansicht off): the control stays in nav.tabs -> pin it right */
 html.cc-shares-on.cc-on-main:not(.cc-sections-main) #displaybox nav.tabs > span.status { margin-left: auto; align-self: center; float: right; }
 /* anchor spacing LEFT of the diskio switch (the bubble itself is the floating header.js one now —

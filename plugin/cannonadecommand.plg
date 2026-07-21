@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.46.2">
+  <!ENTITY version   "2.47.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,30 @@
 </ICON>
 
 <CHANGES>
+### 2.47.0
+- #1 Neues finales Logo ueberall (Unraid-Kachel, Kopfbereich, Banner, Einstellungen): drei Kanonen
+  im Doppelring -- liest sauber auf jedem Unraid-Theme.
+- #2 Kopfbereich: Status-Insel-Chips rechtsbuendig in zwei bis drei Zeilen, die Unraid-Version ist
+  jetzt ein echter Insel-Chip (kein separat schwebender mehr); alle Menue-Icons gleich beabstandet.
+- #3 Benachrichtigungszentrum als schwebendes CC-Fenster (oben rechts, abgerundet) + neuer
+  "Alle loeschen"-Button -- bisher liessen sich Benachrichtigungen nur archivieren.
+- #4 Hamburger-Menue vollstaendig im CC-Stil: Warn-Meldung ohne Rahmen, aktiv ausgewaehlter Punkt
+  im CC-Akzent statt Farbverlauf.
+- #5 Docker-Formular: ALLE Feld-Labels als Badge ohne Doppelpunkt, Pflichtfelder mit rotem Punkt;
+  die Badges folgen dem eingestellten Farbmodus (Akzent/Regenbogen).
+- #6 Docker-Aktionen: maximal 4 Icons pro Zeile -- auch die per "..."-Expander nachgeladenen --
+  mit einheitlichem Abstand.
+- #7 Plugin-Tab: der reaktive Regenbogen-Modus faerbt die ganze Zeile, nicht nur das Logo.
+- #8 Servername-Einstellung: Schriftart als Dropdown mit vielen Fonts, einheitliche Bedienelemente,
+  Vorschau entfernt (live im Kopfbereich sichtbar); globaler Dichte-Regler jetzt im Allgemein-Tab.
+- #9 Plugin-Changelog- und Installations-Fenster: Titel-Badge gross und ueber die ganze Breite,
+  der Changelog-Inhalt im CC-Stil.
+- #10 Alle Popup-Fenster im CC-Stil -- auch der Entfernen-Dialog nicht zugewiesener Geraete (eine
+  zweite SweetAlert-Variante) und die Container-Installations-Ausgabe.
+- #11 Nicht zugewiesene Geraete (Historie): der Geraetename ist jetzt ein Badge, das rote
+  Entfernen-X ist klar sichtbar (weisses Symbol auf rotem Knopf).
+- #12 Start-Tab: Spalten-Zuruecksetzen und der Umschalter stehen nebeneinander statt uebereinander.
+
 ### 2.46.2
 - #1 Nachbesserung zu #1 aus 2.46.1: In der Abschnitts-Ansicht blieb der SmokeSignal-Abschnitt
   sichtbar (eine Anzeige-Regel gewann per Spezifitaet) -- jetzt zuverlaessig ausgeblendet.
@@ -1514,7 +1538,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>912a8930f4ecfa63946ecd3569a110311efd77c4b7265a3245bb2987eeb55922</SHA256>
+  <SHA256>5b0c08aaddbceae06a462b47a48dfd7734118c9fd2df25e2f54fe38a6d9ec967</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

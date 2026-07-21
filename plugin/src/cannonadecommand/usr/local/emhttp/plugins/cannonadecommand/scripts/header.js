@@ -141,39 +141,66 @@
   var ccPopObs = null;
   function watchPopups() {
     try {
-      if (ccPopObs) return; ccPopObs = new MutationObserver(function () { paintPopups(); ccPopIframes(); ccPopoverDim(); ccNotifDelBtn(); });
+      if (ccPopObs) return; ccPopObs = new MutationObserver(function () { paintPopups(); ccPopIframes(); ccPopoverDim(); ccNotifActions(); });
       ccPopObs.observe(document.body, { childList: true });   // dialogs/sweetalerts append as direct body children — cheap, no subtree
     } catch (e) {}
   }
-  // ── NOTIFICATION CENTRE "Alle löschen" (P14): the Connect bell only offers "Alle archivieren"
-  // (user: archived notifications pile up with no way to delete). We add a delete-all button next to
-  // it that clears everything via the same-origin Unraid GraphQL API — archiveAll (sweep unread into
-  // the archive) then deleteArchivedNotifications. Mutations need the x-csrf-token header; the bell
-  // re-fetches on the mutation, so the count drops live (verified). Idempotent per sheet open.
+  // ── NOTIFICATION CENTRE (P14, reworked): the Connect bell shows a Vue notification list that CACHES
+  // its rows and never refetches on its own — a raw GraphQL mutation clears the BACKEND but the open
+  // list stays stale (proven live: counts drop to 0, the rows remain -> user "Alle löschen funktioniert
+  // nicht"). And the native "Alle archivieren" opens a confirm dialog that floats far off-screen (user:
+  // "das bestätigungsfenster ist weit abseits"). Fix: CC hides the native archive text-link and drops
+  // two CLONED badges into its column — a clone carries NO Vue click handler, so no off-screen confirm —
+  // that act via the same-origin GraphQL API (x-csrf-token) then location.reload(): the ONLY reliable
+  // way to refresh the cached list (mutation / tab-switch / close+reopen all failed live; reload is also
+  // CC's existing pattern for the display settings). Archive sweeps unread into the archive; delete
+  // archives-then-deletes-archived, guarded by a two-step armed click. Idempotent per sheet open.
+  function ccGql(q) {
+    return fetch("/graphql", { method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json", "x-csrf-token": (window.csrf_token || "") },
+      body: JSON.stringify({ query: q }) });
+  }
+  function ccArchiveNotifs() {
+    try { ccGql("mutation { archiveAll { archive { total } } }").then(function () { location.reload(); }).catch(function () {}); } catch (e) {}
+  }
   function ccClearNotifs() {
     try {
-      var h = { "Content-Type": "application/json", "x-csrf-token": (window.csrf_token || "") };
-      function m(q) { return fetch("/graphql", { method: "POST", headers: h, body: JSON.stringify({ query: q }) }); }
-      m("mutation { archiveAll { archive { total } } }")
-        .then(function () { return m("mutation { deleteArchivedNotifications { archive { total } unread { total } } }"); })
+      ccGql("mutation { archiveAll { archive { total } } }")
+        .then(function () { return ccGql("mutation { deleteArchivedNotifications { archive { total } unread { total } } }"); })
+        .then(function () { location.reload(); })
         .catch(function () {});
     } catch (e) {}
   }
-  function ccNotifDelBtn() {
+  function ccArmDelete(del) {                                                        // first click arms + relabels, second (within 4s) clears
+    if (del.getAttribute("data-armed") === "1") { ccClearNotifs(); return; }
+    del.setAttribute("data-armed", "1"); del.classList.add("cc-notif-armed");
+    del.textContent = T("Wirklich löschen?", "Really delete?");
+    clearTimeout(del._ccT);
+    del._ccT = setTimeout(function () { del.setAttribute("data-armed", "0"); del.classList.remove("cc-notif-armed"); del.textContent = T("Alle löschen", "Delete all"); }, 4000);
+  }
+  function ccNotifActions() {
     try {
       if (g("cc.theming", "1") === "0") return;                                    // master-gated (chrome)
       var host = document.querySelector(".unapi div.fixed.z-50.bg-background");     // the Connect notification Sheet (light DOM)
-      if (!host || host.querySelector(".cc-notif-del")) return;                     // no sheet, or already injected
+      if (!host || host.querySelector(".cc-notif-badge")) return;                   // no sheet, or already injected
       var arch = null, sp = host.querySelectorAll("span, button, a");
       for (var i = 0; i < sp.length; i++) { if (/^\s*(Alle archivieren|Archive all)\s*$/i.test(sp[i].textContent || "")) { arch = sp[i]; break; } }
-      if (!arch || !arch.parentElement) return;                                     // native archive-all button not present (empty state) -> nothing to add beside
-      var del = document.createElement(arch.tagName.toLowerCase());
-      del.className = arch.className + " cc-notif-del";                             // clone the native look; .cc-notif-del tints it as a delete
-      del.textContent = T("Alle löschen", "Delete all");
-      del.setAttribute("role", "button"); del.tabIndex = 0; del.style.cursor = "pointer";
-      del.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); ccClearNotifs(); });
-      del.addEventListener("keydown", function (e) { if (e.key === " " || e.key === "Enter") { e.preventDefault(); ccClearNotifs(); } });
-      arch.parentElement.insertBefore(del, arch.nextSibling);                       // sit right after "Alle archivieren"
+      if (!arch || !arch.parentElement) return;                                     // native archive-all not present (empty state / archive tab) -> nothing to attach to
+      arch.parentElement.classList.add("cc-notif-actions");                         // CSS turns the column into a horizontal badge row
+      function badge(text, cls, onAct) {
+        var b = arch.cloneNode(true);                                              // clone the native chrome MINUS its Vue handler
+        b.removeAttribute("id"); b.className = arch.className + " cc-notif-badge " + cls;
+        b.textContent = text; b.setAttribute("role", "button"); b.tabIndex = 0; b.style.cursor = "pointer";
+        b.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); onAct(b); });
+        b.addEventListener("keydown", function (e) { if (e.key === " " || e.key === "Enter") { e.preventDefault(); onAct(b); } });
+        return b;
+      }
+      var arB = badge(T("Alle archivieren", "Archive all"), "cc-notif-arch", function () { ccArchiveNotifs(); });
+      var del = badge(T("Alle löschen", "Delete all"), "cc-notif-del", function (b) { ccArmDelete(b); });
+      arch.style.display = "none";                                                  // hide the native archive link (its click opens the off-screen confirm)
+      arch.parentNode.insertBefore(arB, arch.nextSibling);
+      arB.parentNode.insertBefore(del, arB.nextSibling);
+      for (var k = 0; k < sp.length; k++) { if (sp[k] !== del && /^\s*(Alle löschen|Delete all)\s*$/i.test(sp[k].textContent || "")) sp[k].style.display = "none"; }  // hide any native delete-all (archive tab)
     } catch (e) {}
   }
   // ── SELF-MEASURING alignment anchor (v2.17.0). Every CC area lines its left edge up with the main
@@ -849,11 +876,11 @@
     // contain the substring "cc." so the old indexOf("cc.")===0 check silently missed it.
     try { window.addEventListener("storage", function (e) { if (e && e.key && e.key !== "cc.stateCache" && /^cc[a-z]*\./.test(e.key)) apply(); }); } catch (e) {} // cc.stateCache EXCLUDED: docker.js rewrites it every 9s, which would repaint this area on a 9s loop in every other open tab
     // the notification Sheet mounts INSIDE .unapi (not a body child), so the body popup-observer
-    // can miss it — poll ccNotifDelBtn a few times after a click on the docked bell/profile so our
+    // can miss it — poll ccNotifActions a few times after a click on the docked bell/profile so our
     // "Alle löschen" button lands as soon as the sheet appears. Idempotent, cheap (only after clicks).
     try {
       document.addEventListener("click", function (e) {
-        try { if (e.target && e.target.closest && e.target.closest("#UserProfile")) { var n = 0, t = setInterval(function () { ccNotifDelBtn(); if (++n >= 8) clearInterval(t); }, 180); } } catch (err) {}
+        try { if (e.target && e.target.closest && e.target.closest("#UserProfile")) { var n = 0, t = setInterval(function () { ccNotifActions(); if (++n >= 8) clearInterval(t); }, 180); } } catch (err) {}
       }, true);
     } catch (e) {}
   }

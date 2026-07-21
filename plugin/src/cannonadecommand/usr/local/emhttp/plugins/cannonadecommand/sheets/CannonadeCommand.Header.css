@@ -47,6 +47,11 @@ html.cc-header-on:not(.Theme--sidebar) #menu .nav-tile > .nav-item {
    The .nav-tile>.nav-item variant covers header-off too (beats Unraid's non-important flex). */
 html.cc-hide-favtab.cc-header-on #menu .nav-item:has(> a[href="/Favorites"]),
 html.cc-hide-favtab #menu .nav-tile > .nav-item:has(> a[href="/Favorites"]) { display: none !important; }
+/* HIDE Unraid's native Display-Settings tile on the /Settings page: CannonadeCommand now hosts the
+   COMPLETE display settings inside its own "Anzeige" section (no more back-and-forth, one source of
+   truth). Gated on cc-popups-on = CC's master switch (cc.theming != 0) so turning CC off brings the
+   native tile back. The tile is <div.Panel> wrapping <a href="/Settings/DisplaySettings">. */
+html.cc-popups-on .Panels > .Panel:has(> a[href="/Settings/DisplaySettings"]) { display: none !important; }
 html.cc-header-on #menu .nav-tile .nav-item:not(.util):not(.gui_search) > a {
   display: inline-flex !important; align-items: center; justify-content: center;
   line-height: 1; height: var(--cc-md-h, 30px) !important; padding: var(--cc-md-pad, 0 20px) !important; margin: 0 3px; /* same metrics as the CC settings tabs */
@@ -526,17 +531,41 @@ html.cc-popups-on .swal-modal .swal-button:focus { box-shadow: none !important; 
    native full-height sheet returns). Live-verified: floats top-right, content reflows in-bounds. */
 html.cc-popups-on .unapi div.fixed.z-50.bg-background {
   inset: 74px 16px auto auto !important;
-  height: auto !important; max-height: 78vh !important; min-height: 0 !important;
-  width: 420px !important; max-width: calc(100vw - 32px) !important;
+  height: auto !important; max-height: 82vh !important; min-height: 0 !important;
+  width: min(560px, calc(100vw - 32px)) !important; max-width: none !important;   /* wider + roomier (user) — override the native sm:max-w-[540px] clamp */
   border: none !important; border-radius: 14px !important;
   box-shadow: 0 18px 50px rgba(0, 0, 0, .6) !important;
   background-color: #161616 !important;
   overflow: hidden !important;
 }
-/* the injected "Alle löschen" button (header.js ccNotifDelBtn) clones the native "Alle archivieren"
-   chrome; tint it red so it reads as a DELETE (P14). Clears everything via GraphQL, count drops live. */
-html.cc-popups-on .cc-notif-del { color: #ff6b6b !important; }
-html.cc-popups-on .cc-notif-del:hover { color: #ff8a8a !important; filter: brightness(1.05); }
+/* MORE AIR inside (user: "größer und geräumiger"): wider list gutters + taller rows so each
+   notification breathes instead of stacking tight. Fragile Tailwind hooks -> fail soft. */
+html.cc-popups-on .unapi div.fixed.z-50.bg-background .overflow-y-scroll { padding-left: 18px !important; padding-right: 18px !important; }
+html.cc-popups-on .unapi div.fixed.z-50.bg-background .divide-y > div { padding-top: 15px !important; padding-bottom: 15px !important; }
+html.cc-popups-on .unapi div.fixed.z-50.bg-background h2 { font-size: 1.6rem !important; }
+
+/* BULK ACTIONS AS BADGES (user: "alles soll in badges. also zb archivieren oder alle löschen").
+   header.js (ccNotifActions) hides the native "Alle archivieren" text-link and drops CLONED, Vue-
+   handler-free badges into its column (.cc-notif-actions): archive (neutral) + delete (red). Clones
+   carry NO native click handler, so archiving no longer opens Unraid's off-screen confirm dialog
+   (user: "das bestätigungsfenster ist weit abseits") — both act via GraphQL then reload the page
+   (the ONLY reliable way to refresh the Vue notification list, which caches and never refetches on
+   its own — proven live). Delete is a two-step: first click arms ("Wirklich löschen?"), second clears. */
+html.cc-popups-on .unapi div.fixed.z-50.bg-background .cc-notif-actions {
+  flex-direction: row !important; align-items: center !important; justify-content: flex-end !important;
+  flex-wrap: wrap !important; gap: 8px !important; margin-top: 0 !important;
+}
+html.cc-popups-on .cc-notif-badge {
+  text-decoration: none !important; font-weight: 600 !important; font-size: .95rem !important;
+  border-radius: 8px !important; padding: 7px 14px !important; line-height: 1 !important;
+  cursor: pointer; user-select: none; transition: background-color .12s, color .12s, filter .12s;
+}
+html.cc-popups-on .cc-notif-badge:hover { text-decoration: none !important; filter: brightness(1.08); }
+html.cc-popups-on .cc-notif-arch { background: #2a2a2a !important; color: #e6e6e6 !important; }
+html.cc-popups-on .cc-notif-arch:hover { background: #333 !important; color: #fff !important; }
+html.cc-popups-on .cc-notif-del { background: rgba(255, 107, 107, .14) !important; color: #ff6b6b !important; }
+html.cc-popups-on .cc-notif-del:hover { background: rgba(255, 107, 107, .22) !important; color: #ff8a8a !important; }
+html.cc-popups-on .cc-notif-del.cc-notif-armed { background: #e5484d !important; color: #fff !important; }
 
 /* Drag-and-drop menu-tab ordering (v2.24.1): the cursor stays the NORMAL link pointer on hover — no grab
    hand. Draggability is armed by a press-and-HOLD (~450ms, in header.js): the bar enters reorder mode and

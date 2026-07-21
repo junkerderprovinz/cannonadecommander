@@ -250,54 +250,59 @@
     (function () {
       var tc = card(T("Theming", "Theming"), T("Aus = nur die Docker-FUNKTIONEN von CannonadeCommand bleiben (Startplan, Abhängigkeiten, Health-Gate, Watchdog, Zeitpläne, Limits, Bandbreite, Auto-Stop bei Leerlauf). Das gesamte visuelle Theming — Badges, Farben, Rainbow, Karten und die Umgestaltung aller Tabs — wird abgeschaltet.", "Off = only CannonadeCommand's Docker FUNCTIONS remain (start plan, dependencies, health-gate, watchdog, schedules, limits, bandwidth, idle auto-stop). All visual theming — badges, colours, rainbow, cards and every tab's restyling — is turned off."));
       tc.appendChild(toggleRow(T("Theming aktiv", "Theming on"), localStorage.getItem("cc.theming") !== "0", function (v) { set("cc.theming", v ? "1" : "0"); render(); syncHeaderBar(); syncSharesBar(); }));
-      // ── Anzeige (Unraid): direct wire to Unraid's native display settings — lives INSIDE the
-      // Theming card now (user call), before the Sichern & Übertragen rows appended later. Posts
-      // the SAME hidden fields the native /Settings/DisplaySettings form sends
-      // (#file/#section/csrf_token), so the values land in dynamix/dynamix.cfg and the page
-      // reloads with them applied. Built ONLY when the csrf_token global exists — without it the
-      // native POST is impossible.
+      // ── Anzeige (Unraid): CC MIRRORS Unraid's ENTIRE native Display Settings page here (user: no
+      // more back-and-forth between CC and the native page). Every native <select> is parsed LIVE
+      // from /Settings/DisplaySettings and rebuilt as a CC control that posts the SAME field back
+      // (URLSearchParams -> update.php — the only encoding that returns 200, multipart 504s) and
+      // reloads. ONE source of truth (dynamix.cfg); the native Display-Settings tile is hidden on the
+      // /Settings page (CSS, CannonadeCommand.Header.css). Parsing LIVE means new Unraid fields appear
+      // automatically and the option
+      // language always matches. The 3 header-COLOUR text fields are skipped — CC paints its own
+      // header, so they are inert here (still reachable on the native page by URL). The "favorites"
+      // field also drives CC's tab-hide (cc.hidefavtab) because Unraid's favorites=no does NOT hide
+      // the menu tab (CC's own #menu layout rule even force-shows it). csrf_token gates the POST.
       if (typeof csrf_token !== "undefined") {
-        var dl9 = el("div", "cc-set-lbl cc-set-lblwrap");
-        dl9.appendChild(el("span", null, T("Anzeige (Unraid)", "Display (Unraid)")));
-        dl9.appendChild(infoIcon(T("Direktdraht zu Unraids Anzeige-Einstellungen: Änderungen hier werden nativ gespeichert und laden die Seite neu.", "Direct wire to Unraid's display settings: changes are saved natively and reload the page.")));
-        tc.appendChild(dl9);
+        var dlA = el("div", "cc-set-lbl cc-set-lblwrap");
+        dlA.appendChild(el("span", null, T("Anzeige (Unraid)", "Display (Unraid)")));
+        dlA.appendChild(infoIcon(T("Unraids komplette Anzeige-Einstellungen — hier gebündelt, nativ gespeichert, die Seite lädt neu.", "Unraid's full display settings — bundled here, saved natively, the page reloads.")));
+        tc.appendChild(dlA);
+        var dispHost = el("div"); tc.appendChild(dispHost);   // controls land here once the fetch parses them
         var postDisplay = function (field, value) {
           try {
-            // URLSearchParams, NOT FormData: update.php 504s on multipart (live-proven) — the
-            // native form posts application/x-www-form-urlencoded and only that returns 200.
             var fd = new URLSearchParams();
-            fd.append("#file", "dynamix/dynamix.cfg");
-            fd.append("#section", "display");
-            fd.append("csrf_token", window.csrf_token);
-            fd.append(field, value);
+            fd.append("#file", "dynamix/dynamix.cfg"); fd.append("#section", "display");
+            fd.append("csrf_token", window.csrf_token); fd.append(field, value);
+            if (field === "favorites") set("cc.hidefavtab", value === "no" ? "1" : "0");   // native favorites=no does NOT hide the tab -> CC enforces it
             fetch("/update.php", { method: "POST", body: fd, credentials: "same-origin" }).then(function () { location.reload(); });
           } catch (e9) {}
         };
-        // current theme is stamped on <html> as Theme--<name>
-        var thm = (/Theme--(azure|black|gray|white)/.exec(document.documentElement.className || "") || [])[1] || "black";
-        tc.appendChild(segRow(T("Farbschema", "Colour scheme"), [["white", T("Hell", "Light")], ["black", T("Dunkel", "Dark")], ["azure", T("Azurblau", "Azure")], ["gray", T("Grau", "Gray")]], thm, function (v) { postDisplay("theme", v); }));
-        // tabbed view: the current value only lives in the native settings page -> build the row
-        // with a provisional "0", then fetch+parse the <select name="tabs"> and repaint the
-        // selection. Parse failure keeps the default and disables nothing.
-        var tabsKeys = ["0", "1"];
-        var tabsRow = segRow(T("Tabansicht", "Tabbed view"), [["0", T("Mit Tabs", "Tabbed")], ["1", T("Ohne Tabs", "Non-tabbed")]], "0", function (v) { postDisplay("tabs", v); });
-        tc.appendChild(tabsRow);
         fetch("/Settings/DisplaySettings", { credentials: "same-origin" }).then(function (r) { return r.text(); }).then(function (html) {
           try {
-            var cur = "0";
-            var sel = /<select[^>]*\bname=["']?tabs["']?[^>]*>([\s\S]*?)<\/select>/i.exec(html || "");
-            (sel ? sel[1].match(/<option\b[^>]*>/gi) || [] : []).forEach(function (tag) {
-              if (/\bselected\b/i.test(tag)) { var vm = /\bvalue=["']?([^"'\s>]+)/i.exec(tag); if (vm) cur = vm[1]; }
+            var doc = new DOMParser().parseFromString(html, "text/html");
+            // Scope STRICTLY to the display form (#section=display): the fetched page is the whole
+            // Unraid chrome and OTHER forms (SMART/spin-down) carry stray selects like disks/op/-c/
+            // queue that must never leak into CC's panel. The display form's selects are exactly the
+            // 21 display fields; its 3 text inputs (header colours) stay skipped (CC paints the head).
+            var dispForm = null;
+            Array.prototype.forEach.call(doc.querySelectorAll("form"), function (f) {
+              var sec = f.querySelector('input[name="#section"]');
+              if (sec && sec.value === "display") dispForm = f;
             });
-            // segRow's seg container is the row's last child; buttons follow the opts order
-            Array.prototype.slice.call(tabsRow.lastChild.children).forEach(function (b9, i9) { b9.classList.toggle("cc-seg-on", tabsKeys[i9] === cur); });
+            if (!dispForm) return;
+            Array.prototype.forEach.call(dispForm.querySelectorAll("select[name]"), function (c) {
+              var nm = c.getAttribute("name"); if (!nm || /^(csrf|#)/.test(nm)) return;
+              var dd = c.closest("dd"), dt = dd ? dd.previousElementSibling : null;
+              var lbl = (dt && dt.tagName === "DT") ? (dt.textContent || "").replace(/\s*:\s*$/, "").trim() : nm;
+              var opts = Array.prototype.map.call(c.options, function (o) { return [o.value, (o.textContent || "").trim()]; });
+              if (nm === "favorites") set("cc.hidefavtab", c.value === "no" ? "1" : "0");   // sync CC's tab-hide with the saved native value on load
+              dispHost.appendChild(opts.length > 3
+                ? dropRow(lbl, opts, c.value, function (v) { postDisplay(nm, v); })
+                : segRow(lbl, opts, c.value, function (v) { postDisplay(nm, v); }));
+            });
+            syncHeaderBar();   // the favorites sync may have flipped cc.hidefavtab -> reflect it live
           } catch (e9) {}
         }).catch(function () {});
       }
-      // Favoriten-Tab ausblenden (user: Unraids favorites=no blendet den Menü-Tab NICHT aus, und CC
-      // erzwingt ihn sogar sichtbar) — CC-eigener Schalter, blendet den /Favorites-Menü-Tab per Klasse
-      // (html.cc-hide-favtab, header.js) sofort aus. Kein Reload nötig.
-      tc.appendChild(toggleRow(T("Favoriten-Tab ausblenden", "Hide Favorites tab"), get("cc.hidefavtab", "0") === "1", function (v) { set("cc.hidefavtab", v ? "1" : "0"); syncHeaderBar(); }));
       themingCard = tc;
       wrapMain.appendChild(tc);
     })();

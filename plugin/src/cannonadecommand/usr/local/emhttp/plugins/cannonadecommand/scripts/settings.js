@@ -15,7 +15,20 @@
     var st = document.createElement("style"); st.id = "cc-set-xtra";
     st.textContent =
       "#cc-settings .cc-set-xbtn{display:inline-flex;align-items:center;justify-content:center;height:var(--cc-md-h,30px);padding:var(--cc-md-btnpad,0 14px);font-size:var(--cc-md-fs,13px);font-weight:600;border-radius:var(--cc-b-radius,999px);box-sizing:border-box;margin:12px 10px 0 0}" +
-      "#cc-settings .cc-set-xnote{margin-top:10px;font-size:12px;white-space:pre-wrap}";
+      "#cc-settings .cc-set-xnote{margin-top:10px;font-size:12px;white-space:pre-wrap}" +
+      // #17 flag picker: colour-stripe swatches + searchable custom dropdown (emoji flags fail on Windows)
+      "#cc-settings .cc-flag-sw{display:inline-block;width:22px;height:15px;border-radius:3px;flex:0 0 auto;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}" +
+      "#cc-settings .cc-flag-sw-lg{width:34px;height:22px}" +
+      "#cc-settings .cc-flag-picker{position:relative;margin-top:6px;max-width:340px}" +
+      "#cc-settings .cc-flag-trigger{display:flex;align-items:center;gap:9px;background:#232323;border-radius:8px;padding:7px 12px;cursor:pointer;user-select:none}" +
+      "#cc-settings .cc-flag-trigger:hover{filter:brightness(1.1)}" +
+      "#cc-settings .cc-flag-name{font-size:13px;color:#eaeaea;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}" +
+      "#cc-settings .cc-flag-caret{margin-left:auto;color:#9a9a9a;font-size:11px}" +
+      "#cc-settings .cc-flag-panel{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:50;background:#1c1c1c;border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.6);overflow:hidden}" +
+      "#cc-settings .cc-flag-search{box-sizing:border-box;background:#232323;color:#eaeaea;border:none;outline:none;border-radius:8px;padding:8px 10px;margin:8px;width:calc(100% - 16px);font-size:13px}" +
+      "#cc-settings .cc-flag-list{max-height:260px;overflow-y:auto;padding:0 6px 6px}" +
+      "#cc-settings .cc-flag-item{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:6px;cursor:pointer}" +
+      "#cc-settings .cc-flag-item:hover{background:rgba(255,255,255,.06)}";
     document.head.appendChild(st);
   })();
   var LANG = (document.documentElement.lang || navigator.language || "en").slice(0, 2).toLowerCase();
@@ -477,10 +490,17 @@
     // (writes the shared cc.badgeshape). The per-area cards no longer repeat it.
     // options sorted by ASCENDING roundness (square -> circle), keys unchanged (user call)
     c1.appendChild(segRow(T("Badge-Form", "Badge shape"), [["square", T("eckig", "square")], ["rounded", T("abgerundet", "rounded")], ["pill", "Pills"], ["circle", T("Kreise", "Circles")]], get("cc.badgeshape", "pill"), function (v) { set("cc.badgeshape", v); applyShape(); syncHeaderBar(); syncSharesBar(); }));
+    // #17: Rainbow-Modus and Flaggen-Modus are TWO mutually-exclusive palette modes sharing ONE colour
+    // engine. cc.rainbow="1" is the master "a palette is active" flag every reader checks; cc.flagmode="1"
+    // means the ACTIVE palette is a country flag (else the rainbow palette). rbOnly = rainbow is the
+    // active mode. Turning one on turns the other off; the UI greys the inactive one out (user call).
+    var flagOn = get("cc.flagmode", "0") === "1";
+    var rbOnly = rainbow && !flagOn;
     // rainbow toggle: label + switch adjacent (no parenthetical, no far-right spacer)
     var rr = el("div", "cc-set-row cc-set-inline");
     rr.appendChild(el("span", null, T("Regenbogen-Modus", "Rainbow mode")));
-    rr.appendChild(toggle(rainbow, function (v) { rainbow = v; set("cc.rainbow", v ? "1" : "0"); if (!v) set("cc.rainbowrot", "0"); render(); syncHeaderBar(); syncSharesBar(); }));
+    rr.appendChild(toggle(rbOnly, function (v) { set("cc.rainbow", v ? "1" : "0"); set("cc.flagmode", "0"); if (v) { del("cc.flag"); del("cc.rbpal"); } else set("cc.rainbowrot", "0"); render(); syncHeaderBar(); syncSharesBar(); }));
+    if (flagOn) { rr.style.opacity = ".4"; rr.style.pointerEvents = "none"; }   // greyed while Flaggen-Modus is active
     c1.appendChild(rr);
     // rainbow sub-mode: REACTIVE — everything rests neutral grey, colours on hover, the ACTIVE
     // one keeps its colour. Global like cc.rainbow (key cc.rbmode); sits DIRECTLY under the
@@ -491,7 +511,7 @@
     rmodeL.appendChild(infoIcon(T("AN = alles ruht grau und färbt sich beim Überfahren; Aktives bleibt farbig. Gilt global für alle Bereiche inklusive Logo-Hintergründen.", "ON = everything rests grey and colours on hover; active stays coloured. Global, including logo backgrounds.")));
     rmode.appendChild(rmodeL);
     rmode.appendChild(toggle(get("cc.rbmode", "all") === "active", function (v) { set("cc.rbmode", v ? "active" : "all"); paintSetTabs(); syncHeaderBar(); syncSharesBar(); }));
-    if (!rainbow) { rmode.style.opacity = ".4"; rmode.style.pointerEvents = "none"; } // only makes sense WITH rainbow
+    if (!rbOnly) { rmode.style.opacity = ".4"; rmode.style.pointerEvents = "none"; } // only with rainbow mode (also greyed under flag mode)
     c1.appendChild(rmode);
     // rotation toggle: on = every tab reload deals a fresh colour mapping; off = stable colours
     var rrot = el("div", "cc-set-row cc-set-inline");
@@ -500,14 +520,15 @@
     rrotL.appendChild(infoIcon(T("Mischt die Rainbow-Farben bei jedem Neuladen der Seite neu durch, statt die Reihenfolge fest zu lassen.", "Reshuffles the rainbow colours on every page reload instead of keeping the order fixed.")));
     rrot.appendChild(rrotL);
     rrot.appendChild(toggle(get("cc.rainbowrot", "1") !== "0", function (v) { set("cc.rainbowrot", v ? "1" : "0"); syncHeaderBar(); syncSharesBar(); }));
-    if (!rainbow) { rrot.style.opacity = ".4"; rrot.style.pointerEvents = "none"; } // only makes sense WITH rainbow
+    if (!rbOnly) { rrot.style.opacity = ".4"; rrot.style.pointerEvents = "none"; } // only with rainbow mode
     c1.appendChild(rrot);
     // EVERY rainbow palette colour is editable: click a swatch, adjust it in the
     // embedded picker below; stored as cc.rbpal (JSON), read live by the Docker tab.
     var RBDEF = ["#d9433f", "#f97316", "#eab308", "#1f9d55", "#0ea5a4", "#2f6feb", "#8b5cf6", "#e05299"]; // real rainbow order
     var rbpal = null; try { rbpal = JSON.parse(get("cc.rbpal", "null")); } catch (e) { rbpal = null; }
     if (!rbpal || rbpal.length !== RBDEF.length) rbpal = RBDEF.slice();
-    c1.appendChild(el("div", "cc-set-lbl", T("Rainbow-Farben (Feld anklicken zum Anpassen)", "Rainbow colours (click a field to adjust)")));
+    var rbLbl = el("div", "cc-set-lbl", T("Rainbow-Farben (Feld anklicken zum Anpassen)", "Rainbow colours (click a field to adjust)"));
+    c1.appendChild(rbLbl);
     var rbrow = el("div", "cc-set-swatches");
     var rbPick = null, rbIdx = -1, rbPickWrap = el("div", "cc-set-pickrow"); rbPickWrap.style.display = "none";
     rbpal.forEach(function (cx, ix) {
@@ -528,23 +549,76 @@
     rbReset.addEventListener("click", function () { del("cc.rbpal"); del("cc.flag"); render(); syncHeaderBar(); syncSharesBar(); });
     rbrow.appendChild(rbReset);
     c1.appendChild(rbrow); c1.appendChild(rbPickWrap);
-    // ── FLAGGEN-MODUS (user: analog zum Rainbow-Mode): pick a country and its flag colours BECOME the
-    // rainbow palette (cc.rbpal) with rainbow switched on — so the ENTIRE rainbow machinery (per-area
-    // colouring AND the reactive rainbow toggle above = the "reactive flag mode") applies for free.
-    // The flag's 2-5 colours are cycled to fill all 8 palette slots so the swatch editor above stays
-    // consistent and the colouring (p[i % len]) is identical. cc.flag stores the picked code; "— aus —"
-    // clears it back to the default rainbow palette. Data: window.CC_FLAGS (scripts/flags.js, ~195).
+    if (!rbOnly) { [rbLbl, rbrow, rbPickWrap].forEach(function (e9) { e9.style.opacity = ".4"; e9.style.pointerEvents = "none"; }); }   // rainbow palette editor belongs to rainbow mode
+    // ── FLAGGEN-MODUS (#17): a SEPARATE mode with its OWN toggle, reactive toggle, picker and colour
+    // display, mutually exclusive with Rainbow (each greys the other). A country's flag colours become
+    // the active palette (cc.rbpal, cycled to 8 slots) that drives the SAME engine. The picker draws the
+    // flag COLOURS as stripe-swatches + searches by name — the emoji flags render as "DE"/"AF" letter
+    // codes on Windows, so colour swatches are shown instead. Data: window.CC_FLAGS (scripts/flags.js).
     if (window.CC_FLAGS && window.CC_FLAGS.length) {
-      var flagOpts = [["", T("— aus —", "— off —")]];
-      window.CC_FLAGS.forEach(function (f9) { flagOpts.push([f9.code, f9.emoji + "  " + f9.name_de]); });
-      c1.appendChild(dropRow(T("Flaggen-Modus", "Flag mode"), flagOpts, get("cc.flag", ""), function (code) {
-        if (!code) { del("cc.flag"); del("cc.rbpal"); set("cc.rainbow", "1"); render(); syncHeaderBar(); syncSharesBar(); return; }
-        var f9 = null; for (var i9 = 0; i9 < window.CC_FLAGS.length; i9++) { if (window.CC_FLAGS[i9].code === code) { f9 = window.CC_FLAGS[i9]; break; } }
-        if (!f9 || !f9.colors || !f9.colors.length) return;
-        var pal = []; for (var k9 = 0; k9 < RBDEF.length; k9++) pal.push(f9.colors[k9 % f9.colors.length]);   // cycle flag colours across all 8 slots
-        set("cc.flag", code); set("cc.rbpal", JSON.stringify(pal)); set("cc.rainbow", "1");
+      var flagSwatch = function (colors, big) {
+        var s = el("span", "cc-flag-sw" + (big ? " cc-flag-sw-lg" : "")); var n = colors.length, stops = [];
+        for (var i9 = 0; i9 < n; i9++) { stops.push(colors[i9] + " " + Math.round(i9 / n * 100) + "% " + Math.round((i9 + 1) / n * 100) + "%"); }
+        s.style.background = "linear-gradient(to bottom, " + stops.join(", ") + ")"; return s;
+      };
+      var curFlag = function () { var c9 = get("cc.flag", ""); for (var j9 = 0; j9 < window.CC_FLAGS.length; j9++) if (window.CC_FLAGS[j9].code === c9) return window.CC_FLAGS[j9]; return null; };
+      var applyFlag = function (f9) { var pal = []; for (var k9 = 0; k9 < RBDEF.length; k9++) pal.push(f9.colors[k9 % f9.colors.length]); set("cc.flag", f9.code); set("cc.rbpal", JSON.stringify(pal)); };
+      // flag master toggle (mutually exclusive with Rainbow)
+      var fr = el("div", "cc-set-row cc-set-inline");
+      fr.appendChild(el("span", null, T("Flaggen-Modus", "Flag mode")));
+      fr.appendChild(toggle(flagOn, function (v) {
+        if (v) { set("cc.flagmode", "1"); set("cc.rainbow", "1"); var f0 = curFlag() || window.CC_FLAGS.filter(function (x9) { return x9.code === "de"; })[0] || window.CC_FLAGS[0]; applyFlag(f0); }
+        else { set("cc.flagmode", "0"); set("cc.rainbow", "0"); }
         render(); syncHeaderBar(); syncSharesBar();
-      }, T("Färbt alles in den Farben einer Landesflagge — die Flaggenpalette wird zur Regenbogen-Palette. Der reaktive Regenbogen-Modus oben wirkt dann als reaktiver Flaggen-Modus.", "Colours everything in a country flag's colours — the flag palette becomes the rainbow palette. The reactive rainbow toggle above then acts as the reactive flag mode.")));
+      }));
+      if (rbOnly) { fr.style.opacity = ".4"; fr.style.pointerEvents = "none"; }   // greyed while Rainbow is active
+      c1.appendChild(fr);
+      // reactive flag toggle — shares cc.rbmode (only one mode is active at a time)
+      var fmode = el("div", "cc-set-row cc-set-inline");
+      var fmodeL = el("span", "cc-set-lblwrap");
+      fmodeL.appendChild(el("span", null, T("Reaktiver Flaggen-Modus", "Reactive flag mode")));
+      fmodeL.appendChild(infoIcon(T("AN = alles ruht grau und färbt sich beim Überfahren in den Flaggenfarben; Aktives bleibt farbig.", "ON = everything rests grey and colours in the flag colours on hover; active stays coloured.")));
+      fmode.appendChild(fmodeL);
+      fmode.appendChild(toggle(get("cc.rbmode", "all") === "active", function (v) { set("cc.rbmode", v ? "active" : "all"); paintSetTabs(); syncHeaderBar(); syncSharesBar(); }));
+      c1.appendChild(fmode);
+      // custom flag picker: colour-stripe swatch + name, searchable (native dropdown can't show swatches)
+      var fpLbl = el("div", "cc-set-lbl", T("Land wählen", "Pick a country"));
+      c1.appendChild(fpLbl);
+      var picker = el("div", "cc-flag-picker");
+      var trigger = el("div", "cc-flag-trigger"); trigger.setAttribute("tabindex", "0");
+      var renderTrigger = function () { trigger.innerHTML = ""; var f0 = curFlag(); if (f0) { trigger.appendChild(flagSwatch(f0.colors)); trigger.appendChild(el("span", "cc-flag-name", f0.name_de)); } else trigger.appendChild(el("span", "cc-flag-name", T("— kein Land —", "— none —"))); trigger.appendChild(el("span", "cc-flag-caret", "▾")); };
+      renderTrigger();
+      var panel = el("div", "cc-flag-panel"); panel.style.display = "none";
+      var search = el("input", "cc-flag-search"); search.type = "text"; search.placeholder = T("Suchen…", "Search…"); search.spellcheck = false; panel.appendChild(search);
+      var list = el("div", "cc-flag-list");
+      var buildList = function (q) {
+        list.innerHTML = ""; q = (q || "").toLowerCase();
+        window.CC_FLAGS.forEach(function (f0) {
+          if (q && f0.name_de.toLowerCase().indexOf(q) < 0 && f0.name.toLowerCase().indexOf(q) < 0 && f0.code.indexOf(q) < 0) return;
+          var row = el("div", "cc-flag-item"); row.appendChild(flagSwatch(f0.colors)); row.appendChild(el("span", "cc-flag-name", f0.name_de));
+          row.addEventListener("click", function () { applyFlag(f0); render(); syncHeaderBar(); syncSharesBar(); });
+          list.appendChild(row);
+        });
+      };
+      buildList(""); panel.appendChild(list);
+      search.addEventListener("input", function () { buildList(search.value); });
+      trigger.addEventListener("click", function () {
+        if (panel.style.display !== "none") { panel.style.display = "none"; return; }
+        panel.style.display = ""; search.value = ""; buildList(""); try { search.focus(); } catch (e9) {}
+        var closer = function (e9) { if (!picker.contains(e9.target)) { panel.style.display = "none"; document.removeEventListener("click", closer, true); } };
+        setTimeout(function () { document.addEventListener("click", closer, true); }, 0);   // self-removing click-outside (no leak across render)
+      });
+      picker.appendChild(trigger); picker.appendChild(panel);
+      c1.appendChild(picker);
+      // the selected flag's COLOURS, shown separately (not the rainbow editor)
+      var f1 = curFlag();
+      if (f1) {
+        c1.appendChild(el("div", "cc-set-lbl", T("Flaggenfarben", "Flag colours")));
+        var frow = el("div", "cc-set-swatches");
+        f1.colors.forEach(function (c9) { var sw9 = el("span", "cc-set-sw"); sw9.style.background = c9; sw9.setAttribute("data-tip", c9); frow.appendChild(sw9); });
+        c1.appendChild(frow);
+      }
+      if (!flagOn) { [fmode, fpLbl, picker].forEach(function (e9) { e9.style.opacity = ".4"; e9.style.pointerEvents = "none"; }); }   // flag sub-controls only when flag mode is on
     }
     // #16 (user): let STATE indicators keep their NATIVE state colour (green/amber/red) instead of
     // folding into the accent/rainbow/flag palette. Default OFF = integrated (current look). ON stamps

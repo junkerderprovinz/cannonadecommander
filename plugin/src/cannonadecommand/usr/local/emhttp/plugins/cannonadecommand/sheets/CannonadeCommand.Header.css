@@ -55,15 +55,18 @@ html.cc-popups-on .Panels > .Panel:has(> a[href="/Settings/DisplaySettings"]) { 
 /* #2b: per-icon SHOW/HIDE for the top-right utility icons (settings toggles cc.hideicon.<key> ->
    html.cc-hideicon-<key>, stamped by header.js apply()). Keys map to the native #menu button classes.
    The docked bell/burger are hidden in header.js ccDockProfile (they live outside #menu). */
-html.cc-hideicon-lang #menu .nav-item.LanguageButton,
-html.cc-hideicon-search #menu .nav-item.gui_search,
-html.cc-hideicon-logout #menu .nav-item.LogoutButton,
-html.cc-hideicon-terminal #menu .nav-item.TerminalButton,
-html.cc-hideicon-browse #menu .nav-item.BrowseButton,
-html.cc-hideicon-feedback #menu .nav-item.FeedbackButton,
-html.cc-hideicon-info #menu .nav-item.InfoButton,
-html.cc-hideicon-log #menu .nav-item.LogButton,
-html.cc-hideicon-help #menu .nav-item.HelpButton { display: none !important; }
+/* .nav-tile > .nav-item.<Class>.util = specificity (1,5,1), which BEATS the util force-show
+   `html.cc-header-on:not(.Theme--sidebar) #menu .nav-tile > .nav-item{display:inline-flex!important}`
+   at (1,4,1) — otherwise the icons stay visible (live-proven: class stamped but display:flex won). */
+html.cc-hideicon-lang #menu .nav-tile > .nav-item.LanguageButton.util,
+html.cc-hideicon-search #menu .nav-tile > .nav-item.gui_search.util,
+html.cc-hideicon-logout #menu .nav-tile > .nav-item.LogoutButton.util,
+html.cc-hideicon-terminal #menu .nav-tile > .nav-item.TerminalButton.util,
+html.cc-hideicon-browse #menu .nav-tile > .nav-item.BrowseButton.util,
+html.cc-hideicon-feedback #menu .nav-tile > .nav-item.FeedbackButton.util,
+html.cc-hideicon-info #menu .nav-tile > .nav-item.InfoButton.util,
+html.cc-hideicon-log #menu .nav-tile > .nav-item.LogButton.util,
+html.cc-hideicon-help #menu .nav-tile > .nav-item.HelpButton.util { display: none !important; }
 html.cc-header-on #menu .nav-tile .nav-item:not(.util):not(.gui_search) > a {
   display: inline-flex !important; align-items: center; justify-content: center;
   line-height: 1; height: var(--cc-md-h, 30px) !important; padding: var(--cc-md-pad, 0 20px) !important; margin: 0 3px; /* same metrics as the CC settings tabs */

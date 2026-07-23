@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.56.0">
+  <!ENTITY version   "2.57.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,15 @@
 </ICON>
 
 <CHANGES>
+### 2.57.0
+- #9 Docker-Zuweisungen: das leere quadratische Farbfeld vor jedem Container ist weg -- es war eine
+  LEERE Label-Zelle (docker-allocation-dt), die CCs Variablen-Badge-Styling faelschlich zu einem leeren
+  Kaestchen gemacht hatte (die Regel verlor per Spezifitaet, jetzt mit Doppelklasse ueberstimmt).
+- #10 (offen, ehrlich): IPs/Ports fuer GESTOPPTE Container in der Allokations-Tabelle. Unraid zeigt dort
+  "invalid IP"/"???" (es inspiziert nur laufende Container); die konfigurierten Werte liegen weder in der
+  Tabelle noch client-seitig abrufbar (Template-XML = 404) -- das braucht CCs Engine als Datenquelle
+  und kommt als eigener Schritt.
+
 ### 2.56.0
 - #7 "Container hinzufuegen"-Formular: die Feld-Badges (Vorlage/Name/Beschreibung/...) sitzen jetzt
   direkt neben ihren Feldern statt weit links (die native Label-Spalte war ~664px breit), und ihre
@@ -1667,7 +1676,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>b5b3038a51ebe239cfa04de70076dc99f98d0377305889cfbd063acb0fa97300</SHA256>
+  <SHA256>a8a74fc846f40544d6172967bc0392573eca753c72ed006656e6c380867683f6</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

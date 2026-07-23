@@ -1094,6 +1094,14 @@ html.cc-docker-on.cc-on-addct .cc-dsel-opt.is-disabled { opacity: .4; pointer-ev
    (live-diagnosed — NOT a bare text node, so the ctTitleWrap path never fires there; it stays
    as the fallback for builds that DO render bare text). Style span.left directly as the badge.
    div.title loses ALL borders here — the divider line under the title bar is illegal. */
+/* #9: the Docker-allocations table (#allocations_toggle) has EMPTY label cells (.docker-allocation-dt,
+   just &nbsp;) that ctVarLabels badge-styled into a stray empty square before each row -> hide them.
+   The .cc-varlab badge rule below is display:inline-flex!important, so this needs the extra
+   .docker-allocation-dt class (4 classes) to outrank it (the badge rule carries 3). */
+html.cc-docker-on.cc-on-addct #canvas dl > dt > span.docker-allocation-dt.cc-varlab,
+html.cc-docker-on.cc-on-addct .ui-dialog dl > dt > span.docker-allocation-dt.cc-varlab,
+html.cc-docker-on.cc-on-addct #canvas #dockerAllocations dt,
+html.cc-docker-on.cc-on-addct .ui-dialog #dockerAllocations dt { display: none !important; }
 /* FIELD LABELS as badges — docker.js ctVarLabels adds .cc-varlab (ENV var <span>) OR .cc-dtlab
    (top-level bare <dt>) and strips the trailing colon. The tint FOLLOWS the colour mode: the
    accent normally, the rainbow-primary (--cc-btn-accent) in rainbow mode. Required fields get a

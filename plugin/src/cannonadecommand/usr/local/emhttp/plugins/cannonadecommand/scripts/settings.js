@@ -34,6 +34,13 @@
       "#cc-settings .cc-preset-strip{display:flex;height:22px}" +
       "#cc-settings .cc-preset-strip span{flex:1}" +
       "#cc-settings .cc-preset-name{display:block;text-align:center;font-size:11px;font-weight:600;color:#cfcfcf;margin-top:5px}" +
+      // #26 settings search + nuke-reset button
+      "#cc-settings .cc-set-searchrow{margin:12px 0 2px}" +
+      "#cc-settings .cc-set-search{box-sizing:border-box;width:100%;max-width:420px;background:#232323;color:#eaeaea;border:none;outline:none;border-radius:8px;padding:9px 13px;font-size:13px;transition:background-color .12s}" +
+      "#cc-settings .cc-set-search::placeholder{color:#8d8d8d}" +
+      "#cc-settings .cc-set-search:focus{background:#2e2e2e}" +
+      "#cc-settings .cc-set-danger{background:#5a2a2a!important;color:#ffd7d7!important}" +
+      "#cc-settings .cc-set-danger:hover{filter:brightness(1.18)}" +
       "#cc-settings .cc-flag-picker{position:relative;margin-top:6px;max-width:340px}" +
       "#cc-settings .cc-flag-trigger{display:flex;align-items:center;gap:9px;background:#232323;border-radius:8px;padding:7px 12px;cursor:pointer;user-select:none}" +
       "#cc-settings .cc-flag-trigger:hover{filter:brightness(1.1)}" +
@@ -263,6 +270,9 @@
     api("GET", "state").then(function (s) {
       verLine.textContent = "UI v" + CC_VER + " · " + ((s && s.version) ? ("Engine " + String(s.version).replace(/^v/, "v")) + " · " + T("läuft", "running") : T("Engine läuft (Version unbekannt)", "Engine running (version unknown)"));
     }).catch(function (e) { verLine.textContent = "UI v" + CC_VER + " · " + T("Engine NICHT erreichbar", "Engine NOT reachable") + " — " + (e && e.message ? e.message : ""); verLine.style.color = "#d9433f"; });
+    // #26: quick settings search — filters cards/rows across ALL tabs (wired below, once the sections exist)
+    var setSearch = el("input", "cc-set-search"); setSearch.type = "search"; setSearch.placeholder = T("Einstellungen durchsuchen …", "Search settings …"); setSearch.spellcheck = false;
+    var searchRow = el("div", "cc-set-searchrow"); searchRow.appendChild(setSearch); head.appendChild(searchRow);
     root.appendChild(head);
 
     // the Unraid title strip between the main menu and our hero is redundant here
@@ -354,10 +364,12 @@
         b.addEventListener("click", function () { location.href = "/Settings/DisplaySettings"; });
         row.appendChild(b); return row;
       }
-      // KEEP = the only fields we still surface in CC (build order in the single card), each live-syncing
-      // to native: theme + tabbed view + banner (#6) + favourites, then the 3 header COLOURS (#7).
-      var KEEP = ["theme", "tabs", "banner", "favorites", "header", "headermetacolor", "background"];
-      var cCard = card(T("Anzeige (Unraid, live)", "Display (Unraid, live)"), T("Diese Optionen schreiben direkt in Unraids native Anzeige-Einstellungen und schalten dort live mit um. Alle weiteren Anzeige-Optionen liegen auf der nativen Seite — jetzt im CannonadeCommand-Stil.", "These write straight into Unraid's native Display Settings and switch live there too. Every other display option lives on the native page — now in CannonadeCommand style."));
+      // #5 (cleanup): mirroring Unraid's display PREFS into CC felt redundant once the native page is
+      // CC-styled + one click away ("es sind noch alte Einstellungen ... in den cc settings"). We now keep
+      // ONLY the 3 header COLOURS here — they affect CannonadeCommand's OWN header and were explicitly
+      // wanted back (#7) — as live-sync controls; theme/tabbed-view/banner/favourites live natively.
+      var KEEP = ["header", "headermetacolor", "background"];
+      var cCard = card(T("Anzeige — Kopf-Farben (live)", "Display — header colours (live)"), T("Die nativen Kopfzeilen-Farben, hier direkt anpassbar — sie schalten live in Unraids Anzeige-Einstellungen mit um und wirken, wenn CannonadeCommands Kopfbereich AUS ist. Alle weiteren Anzeige-Optionen liegen auf der nativen Seite (jetzt im CannonadeCommand-Stil).", "Unraid's header colours, adjustable here — they live-sync into Unraid's Display Settings and apply when CannonadeCommand's header area is OFF. Every other display option lives on the native page (now in CannonadeCommand style)."));
       (function () {
         var b = el("button", "cc-btn", T("Alle Unraid-Anzeige-Einstellungen öffnen …", "Open all Unraid display settings …")); b.type = "button";
         b.addEventListener("click", function () { location.href = "/Settings/DisplaySettings"; });
@@ -372,20 +384,11 @@
           Array.prototype.forEach.call(doc.querySelectorAll("form"), function (f) { var s = f.querySelector('input[name="#section"]'); if (s && s.value === "display") form = f; });
           if (!form) return;
           KEEP.forEach(function (nm) {
-            var c = form.querySelector('select[name="' + nm + '"], input[name="' + nm + '"][type="text"]');
-            if (!c) return;                                              // field absent on this Unraid build -> skip
-            var lbl = fieldLabel(c, nm);
-            if (c.tagName === "SELECT") {
-              var opts = Array.prototype.map.call(c.options, function (o) { return [o.value, (o.textContent || "").trim()]; });
-              if (nm === "favorites") set("cc.hidefavtab", c.value === "no" ? "1" : "0");
-              cCard.appendChild(opts.length > 3
-                ? dropRow(lbl, opts, c.value, function (v) { postDisplay(nm, v); }, help(nm))
-                : segRow(lbl, opts, c.value, function (v) { postDisplay(nm, v); }, help(nm)));
-              if (nm === "banner") cCard.appendChild(bannerUploadRow());  // #6 upload link right after "Banner anzeigen"
-            } else {
-              cCard.appendChild(colorRow(lbl, c.value || "", function (v) { postDisplay(nm, v); }, help(nm)));   // #7 header colour
-            }
+            var c = form.querySelector('input[name="' + nm + '"][type="text"]'); if (!c) return;   // the 3 colour fields
+            cCard.appendChild(colorRow(fieldLabel(c, nm), c.value || "", function (v) { postDisplay(nm, v); }, help(nm)));   // #7 header colour
           });
+          // the favourites CONTROL now lives natively, but its value still drives cc.hidefavtab (favorites tab)
+          var fav = form.querySelector('select[name="favorites"]'); if (fav) set("cc.hidefavtab", fav.value === "no" ? "1" : "0");
           syncHeaderBar();
         } catch (e9) {}
       }).catch(function () {});
@@ -1302,7 +1305,18 @@
         rd.readAsText(f);
       });
       im.addEventListener("click", function () { fin.click(); });
-      var brow = el("div", "cc-set-row"); brow.appendChild(ex); brow.appendChild(im);
+      // #26: NUKE reset — two-step, clears every cc.* key AND the engine mirror, then reloads to defaults.
+      var rs = el("span", "cc-btn cc-set-xbtn cc-set-danger", T("Alles zurücksetzen", "Reset all"));
+      rs.addEventListener("click", function () {
+        if (rs.getAttribute("data-armed") !== "1") { rs.setAttribute("data-armed", "1"); rs.textContent = T("Wirklich? Nochmal klicken", "Sure? Click again"); setTimeout(function () { rs.setAttribute("data-armed", "0"); rs.textContent = T("Alles zurücksetzen", "Reset all"); }, 3500); return; }
+        try {
+          var kill = []; for (var i9 = 0; i9 < localStorage.length; i9++) { var k9 = localStorage.key(i9); if (k9 && /^cc[a-z]*\./.test(k9) && k9 !== "cc.stateCache") kill.push(k9); }
+          kill.forEach(function (k9) { try { localStorage.removeItem(k9); } catch (e9) {} });
+          withConfigLock(function () { return api("GET", "config").then(function (c) { if (!c || typeof c !== "object") return; c.ui_settings = {}; return api("PUT", "config", c); }); })
+            .then(function () { location.reload(); }, function () { location.reload(); });
+        } catch (e) { say(T("Zurücksetzen fehlgeschlagen: ", "Reset failed: ") + ((e && e.message) || e), true); }
+      });
+      var brow = el("div", "cc-set-row"); brow.appendChild(ex); brow.appendChild(im); brow.appendChild(rs);
       cX.appendChild(brow); cX.appendChild(fin); cX.appendChild(note); // rows land at the end of the Theming card
     })();
     refreshTabs();
@@ -1311,6 +1325,28 @@
     var st0 = localStorage.getItem("cc.settab"), ix0 = 0;
     SECS.forEach(function (sc9, j9) { if (sc9.id === st0) ix0 = j9; });
     showSec(ix0);
+    // #26: settings search — filters cards + rows across ALL tabs; empty query restores the tabbed view.
+    (function () {
+      function restore() {
+        Array.prototype.forEach.call(root.querySelectorAll(".cc-set-card, .cc-set-row, .cc-set-lbl"), function (e9) { e9.style.removeProperty("display"); });
+        tabRow.style.removeProperty("display");
+        var st9 = localStorage.getItem("cc.settab"), ix9 = 0; SECS.forEach(function (sc9, j9) { if (sc9.id === st9) ix9 = j9; }); showSec(ix9);
+      }
+      function runFilter(q) {
+        q = (q || "").trim().toLowerCase();
+        if (!q) { restore(); return; }
+        tabRow.style.setProperty("display", "none");
+        SECS.forEach(function (sc9) { sc9.w.style.display = ""; });
+        Array.prototype.forEach.call(root.querySelectorAll(".cc-set-card"), function (cardEl) {
+          var h9 = cardEl.querySelector(".cc-set-h"); var titleHit = !!(h9 && (h9.textContent || "").toLowerCase().indexOf(q) >= 0), any = false;
+          Array.prototype.forEach.call(cardEl.querySelectorAll(".cc-set-row, .cc-set-lbl"), function (r9) {
+            var hit = titleHit || (r9.textContent || "").toLowerCase().indexOf(q) >= 0; r9.style.display = hit ? "" : "none"; if (hit) any = true;
+          });
+          cardEl.style.display = (titleHit || any) ? "" : "none";
+        });
+      }
+      setSearch.addEventListener("input", function () { runFilter(setSearch.value); });
+    })();
     paintPrev();
   }
   function saveNotify(btn) {

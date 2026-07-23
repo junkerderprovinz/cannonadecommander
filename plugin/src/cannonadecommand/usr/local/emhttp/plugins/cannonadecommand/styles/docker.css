@@ -1104,14 +1104,18 @@ html.cc-docker-on.cc-on-addct #canvas dl > dt.cc-dtlab,
 html.cc-docker-on.cc-on-addct .ui-dialog dl > dt.cc-dtlab {
   display: inline-flex !important; align-items: center; gap: 6px; justify-self: start; width: fit-content; max-width: 100%;
   padding: var(--cc-bmd-pad, 4px 12px); border-radius: var(--cc-b-radius, 999px);
-  background: rgba(128, 128, 128, .18); /* fallback if color-mix is unsupported */
-  background: color-mix(in srgb, var(--cc-btn-accent, var(--cc-accent, #2f6feb)) 20%, #262626);
-  color: #ececec; font-weight: 600; line-height: 1.3;
+  background: rgba(255, 255, 255, .08); /* #7: clean neutral chip — the old accent-mix read muddy/brown with warm accents */
+  color: #e6e6e6; font-weight: 600; line-height: 1.3;
 }
+/* #7a: pull the field badges next to their fields — the native docker form dl uses a ~664px label
+   column, stranding the badge far to the left. A content-width label column closes the gap so the
+   badge sits right beside its input (like the variable rows). */
+html.cc-docker-on.cc-on-addct #canvas dl,
+html.cc-docker-on.cc-on-addct .ui-dialog dl { grid-template-columns: minmax(110px, max-content) minmax(0, 1fr) !important; }
 html.cc-docker-on.cc-on-addct #canvas dl > dt > span.cc-varlab i.fa,
 html.cc-docker-on.cc-on-addct .ui-dialog dl > dt > span.cc-varlab i.fa,
 html.cc-docker-on.cc-on-addct #canvas dl > dt.cc-dtlab i.fa,
-html.cc-docker-on.cc-on-addct .ui-dialog dl > dt.cc-dtlab i.fa { color: inherit !important; margin: 0 !important; }
+html.cc-docker-on.cc-on-addct .ui-dialog dl > dt.cc-dtlab i.fa { display: none !important; }   /* #12: hide the field-type icons in the badges */
 html.cc-docker-on.cc-on-addct #canvas dl > dt > span.cc-varlab.cc-req::after,
 html.cc-docker-on.cc-on-addct .ui-dialog dl > dt > span.cc-varlab.cc-req::after,
 html.cc-docker-on.cc-on-addct #canvas dl > dt.cc-dtlab.cc-req::after,
@@ -1126,6 +1130,12 @@ html.cc-docker-on.cc-on-addct .cc-colorvar {
 }
 html.cc-docker-on.cc-on-addct .cc-colorvar::-webkit-color-swatch { border: none; border-radius: min(var(--cc-b-radius, 8px), 8px); }
 html.cc-docker-on.cc-on-addct .cc-colorvar::-webkit-color-swatch-wrapper { padding: 0; }
+/* #13: on colour-variable rows the 30px swatch must NOT shrink the text field — let the input fill the
+   cell so every field lines up to the same right edge as the plain rows. */
+html.cc-docker-on.cc-on-addct dd:has(> .cc-colorvar),
+html.cc-docker-on.cc-on-addct td:has(> .cc-colorvar) { display: flex; align-items: center; }
+html.cc-docker-on.cc-on-addct dd:has(> .cc-colorvar) input[type="text"],
+html.cc-docker-on.cc-on-addct td:has(> .cc-colorvar) input[type="text"] { flex: 1 1 auto; width: auto !important; min-width: 0; }
 html.cc-docker-on.cc-on-addct div.title { border: none !important; padding-left: 0; }
 /* the form page joins the house left edge: #displaybox aligns with the main menu bar
    (--cc-align-left, set by header.js) — the badge sat 10px vs the menu's 15px (user). */

@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.55.1">
+  <!ENTITY version   "2.56.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,17 @@
 </ICON>
 
 <CHANGES>
+### 2.56.0
+- #7 "Container hinzufuegen"-Formular: die Feld-Badges (Vorlage/Name/Beschreibung/...) sitzen jetzt
+  direkt neben ihren Feldern statt weit links (die native Label-Spalte war ~664px breit), und ihre
+  komische braune Farbe ist einem sauberen neutralen Chip gewichen (die Akzent-Mischung wurde mit
+  warmen Akzentfarben matschig).
+- #12 Die Feld-Typ-Icons in den Badges werden ausgeblendet.
+- #13 Auf Farb-Variablen-Zeilen schrumpft der 30px-Farbwaehler das Textfeld nicht mehr -- das Feld
+  fuellt die Zelle, sodass alle Felder auf dieselbe rechte Kante ausgerichtet sind.
+- #8 Das Vorlage-Dropdown ist bereits CC-gestylt und scrollt bei langer Liste (max-height 50vh,
+  overflow auto); auf Boxen mit wenigen Templates ist schlicht nichts zu scrollen.
+
 ### 2.55.1
 - #18 Fix: der Array-Fuellstand-Chip blieb leer, weil die Berechnung beim Laden lief BEVOR /Mains
   Datentraeger-Tabelle geparst war. ccArrFill() versucht es jetzt bis zum Vorhandensein der Tabelle
@@ -1656,7 +1667,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>38d28a464b608870264ccc487b5fa012de49edb6105a9e63b30b17313a607571</SHA256>
+  <SHA256>b5b3038a51ebe239cfa04de70076dc99f98d0377305889cfbd063acb0fa97300</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

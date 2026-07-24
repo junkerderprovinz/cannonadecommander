@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.57.0">
+  <!ENTITY version   "2.58.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,15 @@
 </ICON>
 
 <CHANGES>
+### 2.58.0
+- #16 Funktionale Badges reagieren jetzt beim Mouseover (ShipLog-Changelog/Update-Chips + Docker-Update-
+  Chips heben sich per Helligkeit hervor, lesen sich als klickbar).
+- #19 Dezente Animationen: sanfte Einblende-Animation fuer die CC-Popups + weiche Hover/Farb-Uebergaenge
+  auf der interaktiven Chrome (bewusst NICHT auf live-aktualisierten Insel-Chips, sonst Flackern).
+- #24 Alles davon respektiert prefers-reduced-motion und schaltet unter reduzierter Bewegung ab.
+- #22 VM-Nutzungsstatistiken vollstaendiger im CC-Style: Speicher/Datentraeger-IO/Netzwerk-IO als CC-Chips
+  (re-render-sicher gewrappt) + die CPU-Pills folgen jetzt dem Rainbow-/Flaggen-Modus statt nur dem Akzent.
+
 ### 2.57.0
 - #9 Docker-Zuweisungen: das leere quadratische Farbfeld vor jedem Container ist weg -- es war eine
   LEERE Label-Zelle (docker-allocation-dt), die CCs Variablen-Badge-Styling faelschlich zu einem leeren
@@ -1676,7 +1685,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>a8a74fc846f40544d6172967bc0392573eca753c72ed006656e6c380867683f6</SHA256>
+  <SHA256>c9485f0d3d356ba0f19c5dadc1805bd1dadcb0744529610858671f8b646321ea</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

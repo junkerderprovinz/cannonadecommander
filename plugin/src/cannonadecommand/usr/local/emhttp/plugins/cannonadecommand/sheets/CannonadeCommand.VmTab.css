@@ -195,7 +195,15 @@ html.cc-vms-on #vmstats tbody td.advanced > span:first-child {
   border-radius: var(--cc-b-radius, 999px); padding: var(--cc-sm-pad, 3px 11px);
   font-size: var(--cc-sm-fs, 11px); font-weight: 600; line-height: 1.35; white-space: nowrap;
   font-family: Consolas, "SFMono-Regular", monospace;
-  background: var(--cc-accent, #2f6feb); color: var(--cc-accent-text, #fff);
+  background: var(--cc-rb-c, var(--cc-accent, #2f6feb)); color: var(--cc-rb-ct, var(--cc-accent-text, #fff));   /* #22: follow the rainbow/flag palette, not just the accent */
+}
+/* #22: memory / disk-IO / network-IO readouts -> a neutral CC chip (vms.js wraps the bare text into
+   span.cc-vmstat-chip, re-render-safe), so every stat cell reads as a badge like the CPU pills. */
+html.cc-vms-on #vmstats .cc-vmstat-chip {
+  display: inline-flex; flex-direction: column; align-items: flex-start;
+  background: rgba(255, 255, 255, .07); border-radius: var(--cc-b-radius, 12px);
+  padding: 4px 11px; line-height: 1.4; color: #dcdcdc;
+  font-family: Consolas, "SFMono-Regular", monospace; font-size: var(--cc-md-fs, 13px);
 }
 /* live usage bar (native .usage-disk.mm) -> accent fill on a subtle rounded track */
 html.cc-vms-on #vmstats td.advanced .usage-disk.mm { background: rgba(128, 128, 128, .20) !important; border-radius: var(--cc-b-radius, 999px); }

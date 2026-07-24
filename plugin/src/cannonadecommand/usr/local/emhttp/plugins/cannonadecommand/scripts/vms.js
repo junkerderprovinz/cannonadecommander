@@ -13,7 +13,28 @@
 (function () {
   "use strict";
   var PROXY = "/plugins/cannonadecommand/server/ccapi.php";
-  var dead = false, mo = null, liveTimer = null, moPending = false;
+  var dead = false, mo = null, liveTimer = null, moPending = false, smo = null, smoPending = false;
+  // #22: wrap the memory / disk-IO / network-IO readouts (cols 4-6) of the VM-usage-stats table into
+  // CC chips so every cell reads as a badge like the CPU pills. Re-render-safe: guarded by an
+  // already-wrapped check (the tbody is replaced ~every 3s via the vm_usage websocket).
+  function wrapVmStats() {
+    try {
+      if (!document.documentElement.classList.contains("cc-vms-on")) return;
+      var body = document.getElementById("vmstatsbody") || (function () { var t = document.getElementById("vmstats"); return t ? t.querySelector("tbody") : null; })();
+      if (!body) return;
+      Array.prototype.forEach.call(body.querySelectorAll("tr"), function (tr) {
+        var tds = tr.children;
+        [3, 4, 5].forEach(function (ci) {
+          var td = tds[ci]; if (!td || td.tagName !== "TD") return;
+          if (td.querySelector(":scope > .cc-vmstat-chip")) return;     // already wrapped this render
+          if (!(td.textContent || "").trim()) return;
+          var chip = document.createElement("span"); chip.className = "cc-vmstat-chip";
+          while (td.firstChild) chip.appendChild(td.firstChild);
+          td.appendChild(chip);
+        });
+      });
+    } catch (e) {}
+  }
   var VMVIEW_KEY = "cc.vmview";
   var LANG = (document.documentElement.lang || navigator.language || "en").slice(0, 2).toLowerCase();
   // Rainbow: ported verbatim from docker.js so the VM badges read the SAME global palette. --cc-rb-* vars
@@ -499,6 +520,7 @@
     if (!live) { root.classList.remove("cc-sections-vms"); stripVmTheming(); enhanceCellsTeardown(); flattenTeardown(); return; } // MASTER THEMING / area off: VMs page fully native
     try { enhanceRows(); } catch (e) {}
     try { enhanceCells(); } catch (e) {}
+    try { wrapVmStats(); } catch (e) {}   // #22: chip-wrap the VM-usage-stats readouts
     // Tab-Ansicht (cc.sections.vms, default OFF): stacked CC sections vs native sub-tabs. MUST run BEFORE
     // the adopt/tint early-return below so it still applies with adopt-off + no tint colour. Idempotent.
     try {
@@ -547,10 +569,22 @@
       setTimeout(function () { moPending = false; if (!dead) apply(); }, 300);
     });
     mo.observe(host, { childList: true, subtree: true });
+    // #22: the VM-usage-stats tbody (#vmstatsbody) is replaced ~every 3s via the vm_usage websocket —
+    // a dedicated LIGHT observer just re-wraps its readout cells (no full apply). Debounced; the
+    // already-wrapped guard means our own wrap can't loop it.
+    try {
+      var stats = document.getElementById("vmstats");
+      if (stats) {
+        wrapVmStats();
+        smo = new MutationObserver(function () { if (dead || smoPending) return; smoPending = true; setTimeout(function () { smoPending = false; if (!dead) wrapVmStats(); }, 200); });
+        smo.observe(stats, { childList: true, subtree: true });
+      }
+    } catch (e) {}
   }
   function teardown() {
     if (dead) return; dead = true;
     try { if (mo) mo.disconnect(); mo = null; } catch (e) {}
+    try { if (smo) smo.disconnect(); smo = null; } catch (e) {}
     try { if (liveTimer) clearInterval(liveTimer); liveTimer = null; } catch (e) {}
     try { document.documentElement.classList.remove("cc-vms-on", "cc-vm-iconbg", "cc-sections-vms", "cc-vmgrid", "cc-vm-rainbow"); document.documentElement.style.removeProperty("--cc-iconbg-color"); } catch (e) {}
     try { RB_KINDS.forEach(function (k) { document.documentElement.style.removeProperty("--cc-rb-" + k); document.documentElement.style.removeProperty("--cc-rb-" + k + "-t"); }); var vt = document.getElementById("cc-vm-viewtoggle"); if (vt) { var vbar = vt.closest(".cc-vm-toolbar") || vt; if (vbar.parentNode) vbar.parentNode.removeChild(vbar); } } catch (e) {}

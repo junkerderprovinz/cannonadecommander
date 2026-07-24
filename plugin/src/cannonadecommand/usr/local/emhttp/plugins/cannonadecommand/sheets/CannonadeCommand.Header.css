@@ -624,3 +624,34 @@ html.cc-popups-on .ui-dialog :is(a, button, input, .ui-dialog-titlebar-close):fo
 html.cc-popups-on .sweet-alert :is(a, button):focus-visible {
   outline: none !important; box-shadow: none !important; filter: brightness(1.18);
 }
+
+/* ═══ #19 tasteful motion + #24 reduced-motion guard ═══════════════════════════════════════════════
+   A gentle entry animation for the CC-styled popups + smooth hover/colour transitions on the
+   interactive chrome. Deliberately NOT on live-updating elements (island chips repaint every few
+   seconds — animating them would flicker). Everything collapses under prefers-reduced-motion (a11y). */
+@keyframes cc-pop-in { from { opacity: 0; transform: translateY(7px) scale(.985); } to { opacity: 1; transform: none; } }
+html.cc-popups-on .sweet-alert,
+html.cc-popups-on .swal-modal,
+html.cc-popups-on .ui-dialog { animation: cc-pop-in .17s ease-out; }
+html.cc-header-on #menu .nav-item,
+html.cc-header-on #cc-brand,
+html.cc-docker-on .cc-badge,
+html.cc-shares-on .cc-badge { transition: background-color .14s ease, color .14s ease, filter .12s ease; }
+/* #16: functional badges react on mouseover. The ShipLog chip row (Changelog / update / version) +
+   the docker update/changelog chips lift on hover so the clickable ones read as interactive. */
+html.cc-docker-on .sl-chiprow > *,
+html.cc-docker-on .cc-3p,
+html.cc-docker-on a.cc-badge,
+html.cc-docker-on .cc-badge[onclick] { transition: filter .12s ease, background-color .14s ease; cursor: pointer; }
+html.cc-docker-on .sl-chiprow > *:hover,
+html.cc-docker-on a.cc-badge:hover,
+html.cc-docker-on .cc-badge[onclick]:hover { filter: brightness(1.2); }
+@media (prefers-reduced-motion: reduce) {
+  html.cc-popups-on .sweet-alert,
+  html.cc-popups-on .swal-modal,
+  html.cc-popups-on .ui-dialog { animation: none !important; }
+  html [class*="cc-"],
+  html #cc-island *,
+  html #cc-brand,
+  html #menu .nav-item { transition: none !important; animation: none !important; }
+}

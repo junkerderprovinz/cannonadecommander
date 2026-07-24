@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.58.0">
+  <!ENTITY version   "2.58.1">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,11 @@
 </ICON>
 
 <CHANGES>
+### 2.58.1
+- #22 Fix: die VM-Stat-Chips (Speicher/Datentraeger-IO/Netzwerk-IO) erschienen nicht, weil die Stats-
+  Tabelle LAZY erst beim Oeffnen ihres Subtabs gerendert wird und der Observer sie verpasste; jetzt am
+  stabilen #displaybox gebunden (live bewiesen: Chips erscheinen bei jedem Stats-Update).
+
 ### 2.58.0
 - #16 Funktionale Badges reagieren jetzt beim Mouseover (ShipLog-Changelog/Update-Chips + Docker-Update-
   Chips heben sich per Helligkeit hervor, lesen sich als klickbar).
@@ -1685,7 +1690,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>c9485f0d3d356ba0f19c5dadc1805bd1dadcb0744529610858671f8b646321ea</SHA256>
+  <SHA256>9efa36df5ed07c08c484a9175f3a2bac6518fba0d26560c34c9bc6617c48cfc5</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

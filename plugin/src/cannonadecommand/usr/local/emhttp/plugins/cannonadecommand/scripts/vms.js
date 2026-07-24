@@ -569,15 +569,16 @@
       setTimeout(function () { moPending = false; if (!dead) apply(); }, 300);
     });
     mo.observe(host, { childList: true, subtree: true });
-    // #22: the VM-usage-stats tbody (#vmstatsbody) is replaced ~every 3s via the vm_usage websocket —
-    // a dedicated LIGHT observer just re-wraps its readout cells (no full apply). Debounced; the
-    // already-wrapped guard means our own wrap can't loop it.
+    // #22: the VM-usage-stats table (#vmstats) is LAZILY rendered when its subtab is first opened, so an
+    // observer bound to #vmstats here would miss it. Bind to the STABLE #displaybox instead (always present
+    // on /VMs) and re-wrap the readout cells whenever anything under it changes. Debounced; the
+    // already-wrapped guard means our own wrap can't loop it. Cheap no-op while #vmstats isn't there.
     try {
-      var stats = document.getElementById("vmstats");
-      if (stats) {
+      var dbox = document.getElementById("displaybox");
+      if (dbox && !smo) {
         wrapVmStats();
         smo = new MutationObserver(function () { if (dead || smoPending) return; smoPending = true; setTimeout(function () { smoPending = false; if (!dead) wrapVmStats(); }, 200); });
-        smo.observe(stats, { childList: true, subtree: true });
+        smo.observe(dbox, { childList: true, subtree: true });
       }
     } catch (e) {}
   }

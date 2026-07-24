@@ -1127,16 +1127,20 @@ html.cc-docker-on.cc-on-addct #canvas dl > dt > span.cc-varlab,
 html.cc-docker-on.cc-on-addct .ui-dialog dl > dt > span.cc-varlab,
 html.cc-docker-on.cc-on-addct #canvas dl > dt.cc-dtlab,
 html.cc-docker-on.cc-on-addct .ui-dialog dl > dt.cc-dtlab {
-  display: inline-flex !important; align-items: center; gap: 6px; justify-self: start; width: fit-content; max-width: 100%;
+  display: inline-flex !important; align-items: center; gap: 6px; justify-self: end; width: fit-content; max-width: 100%;   /* right-aligned in the fixed label column so the badge hugs its field while every field stays aligned */
   padding: var(--cc-bmd-pad, 4px 12px); border-radius: var(--cc-b-radius, 999px);
   background: rgba(255, 255, 255, .08); /* #7: clean neutral chip — the old accent-mix read muddy/brown with warm accents */
   color: #e6e6e6; font-weight: 600; line-height: 1.3;
 }
-/* #7a: pull the field badges next to their fields — the native docker form dl uses a ~664px label
-   column, stranding the badge far to the left. A content-width label column closes the gap so the
-   badge sits right beside its input (like the variable rows). */
+/* #7a + alignment fix: pull the field badges next to their fields. The native docker form uses a
+   ~664px label column that strands the badge far to the left. The form is ~104 SEPARATE <dl> grids,
+   so a `max-content` label column sized EACH row independently -> every row's field started at a
+   different x and the whole page looked misaligned ("nichts mehr richtig ausgerichtet"). A FIXED
+   210px label column (fits the longest label, "Fixed MAC address (Optional)") makes every field
+   line up in one column; the badge is right-aligned inside it (justify-self:end below) so it still
+   sits right beside its input. */
 html.cc-docker-on.cc-on-addct #canvas dl,
-html.cc-docker-on.cc-on-addct .ui-dialog dl { grid-template-columns: minmax(110px, max-content) minmax(0, 1fr) !important; }
+html.cc-docker-on.cc-on-addct .ui-dialog dl { grid-template-columns: 210px minmax(0, 1fr) !important; }
 html.cc-docker-on.cc-on-addct #canvas dl > dt > span.cc-varlab i.fa,
 html.cc-docker-on.cc-on-addct .ui-dialog dl > dt > span.cc-varlab i.fa,
 html.cc-docker-on.cc-on-addct #canvas dl > dt.cc-dtlab i.fa,

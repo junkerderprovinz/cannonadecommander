@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.62.0">
+  <!ENTITY version   "2.62.1">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,17 @@
 </ICON>
 
 <CHANGES>
+### 2.62.1
+- Fix Container-Installationsseite (Container hinzufuegen): die Felder waren nicht mehr sauber ausgerichtet.
+  Die Form besteht aus ~104 EINZELNEN dl-Grids, und die content-breite Label-Spalte hatte jede Zeile eigen
+  dimensioniert, sodass jedes Feld an einer anderen x-Position begann. Jetzt eine FIXE Label-Spalte (fasst
+  das laengste Label) - alle Felder starten in einer Flucht, die Badges sind rechtsbuendig und sitzen so
+  weiterhin direkt neben ihrem Feld.
+- #8 Fix Die "Vorlage"-Dropdown-Liste liess sich nicht scrollen: das Panel steckte im scrollbaren
+  content-Bereich (overflow:auto) fest und wurde an dessen Rand abgeschnitten. Es oeffnet jetzt als frei
+  positioniertes Overlay (position:fixed) am Trigger, mit Hoehe auf den verfuegbaren Platz begrenzt - eine
+  lange Vorlagenliste bekommt ihre eigene Scrollleiste und klappt bei wenig Platz nach oben auf.
+
 ### 2.62.0
 - #11 Waehrend das Plugin-Install- bzw. Container-Update-Fenster streamt, zeigte Unraid am Rand einen
   grellgruenen "Ball-Fall"-Loader (drei #6ab034-Punkte). Diese Punkte tragen jetzt die CC-Akzentfarbe,
@@ -1721,7 +1732,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>5c1428560e70f6061d470857a09d645bf722784df7d9562231e593acc3a32b74</SHA256>
+  <SHA256>0e10b669b7900b8dd6335e0596e26af655fa26108e8162b0e22eb59e81a7f307</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

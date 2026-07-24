@@ -2291,9 +2291,31 @@
       if (sel.disabled) return;
       ctSyncOne(sel);                                       // reflect live disabled/selected BEFORE opening
       var open = wrap.classList.toggle("cc-open");
-      if (open) { var o2 = document.querySelectorAll(".cc-dsel.cc-open"); for (var j = 0; j < o2.length; j++) if (o2[j] !== wrap) o2[j].classList.remove("cc-open"); }
+      if (open) { var o2 = document.querySelectorAll(".cc-dsel.cc-open"); for (var j = 0; j < o2.length; j++) if (o2[j] !== wrap) o2[j].classList.remove("cc-open"); ccPositionDsel(trig, panel); }
     });
     ctSyncOne(sel);
+  }
+  // #8: the cc-dsel panel is position:absolute, so it is CLIPPED by the #canvas `div.content`
+  // (overflow:auto) it lives in — a long Vorlage list (many templates) gets cut off at content's
+  // edge with no reachable scrollbar ("Vorlagen-Liste nicht scrollbar"). On open, re-anchor the panel
+  // as position:fixed at the trigger and cap its height to the free viewport space, so it escapes the
+  // clip and always shows its own scrollbar. Flips upward when there is more room above.
+  function ccPositionDsel(trig, panel) {
+    try {
+      var r = trig.getBoundingClientRect(), gap = 4, edge = 8;
+      var below = window.innerHeight - r.bottom - edge, above = r.top - edge;
+      panel.style.position = "fixed";
+      panel.style.left = Math.round(r.left) + "px";
+      panel.style.minWidth = Math.round(r.width) + "px";
+      panel.style.maxWidth = "min(92vw, 480px)";
+      if (below >= 200 || below >= above) {
+        panel.style.top = Math.round(r.bottom + gap) + "px"; panel.style.bottom = "auto";
+        panel.style.maxHeight = Math.max(140, below) + "px";
+      } else {
+        panel.style.bottom = Math.round(window.innerHeight - r.top + gap) + "px"; panel.style.top = "auto";
+        panel.style.maxHeight = Math.max(140, above) + "px";
+      }
+    } catch (e) {}
   }
   function ctSyncOne(sel) {
     var w = sel.parentNode; if (!w || !w.classList || !w.classList.contains("cc-dsel")) return;
@@ -2464,6 +2486,9 @@
       ctMo = new MutationObserver(function () { if (ctPending) return; ctPending = true; setTimeout(function () { ctPending = false; ctApply(); }, 150); });
       ctMo.observe(document.body, { childList: true, subtree: true });   // config rows (#configLocation[Advanced]) + the re-filled jQuery-UI dialog land under body
       document.addEventListener("click", function () { var o = document.querySelectorAll(".cc-dsel.cc-open"); for (var i = 0; i < o.length; i++) o[i].classList.remove("cc-open"); });
+      // #8: the panel is now position:fixed, so it would drift from its trigger on scroll — close any
+      // open dropdown when the page/content scrolls (capture: catches the #canvas div.content scroller).
+      window.addEventListener("scroll", function () { var o = document.querySelectorAll(".cc-dsel.cc-open"); for (var i = 0; i < o.length; i++) o[i].classList.remove("cc-open"); }, true);
       window.addEventListener("storage", function (e) { try { if (e && e.key && e.key !== "cc.stateCache" && /^ccd?\./.test(e.key)) ctApply(); } catch (e2) {} });
     } catch (e) {}
   }

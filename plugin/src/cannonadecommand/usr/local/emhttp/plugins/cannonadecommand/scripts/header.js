@@ -36,6 +36,18 @@
   function pal() { try { var p = JSON.parse(g("cc.rbpal", "null")); if (p && p.length) return p; } catch (e) {} return RB; }
   function rbOn() { return g("cc.rainbow", "0") === "1"; }
   function rbColor(i) { if (!rbOn()) return accent(); var off = g("cc.rainbowrot", "0") === "0" ? 0 : RB_OFF; var p = pal(); return p[(i + off) % p.length]; }
+  function lumOf(hex) { var m = /^#?([0-9a-f]{6})$/i.exec(hex || ""); if (!m) return 255; var n = parseInt(m[1], 16); return 0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255); }
+  // #15: a popup TITLE badge sits on the dark (#161616) modal. A near-black palette slot — e.g. the
+  // German flag's black stripe — paints an INVISIBLE badge ("oberster Badge zu klein / nicht ordentlich").
+  // For the title we swap any too-dark slot for the BRIGHTEST palette slot (stays on-theme, e.g. the
+  // flag's gold), falling back to the accent if the whole palette is dark — so every window's title
+  // badge is readable and uniform across the UI.
+  function popBadge(i) {
+    var c = rbColor(i); if (lumOf(c) >= 64) return c;
+    var p = pal(), best = null, bl = -1;
+    for (var k = 0; k < p.length; k++) { var L = lumOf(p[k]); if (L > bl) { bl = L; best = p[k]; } }
+    return (best && bl >= 64) ? best : accent();
+  }
   // rainbow: colour the active tab, each utility icon box and the usage fill with a
   // rotated palette colour (in accent mode the CSS handles it via --cc-accent, so we
   // just clear our overrides). childList observer only, so these style writes can't loop.
@@ -86,7 +98,7 @@
       var ts = document.querySelectorAll(".ui-dialog .ui-dialog-title, .sweet-alert h2");
       for (var i = 0; i < ts.length; i++) {
         if (!rbOn()) { ts[i].style.removeProperty("background"); ts[i].style.removeProperty("color"); continue; }   // CSS accent vars rule
-        var c = rbColor(i), t = idealText(c);
+        var c = popBadge(i), t = idealText(c);
         ts[i].style.setProperty("background", c, "important"); ts[i].style.setProperty("color", t, "important");
       }
     } catch (e) {}

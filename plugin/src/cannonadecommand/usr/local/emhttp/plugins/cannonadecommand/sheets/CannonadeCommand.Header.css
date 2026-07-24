@@ -447,7 +447,7 @@ html.cc-popups-on .sweet-alert h2 {
 html.cc-popups-on .sweet-alert:has(pre) h2 {
   display: flex !important; width: 100% !important; max-width: none !important; box-sizing: border-box !important;
   margin: 6px 0 18px !important; height: 46px !important; padding: 0 24px !important;
-  font-size: 17px !important; letter-spacing: 1px !important;
+  font-size: 18px !important; letter-spacing: 1px !important;
 }
 /* the changelog body inside the <pre>: render the parsed markdown as blocks, turn each version
    heading into a small CC version badge, and lay the items out as a clean list (CC badge language). */
@@ -462,14 +462,22 @@ html.cc-popups-on .sweet-alert pre h3 {
   padding: 3px 12px !important; border-radius: var(--cc-b-radius, 999px) !important;
   font-size: 13px !important; font-weight: 700 !important; margin: 16px 0 8px !important; letter-spacing: .5px;
 }
+/* #15: ShipLog's changelog renders each entry's feature headline as an <h1> (natural 28px) — far too big
+   for a changelog item. Render it as a compact, brighter subheading so the window reads cleanly. */
+html.cc-popups-on .sweet-alert pre h1 {
+  font-size: 15px !important; font-weight: 700 !important; color: #f0f0f0 !important;
+  margin: 2px 0 6px !important; line-height: 1.4 !important; letter-spacing: normal !important;
+}
 html.cc-popups-on .sweet-alert pre ul { margin: 0 0 6px !important; padding-left: 20px !important; }
 html.cc-popups-on .sweet-alert pre li { color: #d6d6d6 !important; margin: 3px 0 !important; line-height: 1.5; }
-/* #21/#11/#14: the plugin install/update + container-update windows are .sweet-alert.nchan (they STREAM a
-   raw log — incl. the ASCII READY banner — into a <pre>). The changelog-pre rules above render markdown
-   (white-space:normal, inherit font), which COLLAPSES the ASCII banner. For the .nchan windows restore a
-   proper terminal look: monospace, kept whitespace, left-aligned, dark block that scrolls. */
+/* #21/#11/#14 + #15: the plugin install/update + container-update windows are .sweet-alert.nchan (they
+   STREAM a raw log — incl. the ASCII READY banner — into a <pre>). The changelog-pre rules above render
+   markdown (white-space:normal, inherit font), which COLLAPSES the ASCII banner. BUT the ShipLog CHANGELOG
+   window is ALSO .nchan yet its <pre> holds PARSED MARKDOWN (version <h3> badges + <ul> lists) — it must
+   stay proportional. So the terminal look is scoped to a raw-log <pre> (no parsed <h3>/<ul> inside);
+   a markdown <pre> keeps the clean changelog rendering. */
 html.cc-popups-on .sweet-alert.nchan p { text-align: left !important; }
-html.cc-popups-on .sweet-alert.nchan pre {
+html.cc-popups-on .sweet-alert.nchan pre:not(:has(h3)):not(:has(ul)) {
   white-space: pre !important; text-align: left !important;
   font-family: Consolas, "SFMono-Regular", ui-monospace, monospace !important;
   font-size: 12px !important; line-height: 1.35 !important; color: #d6d6d6 !important;

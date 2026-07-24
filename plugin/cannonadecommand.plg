@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.59.0">
+  <!ENTITY version   "2.60.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,17 @@
 </ICON>
 
 <CHANGES>
+### 2.60.0
+- #15 Das ShipLog-Changelog-Fenster ist jetzt stringent im CC-Design: der oberste Titel-Badge war bei
+  aktiver Flaggen-/Rainbow-Palette mit einem sehr dunklen Slot (z. B. dem schwarzen Streifen der Deutschland-
+  Flagge) gemalt und verschwand im dunklen Modal ("Badge zu klein / nicht ordentlich"). Zu dunkle Paletten-
+  Slots weichen fuer den Titel-Badge jetzt auf den HELLSTEN Slot der Palette aus (bleibt on-theme, z. B. das
+  Gold der Flagge), sonst auf den Akzent - so ist der Titel-Badge in JEDEM Fenster lesbar und einheitlich.
+- #15 Der Changelog-Inhalt rendert wieder als sauberes Markdown (proportional, Versions-Badges, Listen)
+  statt als Monospace-Log: der #21-Terminal-Look ist jetzt auf reine Log-Fenster gescopet (ein pre-Block
+  ohne geparste Markdown-Struktur), waehrend das Changelog-pre mit seinen Versions-Ueberschriften
+  proportional bleibt. Die Feature-Ueberschriften (frueher riesige 28px-Ueberschrift) werden kompakt.
+
 ### 2.59.0
 - #21/#11/#14 Die Plugin-Install/Update- und Container-Update-Fenster (.sweet-alert.nchan) stylen ihr
   Streaming-Log jetzt korrekt: das ASCII-READY-Banner + das Log rendern MONOSPACE, linksbuendig und in
@@ -1697,7 +1708,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>0d7f3f8ae2c8b74947a289d3d59fb48003543b678a8d1f436cdf7e0a249dd278</SHA256>
+  <SHA256>4b0011b027317bb86dda5fe46da7430550935ff95e78bc34095ed0961dcb9333</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

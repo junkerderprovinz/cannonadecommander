@@ -495,6 +495,13 @@ html.cc-popups-on .sweet-alert.nchan fieldset > legend {
   border: none !important; border-radius: var(--cc-b-radius, 999px) !important;
   padding: 3px 12px !important; font-size: 12px !important; font-weight: 600; text-transform: uppercase; letter-spacing: .6px;
 }
+/* #11: while the plugin-install / container-update dialog streams, Unraid shows a garish GREEN
+   "ball-fall" loader (.la-ball-fall, three #6ab034 dots) by the confirm button. Recolour its dots
+   to the CC accent so the progress indicator matches the dialog instead of the jarring green
+   (user: "untere ladeanimation ist haesslich und gruen … eine schoene neben den buttons"). */
+html.cc-popups-on .sweet-alert .la-ball-fall > div {
+  background: var(--cc-hdr-accent, var(--cc-accent, #2f6feb)) !important;
+}
 /* the native success/error/warning icon rings sit calmer on the dark surface */
 html.cc-popups-on .sweet-alert .sa-icon { margin-top: 6px !important; }
 html.cc-popups-on .ui-dialog .ui-dialog-titlebar-close {

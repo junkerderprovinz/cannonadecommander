@@ -3,7 +3,7 @@
   <!ENTITY name      "cannonadecommand">
   <!ENTITY slug      "cannonadecommand">
   <!ENTITY author    "Junker der Provinz">
-  <!ENTITY version   "2.61.0">
+  <!ENTITY version   "2.62.0">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/junkerderprovinz/cannonadecommand/main/plugin">
   <!ENTITY pluginURL "&gitURL;/&slug;.plg">
   <!ENTITY pkgURL    "https://github.com/junkerderprovinz/cannonadecommand/releases/download/v&version;">
@@ -27,6 +27,11 @@
 </ICON>
 
 <CHANGES>
+### 2.62.0
+- #11 Waehrend das Plugin-Install- bzw. Container-Update-Fenster streamt, zeigte Unraid am Rand einen
+  grellgruenen "Ball-Fall"-Loader (drei #6ab034-Punkte). Diese Punkte tragen jetzt die CC-Akzentfarbe,
+  damit die Fortschrittsanzeige zum restlichen Fenster passt statt im hässlichen Gruen zu blinken.
+
 ### 2.61.0
 - #17/#27 Der Plugin-Deinstallieren-Knopf auf der Plugins-Seite ist jetzt ein einzelnes rotes Papierkorb-
   ICON mit Sicherheitsabfrage - genau wie das Entfernen bei den Containern. Unraids separate Bestaetigungs-
@@ -1716,7 +1721,7 @@ rm -f &plgPath;/*.txz
 -->
 <FILE Name="&plgPath;/&txz;" Run="/sbin/upgradepkg --install-new --reinstall">
   <URL>&pkgURL;/&txz;</URL>
-  <SHA256>ed1e07d938d5ea4312d1b51906cc1a06ffab4ea999f369734f9aaf9b3edf2c55</SHA256>
+  <SHA256>5c1428560e70f6061d470857a09d645bf722784df7d9562231e593acc3a32b74</SHA256>
 </FILE>
 
 <!-- Post-install: enforce exec bits (NTFS/CI builds drop them) and (re)start the

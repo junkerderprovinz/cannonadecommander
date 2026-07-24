@@ -464,6 +464,29 @@ html.cc-popups-on .sweet-alert pre h3 {
 }
 html.cc-popups-on .sweet-alert pre ul { margin: 0 0 6px !important; padding-left: 20px !important; }
 html.cc-popups-on .sweet-alert pre li { color: #d6d6d6 !important; margin: 3px 0 !important; line-height: 1.5; }
+/* #21/#11/#14: the plugin install/update + container-update windows are .sweet-alert.nchan (they STREAM a
+   raw log — incl. the ASCII READY banner — into a <pre>). The changelog-pre rules above render markdown
+   (white-space:normal, inherit font), which COLLAPSES the ASCII banner. For the .nchan windows restore a
+   proper terminal look: monospace, kept whitespace, left-aligned, dark block that scrolls. */
+html.cc-popups-on .sweet-alert.nchan p { text-align: left !important; }
+html.cc-popups-on .sweet-alert.nchan pre {
+  white-space: pre !important; text-align: left !important;
+  font-family: Consolas, "SFMono-Regular", ui-monospace, monospace !important;
+  font-size: 12px !important; line-height: 1.35 !important; color: #d6d6d6 !important;
+  background: #0f0f0f !important; border: none !important; border-radius: 8px !important;
+  padding: 12px 14px !important; max-height: 60vh; overflow: auto;
+}
+/* #11/#14: the container-update dialog groups its steps in <fieldset>s (Lade Image / Stoppe Container …)
+   -> Carbon cards with an accent legend badge, matching the Tools-page install log. */
+html.cc-popups-on .sweet-alert.nchan fieldset {
+  background: #1c1c1c !important; border: none !important; border-radius: 10px !important;
+  margin: 0 0 12px !important; padding: 12px 14px !important; text-align: left !important;
+}
+html.cc-popups-on .sweet-alert.nchan fieldset > legend {
+  background: var(--cc-hdr-accent, var(--cc-accent, #2f6feb)) !important; color: var(--cc-hdr-accent-text, #fff) !important;
+  border: none !important; border-radius: var(--cc-b-radius, 999px) !important;
+  padding: 3px 12px !important; font-size: 12px !important; font-weight: 600; text-transform: uppercase; letter-spacing: .6px;
+}
 /* the native success/error/warning icon rings sit calmer on the dark surface */
 html.cc-popups-on .sweet-alert .sa-icon { margin-top: 6px !important; }
 html.cc-popups-on .ui-dialog .ui-dialog-titlebar-close {
